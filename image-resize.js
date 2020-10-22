@@ -1,6 +1,9 @@
 const Jimp = require('jimp');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
+// import Jimp from 'jimp';
+// import readlineSync from 'readline-sync';
+// import chalk from 'chalk';
 
 let img;
 let needle_count = 0;
@@ -41,17 +44,3 @@ if (img !== undefined) {
     // return image;
   });
 }
-// Create two-dimensional pixels rgb array based on image
-// if (img !== undefined) {
-//   Jimp.read(img)
-//     .then((image) => {
-//       if (row_count === 0) {
-//         row_count = Jimp.AUTO;
-//       }
-//       image.resize(needle_count, row_count).write('color_work.png');
-//       return image;
-//     })
-//     .catch((err) => {
-//       throw err;
-//     });
-// }
