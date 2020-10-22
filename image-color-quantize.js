@@ -12,7 +12,7 @@ const RgbQuant = require('rgbquant');
 let height, width, data;
 let palette, reduced;
 let colors_arr = [];
-let hex_arr = [];
+// let hex_arr = [];
 
 // if (max_colors === undefined) {
 let max_colors = readlineSync.questionInt(chalk.blue.bold('\nHow many colors would you like to use? '), {
@@ -42,7 +42,7 @@ function getData() {
       let q = new RgbQuant(opts);
       q.sample(data, width);
       palette = q.palette(true);
-      // let hex_arr = [];
+      let hex_arr = [];
       for (let h = 0; h < palette.length; ++h) {
         hex_arr.push(Jimp.rgbaToInt(palette[h][0], palette[h][1], palette[h][2], 255)); //255 bc hex
       }
@@ -52,12 +52,18 @@ function getData() {
         if (err) throw err;
         for (let y = 0; y < height; ++y) {
           let px_arr = reduced.splice(0, width);
-          colors_arr.push(px_arr); ////make it into an array with rows
+          let px_map = [...px_arr];
+          // console.log(px_map);
+          // console.log(typeof px_map[0]);
+          px_map = px_map.map((el) => (el += 1));
+          // console.log(px_map);
+          colors_arr.push(px_map); ////make it into an array with rows
           for (let x = 0; x < width; ++x) {
             let hex = hex_arr[px_arr[x]];
             img.setPixelColor(hex, x, y);
           }
         }
+        colors_arr.push(palette); //new
         img.write('reduced_colors.png');
         //   // module.exports = { colors_arr };
         resolve(colors_arr);
@@ -81,101 +87,14 @@ function getData() {
 }
 
 module.exports = { getData, colors_arr };
-// module.exports = getData(colors_arr);
-// module.exports = getData().then((result) => {
-//   // console.log(result);
-//   // carriers_arr = result;
-//   // console.log(result);
-//   return result;
-
-//   // return (carriers_arr = result);
-//   // import { colors_arr } from './image-color-quantize.js';
-// });
-// .finally(() => {
-//   return (module.exports = { colors_arr });
-//   //   module.exports = { colors_arr };
-//   //   // return colors_arr;
-//   //   // export { colors_arr };
-//   //   // arr = imageColors.colors_arr;
-// });
-// module.exports = await async(getData(colors_arr));
-
-// .finally(Promise.resolve());
-// }
-// // });
-// Promise.resolve(processImage).then(() => {
-//   for (let y = 0; y < height; ++y) {
-//     let px_arr = reduced.splice(0, width);
-//     colors_arr.push(px_arr); ////make it into an array with rows
-//     // for (let x = 0; x < width; ++x) {
-//     // let hex = hex_arr[px_arr[x]];
-//     // img.setPixelColor(hex, x, y);
-//     // }
-//   }
-// });
 
 // export default processImage();
-// processImage.then(() => {
-//   return colors_arr;
-// });
-// console.log(colors_arr);
-// for (let y = 0; y < height; ++y) {
-//   let px_arr = reduced.splice(0, width);
-//   colors_arr.push(px_arr); ////make it into an array with rows
-//   for (let x = 0; x < width; ++x) {
-//     let hex = hex_arr[px_arr[x]];
-//     img.setPixelColor(hex, x, y);
-//   }
-// }
-// module.exports = { colors_arr };
-// console.log(colors_arr);
-// image.dither565(); //?
-// });
-// );
+
 // export { colors_arr };
-// console.log(colors_arr);
-// }
-// module.exports = { colors_arr };
+
 // fs.writeFile('COLORS_DATA.json', JSON.stringify(colors_arr), 'utf8', (err) => {
 //   if (err) {
 //     throw err;
 //   }
 // });
-// if (!resolved) resolve();
-// resolved = true;
-// resolve(colors_arr); //new
-// resolve(colors_arr); //new
-// return colors_arr;
-// });
-// if (!resolved) resolve();
-// resolved = true;
-// .finally((colors_arr) => {
-//   return colors_arr;
-//   //   export { colors_arr };
-// })
-// .catch((err) => {
-//   throw err;
-// });
-// }
-// }
-// });
-// }
-
-// module.exports = { colors_arr };
-// export default p;
-// export { p };
-// p.then(() => {
-//   return colors_arr;
-// })
-// export { colors_arr };
-// const processImage = () =>
-//   p.then(() => {
-//     console.log(colors_arr);
-//     return colors_arr;
-//   });
-// // export default
-// export { processImage };
-// export { colors_arr };
-// export default { p };
-// export { p };
 // export p, colors_arr;

@@ -12,16 +12,73 @@
 
 const imageColors = require('./image-color-quantize.js');
 let carriers_arr = [];
+let carrier_count;
+let knitout = [];
+let row = [];
+let carrier_passes = [];
+const INFO = ({ OP, DIR, BED, NEEDLE, CARRIER }) => ({
+  OP,
+  DIR,
+  BED,
+  NEEDLE,
+  CARRIER,
+});
+
 imageColors
   .getData()
   .then((result) => {
     carriers_arr = result;
     return result;
   })
-  .then(() => { //heres where all the functions will go
-    console.log(carriers_arr); // arr = imageColors.colors_arr;
+  .then(() => {
+    //heres where all the functions will go
+    let palette = carriers_arr.pop();
+    carrier_count = palette.length;
+  })
+  .then((op, dir, bed, needle, carrier) => {
+    for (let y = 0; y < carriers_arr.length; ++y) {
+      op = 'knit'; //TODO: make this variable
+      y % 2 === 0 ? (dir = '+') : (dir = '-'); //TODO: make this depend on where to carriers live for that particular machine
+      bed = 'f'; //TODO: make this variable
+      for (let x = 0; x < carriers_arr[y].length; ++x) {
+        // console.log(carriers_arr[y]);
+        needle = x + 1; //so counting from 1 not 0
+        carrier = carriers_arr[y][x];
+        row.push(
+          INFO({
+            OP: op,
+            DIR: dir,
+            BED: bed,
+            NEEDLE: needle,
+            CARRIER: carrier,
+          })
+        );
+      }
+      knitout.push(row);
+      for (let i = 1; i <= carrier_count; ++i) {
+        let carrier_pass = row.filter((el) => el.CARRIER === i);
+        carrier_passes.push(carrier_pass);
+        carrier_pass = [];
+      }
+      row = [];
+      // carrier_passes = carrier_passes.filter((val) => val.some((v) => true));
+      carrier_passes = carrier_passes.map((it) => it.filter((_) => true)).filter((sub) => sub.length); //?keep empty passes ?
+      carrier_passes.forEach((el, idx) => (idx % 2 === 0 ? el.forEach((n) => (n.DIR = '+')) : el.forEach((n) => (n.DIR = '-'))));
+      // let info = INFO({
+      //   OP: op,
+      //   DIR: dir,
+      //   BED: bed,
+      //   NEEDLE: needle,
+      //   CARRIER: carrier,
+      // });
+      // console.log(info);
+      // knitout.push(`${info.OP} ${info.DIR} ${info.BED} ${info.NEEDLE} ${info.CARRIER}`);
+    }
+    console.log(carrier_passes);
   });
-
+// console.log(carrier_count); // arr = imageColors.colors_arr;
+// let dir; //TODO: make this alternate and according to row
+// console.log(knitout);
 
 // const { colors_arr } = require('./image-color-quantize');
 
