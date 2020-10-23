@@ -10,6 +10,8 @@
 //     console.log(colors_arr); // arr = imageColors.colors_arr;
 //   });
 
+const fs = require('fs');
+const readlineSync = require('readline-sync');
 const imageColors = require('./image-color-quantize.js');
 let machine, palette, color_count, init_dir, other_dir, needle_bed, bird, odd_bird, even_bird;
 let colors_arr = [];
@@ -17,18 +19,15 @@ let knitout = [];
 let row = [];
 let carrier_passes = [];
 let rows = [];
-// let jacquard_arr = [];
 let jacquard_passes = [];
 
-// let needle_bed = 253; ////one extra so not counting from 0
-
-const INFO = ({ OP, DIR, BED, NEEDLE, CARRIER }) => ({
-  OP,
-  DIR,
-  BED,
-  NEEDLE,
-  CARRIER,
-});
+// const INFO = ({ OP, DIR, BED, NEEDLE, CARRIER }) => ({
+//   OP,
+//   DIR,
+//   BED,
+//   NEEDLE,
+//   CARRIER,
+// });
 
 imageColors
   .getData()
@@ -52,7 +51,6 @@ imageColors
   .then((op, dir, bed, needle, carrier) => {
     for (let y = 0; y < colors_arr.length; ++y) {
       op = 'knit'; //TODO: make this variable
-      // y % 2 === 0 ? (dir = '+') : (dir = '-'); //TODO: make this depend on where to carriers live for that particular machine
       bed = 'f'; //TODO: make this variable
       for (let x = 0; x < colors_arr[y].length; ++x) {
         needle = x + 1; //so counting from 1 not 0
@@ -68,9 +66,7 @@ imageColors
         //   })
         // );
       }
-      // knitout.push(row);
       for (let i = 1; i <= color_count; ++i) {
-        // let carrier_pass = row.filter((el) => el.CARRIER === i);
         let carrier_pass = row.filter((n) => n[1] === i);
         carrier_passes.push(carrier_pass);
         carrier_pass = [];
@@ -78,34 +74,22 @@ imageColors
       rows.push(carrier_passes.map((it) => it.filter((_) => true)).filter((sub) => sub.length)); ////?keep empty passes ?
       row = [];
       carrier_passes = [];
-      // console.log(carrier_passes);
-      // carrier_passes = carrier_passes.map((it) => it.filter((_) => true)).filter((sub) => sub.length); //?keep empty passes ?
-      // carrier_passes.forEach((el, idx) => (idx % 2 === 0 ? el.forEach((n) => (n.DIR = '+')) : el.forEach((n) => (n.DIR = '-'))));
     }
     for (let i = 0; i < rows.length; ++i) {
       if (i % 2 !== 0) {
         rows[i].reverse();
       }
     }
-    console.log(rows[0]);
-    console.log(rows[1]);
     jacquard_passes = rows.flat();
-    console.log(jacquard_passes);
     let taken;
     for (let i = 0; i < jacquard_passes.length; ++i) {
       i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
       carrier = jacquard_passes[i][0][1];
-      // console.log(jacquard_passes[i]);
-      // for (let x = 0; x < jacquard_passes[i].length; ++x) {
       const knitoutLines = (x) => {
         let front = jacquard_passes[i].find((element) => element[0] === x);
-        // if (jacquard_passes[i][x] !== undefined) {
         if (front !== undefined) {
-          // knitout.push(`knit ${dir} f${jacquard_passes[i][x][0]} ${jacquard_passes[i][x][1]}`);
-          // knitout.push(`knit ${dir} f${jacquard_passes[i][x][0]} ${carrier}`);
           knitout.push(`knit ${dir} f${front[0]} ${carrier}`);
           taken = true;
-          // jacquard_passes[i][x][0] === x + 1 ? (taken = true) : (taken = false);
         } else {
           taken = false;
         }
@@ -125,48 +109,23 @@ imageColors
           knitoutLines(x);
         }
       }
-      // for (let x = 1; x < colors_arr[0].length - 1; ++x) {
-      // let front = jacquard_passes[i].find((element) => element[0] === x);
-      // // if (jacquard_passes[i][x] !== undefined) {
-      // if (front !== undefined) {
-      //   // knitout.push(`knit ${dir} f${jacquard_passes[i][x][0]} ${jacquard_passes[i][x][1]}`);
-      //   // knitout.push(`knit ${dir} f${jacquard_passes[i][x][0]} ${carrier}`);
-      //   knitout.push(`knit ${dir} f${front[0]} ${carrier}`);
-      //   taken = true;
-      //   // jacquard_passes[i][x][0] === x + 1 ? (taken = true) : (taken = false);
-      // } else {
-      //   taken = false;
-      // }
-      // if (i % 2 === 0 && !taken && x % 2 !== 0) {
-      //   knitout.push(`knit ${dir} b${x} ${carrier}`);
-      // }
-      // if (i % 2 !== 0 && !taken && x % 2 === 0) {
-      //   knitout.push(`knit ${dir} b${x} ${carrier}`);
-      // }
     }
     console.log(knitout);
-    // jacquard_arr = [...rows];
-    // let reverse_arr = [];
-    // for (let i = 0; i < rows.length; ++i) {
-    //   if (i % 2 === 0) {
-    //     jacquard_arr.push(rows[i]);
-    //   } else {
-    //     for (let x = rows[i].length - 1; x >= 0; --x) {
-    //       reverse_arr.push(rows[i][x]);
-    //     }
-    //     jacquard_arr.push(reverse_arr);
-    //     reverse_arr = [];
-    //   }
-    // }
+    let carriers_str = '';
+    for (let i = 1; i <= color_count; ++i) {
+      carriers_str = `${carriers_str} ${i}`;
+    }
+    knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`);
   })
-  .then(() => {
-    carrier_passes.forEach((el) => {
-      //COME BACK!
-      let knitout_str = JSON.stringify(el)
-        .replace(/"/gi, '')
-        .replace(/{|}|OP:|DIR:|BED:|NEEDLE:|CARRIER:/gi, '')
-        .split(',');
-      knitout_str = knitout_str.join(' ');
-      // xfer_str = xfer_str.join(',').replace(/\n\n/gi, '\n'); //new //.replace(/\\\\/g, '\\') //new//check /
+  .finally(() => {
+    //COME BACK!
+    let knitout_str = JSON.stringify(knitout)
+      .replace(/\[|\]|"/gi, '')
+      .split(',');
+    knitout_str = knitout_str.join('\n');
+    let new_file = readlineSync.question('What would you like to save your file as? ');
+    fs.writeFile(`./out-files/${new_file}.k`, knitout_str, function (err) {
+      if (err) return console.log(err);
+      console.log(`\nThe knitout has successfully been written and can be found in the 'out-files' folder.`);
     });
   });
