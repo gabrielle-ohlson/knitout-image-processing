@@ -14,7 +14,7 @@ let palette, reduced;
 let colors_arr = [];
 // let hex_arr = [];
 
-let machine = readlineSync.question(chalk.blue.bold('\nWhat knitting machine will you being using? '), {
+let machine = readlineSync.question(chalk.blue.bold('\nWhat knitting machine will you be using? '), {
   limit: [
     function (input) {
       return input.toLowerCase().includes(`shima`) || input.toLowerCase().includes(`kniterate`); //? include stoll too?

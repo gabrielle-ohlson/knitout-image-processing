@@ -1,3 +1,4 @@
+//TODO: add inhook, outhook, & release hook; options for bind-off and cast-on (//? maybe if kniterate machine, make default cast-on waste yarn, and then otherwise, give option?)
 // import * as imageColors from './image-color-quantize.js';
 // let colors_arr = [];
 // imageColors
@@ -12,6 +13,7 @@
 
 const fs = require('fs');
 const readlineSync = require('readline-sync');
+const chalk = require('chalk');
 const imageColors = require('./image-color-quantize.js');
 let machine, palette, color_count, init_dir, other_dir, needle_bed, bird, odd_bird, even_bird;
 let colors_arr = [];
@@ -123,9 +125,10 @@ imageColors
       .replace(/\[|\]|"/gi, '')
       .split(',');
     knitout_str = knitout_str.join('\n');
-    let new_file = readlineSync.question('What would you like to save your file as? ');
+    let new_file = readlineSync.question(chalk.blue.bold('What would you like to save your file as? '));
+    if (new_file.includes('.')) new_file = new_file.slice(0, new_file.indexOf('.'));
     fs.writeFile(`./out-files/${new_file}.k`, knitout_str, function (err) {
       if (err) return console.log(err);
-      console.log(`\nThe knitout has successfully been written and can be found in the 'out-files' folder.`);
+      console.log(chalk.green(`\nThe knitout file has successfully been written and can be found in the 'out-files' folder.`));
     });
   });
