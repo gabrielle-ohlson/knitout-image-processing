@@ -14,13 +14,33 @@ let palette, reduced;
 let colors_arr = [];
 // let hex_arr = [];
 
-// if (max_colors === undefined) {
-let max_colors = readlineSync.questionInt(chalk.blue.bold('\nHow many colors would you like to use? '), {
-  limit: [1, 2, 3, 4, 5, 6],
+let machine = readlineSync.question(chalk.blue.bold('\nWhat knitting machine will you being using? '), {
+  limit: [
+    function (input) {
+      return input.toLowerCase().includes(`shima`) || input.toLowerCase().includes(`kniterate`); //? include stoll too?
+    },
+  ],
   limitMessage: chalk.red(
-    '-- The kniterate machine is capable of working with a max of 6 colors per row, but $<lastInput> is not within that accepted range. Please input a valid number.'
+    '-- The program does not currently support the $<lastInput> machine. Please open an issue at the github repository (https://github.com/textiles-lab/knitout-kniterate) to request for this machine to be supported.'
   ),
 });
+machine = machine.toLowerCase();
+// if (max_colors === undefined) {
+// let max_colors = readlineSync.questionInt(chalk.blue.bold('\nHow many colors would you like to use? '), {
+let carrier_count;
+machine.includes('shima') ? (carrier_count = 10) : (carrier_count = 6); //TODO: limit needle bed with this too (prob will have to use promises)
+let max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would you like to use? '), {
+  // limit: [
+  //   function (input) {
+  //     Number(input) >= 1 && Number(input) <= 6; //? include stoll too?
+  //   },
+  // ],
+  limit: machine.includes('shima') ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [1, 2, 3, 4, 5, 6],
+  limitMessage: chalk.red(
+    `-- The ${machine} machine is capable of working with a max of ${carrier_count} colors per row, but $<lastInput> is not within that accepted range. Please input a valid number.`
+  ),
+});
+max_colors = Number(max_colors);
 
 let opts = {
   colors: max_colors,
@@ -63,7 +83,7 @@ function getData() {
             img.setPixelColor(hex, x, y);
           }
         }
-        colors_arr.push(palette); //new
+        colors_arr.push(palette, machine); //new
         img.write('reduced_colors.png');
         //   // module.exports = { colors_arr };
         resolve(colors_arr);
