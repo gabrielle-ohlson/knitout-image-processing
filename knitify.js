@@ -11,15 +11,16 @@
 //   });
 
 const imageColors = require('./image-color-quantize.js');
-let machine, palette, color_count;
+let machine, palette, color_count, init_dir, other_dir, needle_bed, bird, odd_bird, even_bird;
 let colors_arr = [];
 let knitout = [];
 let row = [];
 let carrier_passes = [];
 let rows = [];
+// let jacquard_arr = [];
+let jacquard_passes = [];
 
 // let needle_bed = 253; ////one extra so not counting from 0
-let needle_bed, bird, odd_bird, even_bird;
 
 const INFO = ({ OP, DIR, BED, NEEDLE, CARRIER }) => ({
   OP,
@@ -40,7 +41,7 @@ imageColors
     machine = colors_arr.pop();
     palette = colors_arr.pop();
     color_count = palette.length;
-    machine.includes('kniterate') ? (needle_bed = 253) : (needle_bed = 541); ////one extra so not counting from 0
+    machine.includes('kniterate') ? ((needle_bed = 253), (init_dir = '+'), (other_dir = '-')) : ((needle_bed = 541), (init_dir = '-'), (other_dir = '+')); ////one extra so not counting from 0
     //TODO: check to see how many needles Shima SWG091N2 actually has (15 gauge, 36inch??)
     bird = Array.from({ length: needle_bed }, (e, i) => i);
     odd_bird = bird.filter((x, i) => i % 2 !== 0);
@@ -51,7 +52,7 @@ imageColors
   .then((op, dir, bed, needle, carrier) => {
     for (let y = 0; y < colors_arr.length; ++y) {
       op = 'knit'; //TODO: make this variable
-      y % 2 === 0 ? (dir = '+') : (dir = '-'); //TODO: make this depend on where to carriers live for that particular machine
+      // y % 2 === 0 ? (dir = '+') : (dir = '-'); //TODO: make this depend on where to carriers live for that particular machine
       bed = 'f'; //TODO: make this variable
       for (let x = 0; x < colors_arr[y].length; ++x) {
         needle = x + 1; //so counting from 1 not 0
@@ -81,37 +82,80 @@ imageColors
       // carrier_passes = carrier_passes.map((it) => it.filter((_) => true)).filter((sub) => sub.length); //?keep empty passes ?
       // carrier_passes.forEach((el, idx) => (idx % 2 === 0 ? el.forEach((n) => (n.DIR = '+')) : el.forEach((n) => (n.DIR = '-'))));
     }
+    for (let i = 0; i < rows.length; ++i) {
+      if (i % 2 !== 0) {
+        rows[i].reverse();
+      }
+    }
     console.log(rows[0]);
-    console.log(rows[20]);
-    console.log(rows.length);
-    ///
-    // let jacquard_arr = [...carrier_passes];
-    // let jacquard_arr = Object.values(carrier_passes);
-    // let jacquard_arr = [];
-    // carrier_passes.forEach((obj) => jacquard_arr.push(Object.values(obj)));
-    // let results = [];
-    // let jacquard_passes = [];
-    // let cycles = [];
-    // for (let i = 0; jacquard_arr.length > 0; ++i) {
-    //   if (jacquard_arr[i] === undefined) {
-    //     break;
-    //   }
-    //   // if (jacquard_arr[i] !== undefined) {
-    //   if (!cycles.includes(jacquard_arr[i][0].CARRIER)) {
-    //     cycles.push(jacquard_arr[i][0].CARRIER);
-    //     // results.push(jacquard_arr[i]);
-    //     // results.push(Object.values(jacquard_arr[i]));
-    //     jacquard_arr[i].forEach((obj) => results.push(Object.values(obj)));
-    //     // results.push({ ...jacquard_arr[i] });
+    console.log(rows[1]);
+    jacquard_passes = rows.flat();
+    console.log(jacquard_passes);
+    let taken;
+    for (let i = 0; i < jacquard_passes.length; ++i) {
+      i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
+      carrier = jacquard_passes[i][0][1];
+      // console.log(jacquard_passes[i]);
+      // for (let x = 0; x < jacquard_passes[i].length; ++x) {
+      const knitoutLines = (x) => {
+        let front = jacquard_passes[i].find((element) => element[0] === x);
+        // if (jacquard_passes[i][x] !== undefined) {
+        if (front !== undefined) {
+          // knitout.push(`knit ${dir} f${jacquard_passes[i][x][0]} ${jacquard_passes[i][x][1]}`);
+          // knitout.push(`knit ${dir} f${jacquard_passes[i][x][0]} ${carrier}`);
+          knitout.push(`knit ${dir} f${front[0]} ${carrier}`);
+          taken = true;
+          // jacquard_passes[i][x][0] === x + 1 ? (taken = true) : (taken = false);
+        } else {
+          taken = false;
+        }
+        if (i % 2 === 0 && !taken && x % 2 !== 0) {
+          knitout.push(`knit ${dir} b${x} ${carrier}`);
+        }
+        if (i % 2 !== 0 && !taken && x % 2 === 0) {
+          knitout.push(`knit ${dir} b${x} ${carrier}`);
+        }
+      };
+      if (dir === '+') {
+        for (let x = 1; x < colors_arr[0].length - 1; ++x) {
+          knitoutLines(x);
+        }
+      } else {
+        for (let x = colors_arr[0].length - 1; x > 0; --x) {
+          knitoutLines(x);
+        }
+      }
+      // for (let x = 1; x < colors_arr[0].length - 1; ++x) {
+      // let front = jacquard_passes[i].find((element) => element[0] === x);
+      // // if (jacquard_passes[i][x] !== undefined) {
+      // if (front !== undefined) {
+      //   // knitout.push(`knit ${dir} f${jacquard_passes[i][x][0]} ${jacquard_passes[i][x][1]}`);
+      //   // knitout.push(`knit ${dir} f${jacquard_passes[i][x][0]} ${carrier}`);
+      //   knitout.push(`knit ${dir} f${front[0]} ${carrier}`);
+      //   taken = true;
+      //   // jacquard_passes[i][x][0] === x + 1 ? (taken = true) : (taken = false);
+      // } else {
+      //   taken = false;
+      // }
+      // if (i % 2 === 0 && !taken && x % 2 !== 0) {
+      //   knitout.push(`knit ${dir} b${x} ${carrier}`);
+      // }
+      // if (i % 2 !== 0 && !taken && x % 2 === 0) {
+      //   knitout.push(`knit ${dir} b${x} ${carrier}`);
+      // }
+    }
+    console.log(knitout);
+    // jacquard_arr = [...rows];
+    // let reverse_arr = [];
+    // for (let i = 0; i < rows.length; ++i) {
+    //   if (i % 2 === 0) {
+    //     jacquard_arr.push(rows[i]);
     //   } else {
-    //     // jacquard_passes.push(Object.values(results));
-    //     jacquard_passes.push(results);
-    //     // jacquard_passes.push(JSON.parse(JSON.stringify(results)));
-    //     // jacquard_passes.push({ ...results });
-    //     jacquard_arr = jacquard_arr.slice(results.length);
-    //     results = [];
-    //     cycles = [];
-    //     i = -1;
+    //     for (let x = rows[i].length - 1; x >= 0; --x) {
+    //       reverse_arr.push(rows[i][x]);
+    //     }
+    //     jacquard_arr.push(reverse_arr);
+    //     reverse_arr = [];
     //   }
     // }
   })
