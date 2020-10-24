@@ -14,7 +14,7 @@ let machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machi
     },
   ],
   limitMessage: chalk.red(
-    '-- The program does not currently support the $<lastInput> machine. Please open an issue at the github repository (https://github.com/textiles-lab/knitout-kniterate) to request for this machine to be supported.'
+    '-- The program does not currently support the $<lastInput> machine. Please open an issue at the github repository (https://github.com/textiles-lab/knitout-image-processing) to request for this machine to be supported.'
   ),
 });
 machine = machine.toLowerCase();
@@ -29,7 +29,7 @@ let max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would 
   ),
 });
 max_colors = Number(max_colors);
-console.log(chalk.green(`-- Knitting with ${max_colors} colors.`)); //? model ??
+console.log(chalk.green(`-- Knitting with ${max_colors} colors.`)); //TODO: decide how to phrase this (? model ??)
 
 let opts = {
   colors: max_colors,
@@ -65,7 +65,7 @@ function getData() {
             img.setPixelColor(hex, x, y);
           }
         }
-        colors_arr.push(palette, machine); //new
+        colors_arr.push(palette, machine);
         img.write('reduced_colors.png');
         resolve(colors_arr);
       });
