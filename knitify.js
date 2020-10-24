@@ -1,4 +1,5 @@
-//TODO: add inhook, outhook, & release hook; options for bind-off and cast-on (//? maybe if kniterate machine, make default cast-on waste yarn, and then otherwise, give option?)
+//TODO: add inhook, outhook, & release hook; also //check with lab whether should include inhook etc. for kniterate or just forgo it (depending on backend stuff)
+//TODO: add options for bind - off and cast - on(//? maybe if kniterate machine, make default cast-on waste yarn, and then otherwise, give option?)
 
 // import * as imageColors from './image-color-quantize.js';
 // let colors_arr = [];
@@ -57,8 +58,8 @@ imageColors
   })
   .then((op, dir, bed, needle, carrier) => {
     for (let y = 0; y < colors_arr.length; ++y) {
-      op = 'knit'; //TODO: make this variable
-      bed = 'f'; //TODO: make this variable
+      op = 'knit'; //TODO: make this vary
+      bed = 'f'; //TODO: make this vary
       for (let x = 0; x < colors_arr[y].length; ++x) {
         needle = x + 1; //so counting from 1 not 0
         carrier = colors_arr[y][x];
@@ -82,14 +83,28 @@ imageColors
       row = [];
       carrier_passes = [];
     }
+    let passes_per_row = []; //? optional
     for (let i = 0; i < rows.length; ++i) {
       if (i % 2 !== 0) {
         rows[i].reverse();
       }
+      passes_per_row.push(rows[i].length); //? optional
     }
+    console.log(passes_per_row); //remove
+    console.log(rows[0]); //remove
     jacquard_passes = rows.flat();
+    let row_count = 1; //? optional
+    let prev_row = 0; //? optional
+    knitout.push(`;!row: ${row_count}`); //? optional
     let taken;
+    let neg_carrier;
     for (let i = 0; i < jacquard_passes.length; ++i) {
+      if (i === prev_row + passes_per_row[row_count - 1]) {
+        //? optional
+        row_count += 1; //TODO: see if this needs to start as two
+        knitout.push(`;!row: ${row_count}`);
+        prev_row = i;
+      } //?
       i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
       carrier = jacquard_passes[i][0][1];
       const knitoutLines = (x) => {
@@ -101,27 +116,14 @@ imageColors
           taken = false;
         }
         if (i % 2 === 0 && !taken && x % 2 !== 0) {
-          // if (i % 2 === 0 && x % 2 !== 0) {
-          //   if (i === 0) {
-          //     caston.push(`knit ${dir} f${x} ${carrier}`);
-          //   }
-          // if (!taken) {
           knitout.push(`knit ${dir} b${x} ${carrier}`);
-          // }
         }
         if (i % 2 !== 0 && !taken && x % 2 === 0) {
-          // if (i === 1) {
-          //   caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
-          // }
-          // if (!taken) {
           knitout.push(`knit ${dir} b${x} ${carrier}`);
-          // }
         }
       };
       if (dir === '+') {
-        // for (let x = 1; x < colors_arr[0].length - 1; ++x) {
         for (let x = 1; x <= colors_arr[0].length; ++x) {
-          //TODO: check whether this should be -1
           knitoutLines(x);
           if (i === 0 || i === 1) {
             //TODO: determine whether it matters if first pass starts with needle on front bed
@@ -129,17 +131,17 @@ imageColors
           }
         }
       } else {
-        // for (let x = colors_arr[0].length - 1; x > 0; --x) {
         for (let x = colors_arr[0].length; x > 0; --x) {
           knitoutLines(x);
           if (i === 0 || i === 1) {
+            neg_carrier = carrier;
             x % 2 === 0 ? caston.push(`knit ${dir} f${x} ${carrier}`) : caston.push(`knit ${dir} b${x} ${carrier}`);
           }
         }
       }
     }
     // console.log(knitout); //remove
-    console.log(caston); //remove
+    // console.log(caston); //remove
     let carriers_str = '';
     let carriers_arr = [];
     for (let i = 1; i <= color_count; ++i) {
@@ -147,7 +149,7 @@ imageColors
       carriers_arr.push(i);
     }
     // let carriers = carriers_str.replace(/\s+/g, ''); ////make version without spaces
-    knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`);
+    // knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`); //? moved
     if (machine.includes('shima')) {
       knitout.unshift(caston); //check if this need to be JSON.stringify -ed first (to get rid of array stuff)...also could just flat
     } else if (machine.includes('kniterate')) {
@@ -157,19 +159,6 @@ imageColors
         caston.length
       )}`; //TODO: figure out what to do if less than 21 needles are in work
       kniterate_caston_base = kniterate_caston_base.split(',');
-      console.log(kniterate_caston_base);
-      // let kniterate_caston_base;
-      // caston[0].includes('+')
-      //   ? (kniterate_caston_base = `${caston.slice(0, caston.indexOf(`knit + f21 ${jacquard_passes[0][0][1]}`))},${caston.slice(
-      //       caston.indexOf(`knit - f20 ${caston[caston.length - 1].charAt(caston[caston.length - 1][caston[caston.length - 1].length - 1])}`),
-      //       caston.length
-      //     )}`)
-      //   : (kniterate_caston_base = `${caston.slice(
-      //       caston.indexOf(`knit + f1 ${caston[caston.length - 1].charAt(caston[caston.length - 1][caston[caston.length - 1].length - 1])}`),
-      //       caston.indexOf(`knit + f21 ${caston[caston.length - 1].charAt(caston[caston.length - 1][caston[caston.length - 1].length - 1])}`)
-      //     )},${caston.slice(caston.indexOf(`knit - f20 ${jacquard_passes[0][0][1]}`), caston.indexOf(`knit - b1 ${jacquard_passes[0][0][1]}` + 1))}`);
-      // kniterate_caston_base = kniterate_caston_base.split(',');
-
       let kniterate_caston = [];
       for (let i = 0; i < color_count; ++i) {
         carrier = carriers_arr.shift();
@@ -177,14 +166,34 @@ imageColors
         i === 0 ? kniterate_caston.push(carrier_caston, carrier_caston) : kniterate_caston.push(carrier_caston);
       }
       kniterate_caston = kniterate_caston.flat();
-      console.log(kniterate_caston); //remove
+      let waste_yarn_section = [];
+      carrier = jacquard_passes[0][0][1];
+      let waste_yarn = caston.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${carrier}`));
+      for (let i = 0; i < 35; ++i) {
+        ////75 total passes
+        waste_yarn_section.push(waste_yarn);
+      }
+      for (let i = 0; i < 14; ++i) {
+        // i % 2 === 0 ? (dir = '+') : (dir = '-');
+        i % 2 !== 0 && i < 13 ? (dir = '-') : (dir = '+'); //check
+        if (i === 13) carrier = neg_carrier; ////make draw thread the carrier that needs to end up on right side so its positioned there
+        //TODO: ask lab whether should include kickback pass inbtw drop and draw thread since in same direction, or if backend will be able to figure that out
+        if (dir === '+') {
+          for (let x = 1; x <= colors_arr[0].length; ++x) {
+            i !== 12 ? waste_yarn_section.push(`knit + f${x} ${carrier}`) : waste_yarn_section.push(`drop + b${x}`); //TODO: //check with lab whether drop is the right op
+          }
+        } else {
+          for (let x = colors_arr[0].length; x > 0; --x) {
+            waste_yarn_section.push(`knit - b${x} ${carrier}`);
+          }
+        }
+      }
+      waste_yarn_section = waste_yarn_section.flat();
+      // console.log(waste_yarn_section); //remove
+      knitout.unshift(waste_yarn_section);
       knitout.unshift(kniterate_caston);
-      // for (let i = 1; i <= color_count; ++i) {
-      //   // console.log(str.slice(2));
-      //   carrier = knitout.unshift(`knit ${dir} f${x} ${carrier}`);
-      //   knitout.unshift(`knit ${dir} b${x} ${carrier}`);
-      // }
     }
+    knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`); //TODO: ask lab whether Carriers heading should include all possible carriers or just the used ones
   })
   .finally(() => {
     let knitout_str = JSON.stringify(knitout)
