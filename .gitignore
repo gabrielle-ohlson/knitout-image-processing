@@ -1,0 +1,18 @@
+#exclude all images
+*.png
+*.jpg
+*.jpeg
+*.bmp
+
+#exlude all k-code and knitout files
+*.kc
+*.k
+
+#exclude test files
+shape-cropper.js
+shape-processor.js
+shape-writer.js
+image-color-quantizer-deprecated.js
+
+#exlude .txt
+*.txt
