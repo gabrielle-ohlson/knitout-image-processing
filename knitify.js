@@ -219,6 +219,6 @@ imageColors
     if (new_file.includes('.')) new_file = new_file.slice(0, new_file.indexOf('.'));
     fs.writeFile(`./out-files/${new_file}.k`, knitout_str, function (err) {
       if (err) return console.log(err);
-      console.log(chalk.green(`\nThe knitout file has successfully been written and can be found in the 'out-files' folder.`));
+      console.log(chalk.green(`\nThe knitout file has successfully been written and can be found in the 'out-files' folder.\nOpen 'knit_motif.png' (located in the parent directory) to see a visual depiction of the knitting instructions.`));
     });
   });
