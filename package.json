@@ -1,19 +1,19 @@
 {
   "name": "knitout-kniterate",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A command-line program to process images and output knitting machine instructions for color work--written in CMU Textiles Lab's machine independent language, knitout.",
   "main": "knitify.js",
   "scripts": {
     "start": "node image-resize.js && node knitify.js"
   },
   "engines": {
-    "node": "14.13.1"
+    "node": ">=11.15.0"
   },
   "dependencies": {
-    "chalk": ">=4.1.0",
-    "readline-sync": "1.4.10",
-    "jimp": "0.16.1",
-    "rgbquant": "1.1.2"
+    "chalk": "^4.1.0",
+    "readline-sync": "^1.4.10",
+    "jimp": "^0.16.1",
+    "rgbquant": "^1.1.2"
   },
   "repository": {
     "type": "git",

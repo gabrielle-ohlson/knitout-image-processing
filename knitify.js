@@ -196,7 +196,26 @@ imageColors
       .replace(/\[|\]|"/gi, '')
       .split(',');
     knitout_str = knitout_str.join('\n');
-    let new_file = readlineSync.question(chalk.blue.bold('\nWhat would you like to save your file as? '));
+    readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nSave as: ') });
+    let new_file, overwrite;
+    readlineSync.promptLoop(function (input) {
+      new_file = input;
+      if (fs.existsSync(`./out-files/${input}`) || fs.existsSync(`./out-files/${input}.k`)) {
+        overwrite = readlineSync.keyInYNStrict(
+          chalk.black.bgYellow(`! WARNING:`) + ` A file by the name of '${input}' already exists. Proceed and overwrite existing file?`
+        );
+        return overwrite;
+      }
+      // if (!/\.k$/i.test(input)) {
+      //   console.log(chalk.red(`-- ${input} is not a knitout (.k) file.\n`));
+      // }
+      if (!fs.existsSync(`./out-files/${input}`)) {
+        // return /\.k$/i.test(input);
+        return !fs.existsSync(`./out-files/${input}.k`);
+      }
+    });
+    console.log(chalk.green(`-- Saving new file as: ${new_file}`));
+    readlineSync.setDefaultOptions({ prompt: '' });
     if (new_file.includes('.')) new_file = new_file.slice(0, new_file.indexOf('.'));
     fs.writeFile(`./out-files/${new_file}.k`, knitout_str, function (err) {
       if (err) return console.log(err);
