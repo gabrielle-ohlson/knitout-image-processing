@@ -66,7 +66,7 @@ function getData() {
           }
         }
         colors_arr.push(palette, machine);
-        img.write('reduced_colors.png');
+        img.write('knit_motif.png');
         resolve(colors_arr);
       });
     });
