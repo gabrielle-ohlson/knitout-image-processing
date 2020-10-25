@@ -83,8 +83,8 @@ imageColors
     }
     jacquard_passes = rows.flat();
     let row_count = 1; //? optional
-    // knitout.push(`;!row: ${row_count}`); //? optional //go back! //?
-    knitout.push(`;!row`); //? optional
+    knitout.push(`;!row: ${row_count}`); //? optional //go back! //?
+    // knitout.push(`;!row`); //? optional
     let prev_row = 0; //? optional
     let taken;
     let inhook;
@@ -93,8 +93,8 @@ imageColors
       if (i === prev_row + passes_per_row[row_count - 1]) {
         //? optional
         row_count += 1; //TODO: see if this needs to start as two
-        // knitout.push(`;!row: ${row_count}`); //go back! //?
-        knitout.push(`;!row`); //? optional
+        knitout.push(`;!row: ${row_count}`); //go back! //?
+        // knitout.push(`;!row`); //? optional
         prev_row = i;
       } //?
       i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);

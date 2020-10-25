@@ -34,3 +34,4 @@ for (let i = 0; i < in_file.length; ++i) {
   in_file[i] = in_file[i].split('\n');
   in_file[i] = in_file[i].filter((el) => !el.includes('ow:'));
 }
+console.log(in_file)
