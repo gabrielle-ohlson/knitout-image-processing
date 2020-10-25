@@ -1,11 +1,13 @@
 const Jimp = require('jimp');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
+const fs = require('fs');
 
 let img;
 let needle_count = 0;
 let row_count = 0;
 if (!readlineSync.keyInYN(chalk.blue.bold('Would you like to input an image for custom colorwork?'))) {
+  fs.writeFileSync('abort.txt', 'ABORT!'); //new
   process.exit();
 } else {
   img = readlineSync.questionPath(chalk.blue.bold('\nImage File: '), {

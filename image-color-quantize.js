@@ -1,7 +1,14 @@
+const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
 const Jimp = require('jimp');
 const RgbQuant = require('rgbquant');
+
+if (fs.existsSync('abort.txt')) {
+  fs.unlinkSync('abort.txt');
+  console.log(chalk`{bold.bgGray.underline \n*** If you would like to use this program to add shaping to a knitout file, type 'node shapeify.js'}`);
+  process.exit();
+}
 
 let height, width, data;
 let palette, reduced;
@@ -66,7 +73,7 @@ function getData() {
           }
         }
         colors_arr.push(palette, machine); //new
-        img.write('reduced_colors.png');
+        img.write('knit_motif.png');
         resolve(colors_arr);
       });
     });

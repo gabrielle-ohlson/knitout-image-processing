@@ -16,6 +16,14 @@ let jacquard_passes = [];
 let caston = [];
 let bindoff = [];
 
+// let imageColors;
+// if (fs.existsSync('abort.txt')) {
+//   fs.unlinkSync('abort.txt');
+//   process.exit();
+// } else {
+//   imageColors = require('./image-color-quantize.js');
+// }
+
 let stitch_number = readlineSync.question(
   chalk`{blue.italic \n(OPTIONAL: press enter to skip this step)} {blue.bold What would you like to set the stitch number as? }`,
   {
@@ -75,7 +83,8 @@ imageColors
     }
     jacquard_passes = rows.flat();
     let row_count = 1; //? optional
-    knitout.push(`;!row: ${row_count}`); //? optional
+    // knitout.push(`;!row: ${row_count}`); //? optional //go back! //?
+    knitout.push(`;!row`); //? optional
     let prev_row = 0; //? optional
     let taken;
     let inhook;
@@ -84,7 +93,8 @@ imageColors
       if (i === prev_row + passes_per_row[row_count - 1]) {
         //? optional
         row_count += 1; //TODO: see if this needs to start as two
-        knitout.push(`;!row: ${row_count}`);
+        // knitout.push(`;!row: ${row_count}`); //go back! //?
+        knitout.push(`;!row`); //? optional
         prev_row = i;
       } //?
       i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
@@ -219,6 +229,8 @@ imageColors
     if (new_file.includes('.')) new_file = new_file.slice(0, new_file.indexOf('.'));
     fs.writeFile(`./out-files/${new_file}.k`, knitout_str, function (err) {
       if (err) return console.log(err);
-      console.log(chalk.green(`\nThe knitout file has successfully been written and can be found in the 'out-files' folder.`));
+      console.log(
+        chalk`{green \nThe knitout file has successfully been written and can be found in the 'out-files' folder.\nOpen 'knit_motif.png' (located in the parent directory) to see a visual depiction of the knitting instructions.} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'node shapeify.js'}`
+      );
     });
   });
