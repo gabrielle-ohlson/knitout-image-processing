@@ -1,10 +1,11 @@
 {
-  "name": "knitout-kniterate",
+  "name": "knitout-image-processing",
   "version": "0.1.0",
   "description": "A command-line program to process images and output knitting machine instructions for color work--written in CMU Textiles Lab's machine independent language, knitout.",
   "main": "knitify.js",
   "scripts": {
-    "start": "node image-resize.js && node knitify.js"
+    "start": "node image-resize.js && node knitify.js",
+    "shapeify": "node shape-cropper.js && node shape-writer.js && node shape-processor.js && node shapeify.js"
   },
   "engines": {
     "node": ">=11.15.0"

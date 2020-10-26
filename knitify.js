@@ -52,6 +52,7 @@ imageColors
   .then(() => {
     machine = colors_arr.pop();
     palette = colors_arr.pop();
+    colors_arr = colors_arr.reverse(); //new //come back! and //check
     color_count = palette.length;
     machine.includes('kniterate') ? ((needle_bed = 253), (init_dir = '+'), (other_dir = '-')) : ((needle_bed = 541), (init_dir = '-'), (other_dir = '+')); ////one extra so not counting from 0
     //TODO: check to see how many needles Shima SWG091N2 actually has (15 gauge, 36inch??)
@@ -83,7 +84,7 @@ imageColors
     }
     jacquard_passes = rows.flat();
     let row_count = 1; //? optional
-    knitout.push(`;!row: ${row_count}`); //? optional //go back! //?
+    knitout.push(`;row: ${row_count}`); //? optional //go back! //?
     // knitout.push(`;!row`); //? optional
     let prev_row = 0; //? optional
     let taken;
@@ -93,7 +94,7 @@ imageColors
       if (i === prev_row + passes_per_row[row_count - 1]) {
         //? optional
         row_count += 1; //TODO: see if this needs to start as two
-        knitout.push(`;!row: ${row_count}`); //go back! //?
+        knitout.push(`;row: ${row_count}`); //go back! //?
         // knitout.push(`;!row`); //? optional
         prev_row = i;
       } //?
@@ -210,7 +211,7 @@ imageColors
     let new_file, overwrite;
     readlineSync.promptLoop(function (input) {
       new_file = input;
-      if (fs.existsSync(`./out-files/${input}`) || fs.existsSync(`./out-files/${input}.k`)) {
+      if (fs.existsSync(`./knit-out-files/${input}`) || fs.existsSync(`./knit-out-files/${input}.k`)) {
         overwrite = readlineSync.keyInYNStrict(
           chalk.black.bgYellow(`! WARNING:`) + ` A file by the name of '${input}' already exists. Proceed and overwrite existing file?`
         );
@@ -219,18 +220,18 @@ imageColors
       // if (!/\.k$/i.test(input)) {
       //   console.log(chalk.red(`-- ${input} is not a knitout (.k) file.\n`));
       // }
-      if (!fs.existsSync(`./out-files/${input}`)) {
+      if (!fs.existsSync(`./knit-out-files/${input}`)) {
         // return /\.k$/i.test(input);
-        return !fs.existsSync(`./out-files/${input}.k`);
+        return !fs.existsSync(`./knit-out-files/${input}.k`);
       }
     });
     console.log(chalk.green(`-- Saving new file as: ${new_file}`));
     readlineSync.setDefaultOptions({ prompt: '' });
     if (new_file.includes('.')) new_file = new_file.slice(0, new_file.indexOf('.'));
-    fs.writeFile(`./out-files/${new_file}.k`, knitout_str, function (err) {
+    fs.writeFile(`./knit-out-files/${new_file}.k`, knitout_str, function (err) {
       if (err) return console.log(err);
       console.log(
-        chalk`{green \nThe knitout file has successfully been written and can be found in the 'out-files' folder.\nOpen 'knit_motif.png' (located in the parent directory) to see a visual depiction of the knitting instructions.} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'node shapeify.js'}`
+        chalk`{green \nThe knitout file has successfully been written and can be found in the 'knit-out-files' folder.\nOpen 'knit_motif.png' (located in the parent directory) to see a visual depiction of the knitting instructions.} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'npm run shapeify'}`
       );
     });
   });

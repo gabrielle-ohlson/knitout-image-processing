@@ -6,13 +6,13 @@ const fs = require('fs');
 let img;
 let needle_count = 0;
 let row_count = 0;
-if (!readlineSync.keyInYN(chalk.blue.bold('Would you like to input an image for custom colorwork?'))) {
+if (!readlineSync.keyInYN(chalk.blue.bold('Would you like to input an image for custom colorwork?'))) { //remove //?
   fs.writeFileSync('abort.txt', 'ABORT!'); //new
   process.exit();
 } else {
   img = readlineSync.questionPath(chalk.blue.bold('\nImage File: '), {
     validate: function (path) {
-      return /\.jpg|\.jpeg|\.png|\.bmp$/i.test(path) || chalk.red('The image must be a PNG, JPG, or BMP.');
+      return /\.jpg|\.jpeg|\.png|\.bmp$/i.test(path) || chalk.red('The image must be a PNG, JPG, or BMP that exists in the working directory.');
     },
     limitMessage: chalk.red('The image must be a PNG, JPG, or BMP that exists in the working directory.'),
   });

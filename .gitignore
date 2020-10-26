@@ -9,9 +9,7 @@
 *.k
 
 #exclude test files
-shape-cropper.js
-shape-processor.js
-shape-writer.js
+test-kcode.js
 .d.ts
 COLORS_DATA.json
 
