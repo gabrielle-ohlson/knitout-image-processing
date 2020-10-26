@@ -69,8 +69,8 @@ if (fs.existsSync('INPUT_DATA.json')) {
   }
   ////////////////////////////////////////////////////////
   ////make sure there aren't any floating white dots in the middle
-  console.log(`Xpixel count = ${shape_code[0].length}`); //remove
-  console.log(`Ypixel count = ${shape_code.length}`); //remove
+  // console.log(`Xpixel count = ${shape_code[0].length}`); //remove
+  // console.log(`Ypixel count = ${shape_code.length}`); //remove
 
   let splice_arr = [];
   for (let y = 0; y < shape_code.length - 1; ++y) {

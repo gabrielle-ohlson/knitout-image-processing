@@ -6,17 +6,16 @@ const fs = require('fs');
 let img, source_dir;
 let needle_count = 0;
 let row_count = 0;
-// if (!readlineSync.keyInYN(chalk.blue.bold('Would you like to input an image for a custom shape?'))) {
-//   process.exit();
-// } else {
 function isNumeric(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
+// let error_message;
 readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nShape Image File: ') });
 readlineSync.promptLoop(function (input) {
   img = input;
-  if (!/\.jpg|\.jpeg|\.png|\.bmp$/i.test(input) && !fs.existsSync(`./in-shape-images/${input}`)) { //TODO: figure out why this doesn't return the error message
+  if (!/\.jpg|\.jpeg|\.png|\.bmp$/i.test(input) || !fs.existsSync(`./in-shape-images/${input}`)) {
+    //TODO: figure out why this doesn't return the error message
     let error_message = console.log(chalk.red(`The image must be a PNG, JPG, or BMP that exists in the 'in-shape-images' folder.`));
     return error_message; //new
   }
@@ -45,7 +44,6 @@ if (isNumeric(needle_count)) {
     limit: Number,
     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
   });
-  // row_count = Number(row_count);
   row_count === '-1' ? console.log(chalk.green(`-- Row count: AUTO`)) : console.log(chalk.green(`-- Row count: ${row_count}`));
 } else {
   if (fs.existsSync(`./knit-in-files/${needle_count}`)) {
@@ -66,10 +64,10 @@ if (isNumeric(needle_count)) {
   needle_count = Math.max(...needle_count_arr);
 }
 row_count = Number(row_count);
-if (row_count !== -1) {
-  //? forget why I did this
-  row_count += 1;
-}
+// if (row_count !== -1) { //go back! //?
+//   //? forget why I did this
+//   row_count += 1;
+// }
 
 let cropX_left;
 let cropX_right;
@@ -108,10 +106,7 @@ Jimp.read(`./in-shape-images/${img}`)
     if (row_count === 0) {
       row_count = Jimp.AUTO;
     }
-    image
-      .crop(cropX_left, cropY_bot, crop_width, crop_height)
-      .resize(needle_count, row_count)
-      .write('cropped_shape.png');
+    image.crop(cropX_left, cropY_bot, crop_width, crop_height).resize(needle_count, row_count).write('cropped_shape.png');
     return image;
   })
   .catch((err) => {

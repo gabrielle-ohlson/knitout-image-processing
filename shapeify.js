@@ -1,3 +1,5 @@
+//TODO: figure out why shape comes out all wonky
+//TODO: figure out how to avoid float after bind off in middle section for kniterate machine
 const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
@@ -255,7 +257,6 @@ readlineSync.promptLoop(function (input) {
   return fs.existsSync(`./knit-out-files/${input}`) || fs.existsSync(`./knit-in-files/${input}`);
 });
 console.log(chalk.green(`-- Reading from: ${source_file}`));
-// readlineSync.setDefaultOptions({ prompt: '' });
 
 readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nSave as: ') });
 let new_file, overwrite;
@@ -275,7 +276,6 @@ readlineSync.promptLoop(function (input) {
 });
 console.log(chalk.green(`-- Saving new file as: ${new_file}`));
 readlineSync.setDefaultOptions({ prompt: '' });
-// if (new_file.includes('.')) new_file = new_file.slice(0, new_file.indexOf('.'));
 
 let in_file = fs
   .readFileSync(source_dir + source_file)
@@ -298,28 +298,55 @@ in_file.forEach((arr) =>
     }
   })
 );
-// console.log(`true`); //remove
-// if (in_file.some((element) => element.includes('+') || element.includes('-'))) {
-//   console.log(`true`); //remove
-//   carriers.push(in_file[in_file.length - 1]);
-// }
-console.log(carriers); //remove
 carriers = [...new Set(carriers)];
-console.log(carriers); //remove
 carriers = carriers.sort((a, b) => a - b);
-console.log(carriers); //remove
+
 //--------------------------------------------------------
 //***GET USER INPUT (PREFERNCES/MACHINE SPECS/SWATCH INFO)
 //--------------------------------------------------------
-let bindoff_carrier;
-let carrier_opts = Array.from(carriers),
-  bindoff_c = readlineSync.keyInSelect(carrier_opts, chalk.blue.bold(`\nWhich carrier would you like to use for bind-offs?`));
-console.log(chalk.green(`-- Binding off with carrier ${carrier_opts[bindoff_c]}`));
-bindoff_carrier = carrier_opts[bindoff_c];
+// let bindoff_carrier;
+// let carrier_opts = Array.from(carriers),
+//   bindoff_c = readlineSync.keyInSelect(carrier_opts, chalk.blue.bold(`\nWhich carrier would you like to use for bind-offs?`));
+// console.log(chalk.green(`-- Binding off with carrier ${carrier_opts[bindoff_c]}`));
+// bindoff_carrier = carrier_opts[bindoff_c];
 
 let sinkers = readlineSync.keyInYNStrict(
   chalk`{blue.bold \nDoes the machine you are using have sinkers?} {blue.italic (If you are using a kniterate machine, the answer is no [enter 'n']. Otherwise, the answer is likely yes [enter 'y'], but you should double-check to ensure no damage is done to your machine during short-rowing.)}`
 );
+
+//-------------------------------------------------------------------------------------------------------
+//***FOR KNITERATE: CREATE ARRAY OF CARRIERS AVAILABLE TO USE FOR SHORT ROWING, & THROW ERR IF NOT ENOUGH
+//-------------------------------------------------------------------------------------------------------
+let short_row_carriers = ['1', '2', '3', '4', '5', '6'];
+// for (let c = 1; c <= 6; ++c) {
+//   c = c.toString();
+//   if (!carriers.includes(c)) {
+//     short_row_carriers.push(c);
+//   }
+//   c = Number(c);
+// }
+
+if (short_row_section) {
+  for (let r = first_short_row; r <= last_short_row; ++r) {
+    for (let c = 1; c <= 6; ++c) {
+      c = c.toString();
+      in_file[r].map((element) => {
+        if ((element.includes('+') || element.includes('-')) && element.charAt(element.length - 1) === c) {
+          short_row_carriers = short_row_carriers.filter((el) => el !== c);
+        }
+      });
+      c = Number(c);
+    }
+  }
+}
+console.log(`shortrowcarriers = ${short_row_carriers}`); //remove ////only for kniterate
+
+if (short_row_carriers.length < 3 && short_row_section && !sinkers) {
+  console.log(
+    chalk`{red.bold \nERR:} {red the section of the panel that will be altered to include short-rowing contains ${short_row_carriers.length} colors, but the maximum color-count for that section is 3 (to allow for separate carriers to work either side while short-rowing).}`
+  );
+  errors = true;
+}
 
 //---------------------------------------------------------
 //***SPLIT FILE INTO ARRAY OF ROWS WITH SUBARRAYS OF PASSES
@@ -405,7 +432,6 @@ const RIGHT_XFER = (xfer_section, xfer_needle, count, from, rack, alt) => {
 let xfer_section = [];
 ////dec 1 ? count = 3 & rack = 1; dec2 ? count = 4 & rack = 2;
 const decSingleBed = (dec_needle1, count1, rack1, side, dec_needle2, count2, rack2) => {
-  // xfer_section = [];
   ////dec_needle2 & count2 could be null (if only dec on one side); if not null, should be right dec needle
   if (side === 'left') {
     LEFT_XFER(xfer_section, dec_needle1, count1, 'f', 0, false);
@@ -430,17 +456,12 @@ const decSingleBed = (dec_needle1, count1, rack1, side, dec_needle2, count2, rac
 ////dec 1 ? count = 3 (w/alt), then 2 & rack = 1, then 2; dec2 ? count =  & rack = ;
 const dec1DoubleBed = (dec_needle, side) => {
   ////if double bed, need to just do it twice
-  // xfer_section = [];
-  // if (side === 'left' || side === 'both') {
   if (side === 'left') {
     xfer_section.push(`rack 1`);
     LEFT_XFER(xfer_section, dec_needle - 1, 3, 'f', 1, true); ////-1 so const function (with rack param adjustment) still works
     xfer_section.push(`rack 2`);
     LEFT_XFER(xfer_section, dec_needle - 1, 2, 'b', 2, false);
   }
-  // if (side !== 'left') {
-  // let dec_needle;
-  // side === 'right' ? (dec_needle = dec_needle1) : (dec_needle = dec_needle2);
   if (side === 'right') {
     xfer_section.push(`rack -1`);
     RIGHT_XFER(xfer_section, dec_needle + 1, 3, 'f', -1, true);
@@ -451,7 +472,6 @@ const dec1DoubleBed = (dec_needle, side) => {
 };
 
 const dec2DoubleBed = (dec_needle, side) => {
-  // xfer_section = [];
   ////dec_needle2 & count2 could be null (if only dec on one side); if not null, should be right dec needle
   if (side === 'left') {
     LEFT_XFER(xfer_section, dec_needle + 1, 1, 'f', 0, false); ////+1 so const function (with rack param adjustment) still works
@@ -476,9 +496,12 @@ const dec2DoubleBed = (dec_needle, side) => {
 //--------------------------
 //***PROTO BIND-OFF FUNCTION
 //--------------------------
+let bindoff_carrier;
+// const BINDOFF = (xfer_needle, count, side, double_bed, bindoff_carrier) => { //TODO: make bindoff_carrier variable(whatever carrier is on the correct side, so I think that's the carrier that was used in the last pass??)
 const BINDOFF = (xfer_needle, count, side, double_bed) => {
-  // let dir1, dir2;
-  // side === 'left' ? ((dir1 = '+'), (dir2 = '-')) : ((dir1 = '-'), (dir2 = '+'));
+  if (side === 'right') {
+    xfer_needle = xfer_needle - count + 1; //-1 //?
+  }
   const posLoop = (op, bed) => {
     for (let x = xfer_needle; x < xfer_needle + count; ++x) {
       if (op === 'knit') {
@@ -494,7 +517,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
         xfer_section.push(`rack -1`);
         xfer_section.push(`xfer f${x} b${x + 1}`);
         xfer_section.push(`rack 0`);
-        xfer_section.push(`knit + b${x} f${x}`);
+        xfer_section.push(`knit + b${x} ${bindoff_carrier}`);
       }
     }
   };
@@ -511,9 +534,9 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
       if (op === 'bind') {
         xfer_section.push(`xfer b${x} f${x}`);
         xfer_section.push(`rack 1`);
-        xfer_section.push(`xfer f${x} b${x + 1}`);
+        xfer_section.push(`xfer f${x} b${x - 1}`); //new (-1 instead of + 1)
         xfer_section.push(`rack 0`);
-        xfer_section.push(`knit - b${x} f${x}`);
+        xfer_section.push(`knit - b${x} ${bindoff_carrier}`);
       }
     }
   };
@@ -582,37 +605,29 @@ function parseShape(arr, r) {
       } else {
         xtype = 'dec';
       }
-      if (element.LEFT === 0) {
-        left_dec_count = 0; //NEW
+      left_dec = right_dec = false; ////for now
+      left_dec_count = right_dec_count = 0; ////for now
+      if (element.RIGHT !== 0) {
+        // left_dec_count = 0; //NEW
         right_dec_count = -element.RIGHT; //NEW
         // dec_count_num = -element.RIGHT; //TODO: change dec_count_num to be for dec and inc or add separate variables / functions for increases
         right_dec = true;
-        left_dec = false;
-      } else if (element.RIGHT === 0) {
+        // left_dec = false;
+      }
+      if (element.LEFT !== 0) {
         left_dec_count = -element.LEFT; //NEW
-        right_dec_count = 0; //NEW
-        // dec_count_num = -element.LEFT; ////added neg to make pos
         left_dec = true;
-        right_dec = false;
-      } else {
-        // if (element.LEFT === element.RIGHT) {
-        left_dec_count = -element.LEFT; //NEW
-        right_dec_count = -element.RIGHT; //NEW
-        // dec_count_num = -element.LEFT;
-        left_dec = true;
-        right_dec = true;
+        // right_dec_count = 0; //NEW
+        // right_dec = false;
         // } else {
-        //   console.log(
-        //     chalk`{red.bold \nERR:} {red AT ROW ${r}: custom shape decreases ${element.LEFT} needles on left side and ${element.RIGHT} needle on right side. Currently, this program does not support unequal decreasing on both sides in one row. Will hopefully fix this issue soon, but for now, please alter the shape.}`
-        //   );
-        //   errors = true;
-        // }
-        //TODO: add support for decreasing unequally on both sides in one row
+        // left_dec_count = -element.LEFT; //NEW
+        // right_dec_count = -element.RIGHT; //NEW
+        // left_dec = true;
+        // right_dec = true;
       }
       if (arr.indexOf(element) < arr.length - 1) {
         let next_element = arr.indexOf(element) + 1;
         dec_row_interval = arr[next_element].ROW - element.ROW;
-        // console.log(element);
       } else {
         dec_row_interval = 1;
       }
@@ -620,10 +635,8 @@ function parseShape(arr, r) {
   });
 }
 
-////dec 1 ? count = 3 & rack = 1; dec2 ? count = 4 & rack = 2;
 function insertXferPasses(left, right, xtype) {
   let xfer_needle1, xcount1, xfer_needle2, xcount2, side, stitches1, stitches2;
-  // xfer_needle2 = xcount2 = stitches2 = null;
   if (left === null) {
     xfer_needle2 = xcount2 = stitches2 = null; //new (moved)
     xfer_needle1 = right;
@@ -647,11 +660,6 @@ function insertXferPasses(left, right, xtype) {
       stitches2 = right_dec_count;
     }
   }
-  // left === null
-  //   ? ((xfer_needle1 = right), (side = 'right'), (xcount1 = right_dec_count + 2), (xcount2 = null))
-  //   : right === null
-  //   ? ((xfer_needle = left), (side = 'left'), (xcount1 = left_dec_count + 2), (xcount2 = null))
-  //   : ((xfer_needle = left), (xcount1 = left_dec_count + 2), (xfer_needle2 = right), (xcount2 = right_dec_count + 2), (side = 'both'));
   let side1;
   side === 'both' ? (side1 = 'left') : (side1 = side);
   if (double_bed) {
@@ -685,7 +693,6 @@ function insertXferPasses(left, right, xtype) {
         let rack1 = stitches1;
         let rack2 = stitches2;
         decSingleBed(xfer_needle1, xcount1, rack1, side, xfer_needle2, xcount2, rack2);
-        // rows[row].splice(xfer_section);
       } else {
         xfer_section.push(`;dec ${stitches1} on ${side1}`);
         BINDOFF(xfer_needle1, stitches1, side1, false);
@@ -712,35 +719,47 @@ let insert_arr = []; //new //check
 let short_Xright_needle;
 let short_Xleft_needle;
 if (shape_code_reverse !== null) {
-  //start decreasing at first row where decreases happen
+  ////start decreasing at first row where decreases happen
   dec_row_interval = shaping_arr[0].ROW;
 }
 let cookie;
 ////////////////////
 let shaped_rows = [];
+if (short_row_section && !sinkers) {
+  //new //check
+  let carriers_line = caston_section.findIndex((el) => el.includes(';;Carriers:'));
+  console.log(`carriers_line = ${carriers_line}`); //remove
+  for (let c = 0; c < carriers.length; ++c) {
+    caston_section[carriers_line] = `${caston_section[carriers_line]} ${short_row_carriers[c]}`;
+    // caston_section[carriers_line] = caston_section[carriers_line].concat(short_row_carriers[c]);
+  }
+}
 shaped_rows.push(caston_section);
 
 for (let r = 0; r < dec_row_interval; ++r) {
   shaped_rows.push(rows[r]);
 }
 for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
+  bindoff_carrier = rows[r - 1][rows[r - 1].length - 1];
+  bindoff_carrier = bindoff_carrier[bindoff_carrier.length - 1].charAt(bindoff_carrier[bindoff_carrier.length - 1].length - 1);
+  console.log(`bindoff_carrier = ${bindoff_carrier}`); //remove //come back!
   if (shape_code_reverse !== null && !warning) {
     if (!shortrow_time) {
       //check //?
       parseShape(shaping_arr, r);
     } else {
-      dec_row_interval = 1;
-      if (r === first_short_row) {
-        short_Xleft_needle = shortrow_bindoff[0];
-        short_Xright_needle = Xright_needle;
-        Xright_needle = shortrow_bindoff[1];
-      }
+      dec_row_interval = 1; //necessary//? / move down//?
+      // if (r === first_short_row) {
+      //   // short_Xleft_needle = shortrow_bindoff[0]; //?
+      //   short_Xleft_needle = shortrow_bindoff[1];
+      //   short_Xright_needle = Xright_needle;
+      //   // Xright_needle = shortrow_bindoff[1]; //?
+      //   Xright_needle = shortrow_bindoff[0];
+      // }
       parseShape(left_shortrow_arr, r);
     }
-    // && !warning ?? TODO: determine this //go back! //?
   }
   ////////////////////////
-  // if (!warning) { //?
   if (!warning && (left_dec || right_dec)) {
     let XleftN, XrightN;
     if (!left_dec) {
@@ -753,7 +772,6 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
       XleftN = Xleft_needle;
       XrightN = Xright_needle;
     }
-    // insertXferPasses(Xleft_needle, Xright_needle, xtype);
     insertXferPasses(XleftN, XrightN, xtype);
     shaped_rows.push(xfer_section);
     xfer_section = [];
@@ -798,29 +816,18 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
     }
   }
   ///////////////////////////////
-  function cookieCutter() {
-    // if (left_dec) { //go back! //?
-    // if (left_dec && Xleft_needle !== L_NEEDLE) {
-    if (Xleft_needle !== L_NEEDLE) {
+  function cookieCutter(XleftN, XrightN) {
+    // if (Xleft_needle !== L_NEEDLE) {
+    if (XleftN !== L_NEEDLE) {
       //new //?
-      for (let cc = L_NEEDLE; cc < Xleft_needle; ++cc) {
-        // console.log(`cookie = ${cookie}`); //remove
-        // console.log(cookie[0]); //remove
-        // console.log(`f${cc} `); //remove
+      for (let cc = L_NEEDLE; cc < XleftN; ++cc) {
         cookie = cookie.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
-        // console.log(`now! cookie = ${cookie}`); //remove
       }
     }
-    // if (right_dec) { //go back! //?
-    // if (right_dec && Xright_needle !== R_NEEDLE) {
-    if (Xright_needle !== R_NEEDLE) {
+    if (XrightN !== R_NEEDLE) {
       //new //?
-      for (let cc = R_NEEDLE; cc > Xright_needle; --cc) {
+      for (let cc = R_NEEDLE; cc > XrightN; --cc) {
         cookie = cookie.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
-        // cookie = cookie.filter((el) => {
-        // !el.includes(`f${cc} `);
-        // !el.includes(`b${cc} `);
-        // });
       }
     }
   }
@@ -828,16 +835,15 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
     for (let i = r; i < r + dec_row_interval; ++i) {
       for (let p = 0; p < rows[i].length; ++p) {
         cookie = rows[i][p];
-        cookieCutter();
+        cookieCutter(Xleft_needle, Xright_needle);
         shaped_rows.push(cookie);
       }
     }
   } else {
-    // left_dec = right_dec = true; //check this ... doing this so it chops of edges on both sides, according to most recent dec(could be 0 on one side )
     for (let w = r; w < rows.length; ++w) {
       for (let p = 0; p < rows[w].length; ++p) {
         cookie = rows[w][p];
-        cookieCutter();
+        cookieCutter(Xleft_needle, Xright_needle);
         shaped_rows.push(cookie);
       }
     }
@@ -854,14 +860,25 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
         XleftN = short_Xleft_needle;
         XrightN = null;
       } else {
-        XleftN = Xleft_needle;
-        XrightN = Xright_needle;
+        XleftN = short_Xleft_needle;
+        XrightN = short_Xright_needle;
+      }
+      for (let c = 0; c < carriers.length; ++c) {
+        if (bindoff_carrier === carriers[c]) {
+          bindoff_carrier = short_row_carriers[c];
+          // break; //?
+        }
       }
       insertXferPasses(XleftN, XrightN, xtype);
       // insertXferPasses(short_Xleft_needle, short_Xright_needle, xtype);
       insert_arr.push(xfer_section);
+      xfer_section = []; //new
     }
-    // if (shortrow_count % 2 !== 0) { //TODO: //FIXME: //come back! figure out what to do here
+    short_Xleft_needle += left_dec_count;
+    short_Xright_needle -= right_dec_count;
+    // let count;
+    // if (shortrow_count % 2 !== 0) {
+    //   //TODO: //FIXME: //come back! figure out what to do here
     //   let x = 0;
     //   if (shortrow_count === 0) {
     //     x += 1;
@@ -872,27 +889,51 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
     //       cookieCutter(); //TODO: shortrowR_pass num ???
     //       insert_arr.push(cookie);
     //     }
+    //     shortrow_count += 1;
     //   }
     // } else {
+    // short_Xleft_needle += left_dec_count;
+    // short_Xright_needle -= right_dec_count;
     for (let i = r; i < r + dec_row_interval; ++i) {
       for (let p = 0; p < rows[i].length; ++p) {
         cookie = rows[i][p];
-        cookieCutter();
+        cookieCutter(short_Xleft_needle, short_Xright_needle);
+        for (let c = 0; c < carriers.length; ++c) {
+          cookie = cookie.map((el) => {
+            if (el.charAt(el.length - 1) === carriers[c]) {
+              return el.slice(0, -1).concat(short_row_carriers[c]);
+            } else {
+              return el;
+            }
+          });
+        }
         insert_arr.push(cookie);
       }
-      shaped_rows.push(insert_arr);
-      insert_arr = [];
-      short_Xleft_needle += left_dec_count;
-      short_Xright_needle -= right_dec_count;
+      // if ((i - first_short_row) % 2 !== 0) {
+      //   //?
+      //   console.log(insert_arr); //remove
+      //   insert_arr = insert_arr.flat();
+      //   console.log(insert_arr); //remove
+      //   shaped_rows.push(insert_arr); //? flat ?
+      //   console.log(`last : ${shaped_rows[shaped_rows.length - 1]}`); //remove
+      //   insert_arr = [];
+      // }
+      // short_Xleft_needle += left_dec_count;
+      // short_Xright_needle -= right_dec_count;
     }
+    if ((r - first_short_row) % 2 !== 0) {
+      //?
+      insert_arr = insert_arr.flat();
+      shaped_rows.push(insert_arr); //? flat ?
+      insert_arr = [];
+    }
+    // }
   }
   ////
   if (shape_code_reverse !== null) {
-    //FIXME:
     if (r === shaping_arr[shaping_arr.length - 1].ROW) {
       //go back! //?
       if (!short_row_section) {
-        //new //? bc needs to be length of ARRAY
         if (!warning) {
           console.log(
             chalk.black.bgYellow(`! WARNING:`) +
@@ -902,17 +943,75 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
         warning = true;
       } else {
         shortrow_time = true;
+        // shaped_rows.push(`;short row section`); //new
         console.log(`shortrow_time!!!`); //remove fs
-        dec_row_interval = first_short_row - r; //check this! //-1 //?
+        // dec_row_interval = first_short_row - r; //check this! //-1 //?
         // left_dec = right_dec = true; //check this ... doing this so it chops of edges on both sides, according to most recent dec(could be 0 on one side )
-        for (let i = r; i < first_short_row; ++i) {
+        for (let i = r + dec_row_interval; i < first_short_row - 1; ++i) {
           for (let p = 0; p < rows[i].length; ++p) {
             /////
             cookie = rows[i][p]; //?
-            cookieCutter();
-            insert_arr.push(cookie);
+            cookieCutter(Xleft_needle, Xright_needle);
+            // insert_arr.push(cookie);
+            shaped_rows.push(cookie);
           }
         }
+        let bindoff_pass;
+        for (let p = 0; p < rows[first_short_row - 1].length; ++p) {
+          if (rows[first_short_row - 1][p].some((el) => el.includes(`-`))) {
+            bindoff_pass = p; ////keeps redefining until end
+          }
+        }
+        shaped_rows.push(`;short row section`); //new
+        for (let p = 0; p < bindoff_pass; ++p) {
+          cookie = rows[first_short_row - 1][p]; //?
+          cookieCutter(Xleft_needle, Xright_needle);
+          shaped_rows.push(cookie);
+        }
+        //////
+        short_Xleft_needle = shortrow_bindoff[1];
+        short_Xright_needle = Xright_needle;
+        Xright_needle = shortrow_bindoff[0];
+        /////
+        cookie = rows[first_short_row - 1][bindoff_pass];
+        cookieCutter(short_Xleft_needle, short_Xright_needle); //? shortrow_bindoff[1] + 1?
+        // for (let c = 0; c < carriers.length; ++c) {
+        //   cookie = cookie.map((el) => {
+        //     if (el.charAt(el.length - 1) === carriers[c]) {
+        //       return el.slice(0, -1).concat(short_row_carriers[c]);
+        //     } else {
+        //       return el;
+        //     }
+        //   });
+        // }
+        shaped_rows.push(cookie);
+        bindoff_carrier = cookie[cookie.length - 1].charAt(cookie[cookie.length - 1].length - 1);
+        BINDOFF(short_Xleft_needle - 1, short_Xleft_needle - Xright_needle - 1, 'right', double_bed);
+        // BINDOFF(short_Xleft_needle, short_Xleft_needle - Xright_needle + 1, 'left', double_bed); //TODO: check whether this is backwards in the function
+        shaped_rows.push(xfer_section);
+        xfer_section = [];
+        cookie = rows[first_short_row - 1][bindoff_pass];
+        cookieCutter(Xleft_needle, Xright_needle); //shortrow_bindoff[0] - 1?
+        shaped_rows.push(cookie);
+        if (rows[first_short_row - 1].length - 1 !== bindoff_pass) {
+          console.log(`err at opt`); //remove
+          cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
+          cookieCutter(Xleft_needle, Xright_needle); //shortrow_bindoff[0] - 1?
+          shaped_rows.push(cookie);
+          cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
+          cookieCutter(short_Xleft_needle, short_Xright_needle); //? shortrow_bindoff[1] + 1?
+          for (let c = 0; c < carriers.length; ++c) {
+            cookie = cookie.map((el) => {
+              if (el.charAt(el.length - 1) === carriers[c]) {
+                return el.slice(0, -1).concat(short_row_carriers[c]);
+              } else {
+                return el;
+              }
+            });
+          }
+          insert_arr.push(cookie);
+        }
+        dec_row_interval = first_short_row - r; //check this! //-1 //?
       }
     }
   }
@@ -929,15 +1028,23 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
   // if (rows[r + dec_row_interval + dec_row_interval] === undefined) {
   //?
   if (rows[r + dec_row_interval] === undefined) {
+    if (shape_code_reverse === null) {
+      break;
+    } else {
+      if (r !== shaping_arr[shaping_arr.length - 1].ROW) {
+        break;
+      }
+    }
+    //FIXME:
     // if (rows[r + dec_row_interval] === undefined || reached_bindoff) {
     //?
-    break;
+    // break;
   }
 }
 
-//-------------------------------------------
+//--------------------------------
 //***FINALLY, STRINGIFY FINAL_FILE
-//-------------------------------------------
+//--------------------------------
 shaped_rows = shaped_rows.flat(); //TODO: determine necessary depth of flat
 let final_file = JSON.stringify(shaped_rows).replace(/"/gi, '').replace(/\[|\]/gi, '').split(',');
 final_file = final_file.join('\n'); //new
@@ -948,7 +1055,8 @@ final_file = final_file.join('\n'); //new
 
 if (!errors && !shape_error) {
   console.log(
-    chalk`{green \nno errors found :-) don't forget to change the new file name to 'command.kc' before uploading it to the machine!}\n{black.bgYellow ! WARNING:} {italic IT IS RECOMMENDED THAT YOU EMAIL THIS FILE TO:} {bold support@kniterate.com} {italic BEFORE USE TO ENSURE THAT NO DAMAGE WILL BE CAUSED TO YOUR MACHINE.\n***contact:} {bold info@edgygrandma.com} {italic if you have any questions about this program.}`
+    // chalk`{green \nno errors found :-) don't forget to change the new file name to 'command.kc' before uploading it to the machine!}\n{black.bgYellow ! WARNING:} {italic IT IS RECOMMENDED THAT YOU EMAIL THIS FILE TO:} {bold support@kniterate.com} {italic BEFORE USE TO ENSURE THAT NO DAMAGE WILL BE CAUSED TO YOUR MACHINE.\n***contact:} {bold info@edgygrandma.com} {italic if you have any questions about this program.}`
+    chalk`{green \nno errors found :-)}\n{black.bgYellow ! WARNING:} {bold IT IS RECOMMENDED THAT YOU VIEW THE NEW FILE ON THE KNITOUT LIVE VISUALIZER} {italic (https://github.com/textiles-lab/knitout-live-visualizer)} {bold BEFORE USE TO ENSURE THAT IT WILL PRODUCE A KNIT TO YOUR LIKING.\n***contact:} {italic info@edgygrandma.com} {bold if you have any questions about this program.}`
   );
 }
 
@@ -972,9 +1080,10 @@ if (!errors && !shape_error) {
   } else {
     console.log(chalk.red.bgWhite.bold(`\nErrors found--unable to write file. Please refer to console log for details.`));
   }
-  // fs.writeFile(`./out_kc_files/${new_file}`, final_file, function (err) {
-  //   //remove //come
+  // fs.writeFile(`./knit-out-files/${new_file}`, final_file, function (err) {
   //   if (err) return console.log(err);
-  //   console.log(chalk.green(`\nThe k-code has successfully been altered and saved. The path to the new file is: ${new_file}`));
+  //   console.log(chalk.green(`\nThe knitout file has successfully been altered and saved. The path to the new file is: ${new_file}`));
   // });
 }
+
+//ERROR BRAINSTORM: check for things like undefined/null
