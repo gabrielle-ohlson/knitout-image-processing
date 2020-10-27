@@ -25,9 +25,9 @@ const SHAPING = ({ ROW, LEFT, RIGHT }) => ({
 });
 let left_shortrow_arr = [];
 let right_shortrow_arr = [];
-console.log(`SHAPE_CODE:\n${shape_code_reverse}`); //remove
-console.log(`SHORT_ROW:\n${shortrow_code}`); //remove
-console.log(`SHORTING ROWING IS: ${short_row_section}`); //remove
+// console.log(`SHAPE_CODE:\n${shape_code_reverse}`); //remove
+// console.log(`SHORT_ROW:\n${shortrow_code}`); //remove
+// console.log(`SHORTING ROWING IS: ${short_row_section}`); //remove
 
 if (fs.existsSync('INPUT_DATA.json')) {
   fs.unlinkSync('INPUT_DATA.json');
@@ -41,17 +41,17 @@ if (fs.existsSync('cropped_shape.png')) {
 ///////////////////////
 let Template;
 let piece_code1;
-let piece_shortrow_codeL; //new
-let piece_shortrow_codeR; //new
-let pieces_arr;
+let piece_shortrow_codeL;
+let piece_shortrow_codeR;
+// let pieces_arr;
 if (shape_code === null) {
   Template = require('./shape-templates');
   piece_code1 = Object.values(Template.piece_obj1);
   piece_shortrow_codeL = Object.values(Template.piece_shortrow_objL);
   piece_shortrow_codeR = Object.values(Template.piece_shortrow_objR);
   pieces_arr = Object.values(Template.pieces_arr);
-  shape_code_reverse = [...piece_code1]; //new
-  shortrow_code = [...piece_shortrow_codeL]; //new
+  shape_code_reverse = [...piece_code1];
+  shortrow_code = [...piece_shortrow_codeL];
   first_short_row = shape_code_reverse.length;
   last_short_row = first_short_row + shortrow_code.length - 1;
   short_row_section = true;
@@ -60,7 +60,7 @@ if (shape_code === null) {
 let shortrow_sides = [];
 let shortrow_bindoff = [];
 function shortRowSides(code) {
-  shortrow_sides = []; //new
+  shortrow_sides = [];
   for (let r = 0; r < code.length; ++r) {
     let idx_arr = [];
     let z = 0;
@@ -82,7 +82,6 @@ function shortRowSides(code) {
 }
 /////left side
 function shortRowInfo(left, right, arr, main_left, main_right) {
-  console.log(`shortrow_sides = \n${shortrow_sides}`); //remove
   for (let r = 0; r < shortrow_sides.length; ++r) {
     let shape_left_dec = 0;
     let shape_left_inc = 0;
@@ -94,7 +93,6 @@ function shortRowInfo(left, right, arr, main_left, main_right) {
       if (curr_row[left] !== prev_row[left]) {
         //0, but now left
         curr_row[left] > prev_row[left] ? (shape_left_dec = prev_row[left] - curr_row[left]) : (shape_left_inc = prev_row[left] - curr_row[left]);
-        // shape_knit = false;
       }
       if (curr_row[right] !== prev_row[right]) {
         //1, but now right
@@ -112,7 +110,7 @@ function shortRowInfo(left, right, arr, main_left, main_right) {
     }
     let shaping = SHAPING({
       ROW: shape_code_reverse.length + r,
-      LEFT: shape_left_dec + shape_left_inc, //if >0 (pos), then it's an inc. if <0 (neg). then it's a dec.
+      LEFT: shape_left_dec + shape_left_inc, ////if >0 (pos), then it's an inc. if <0 (neg). then it's a dec.
       RIGHT: shape_right_dec + shape_right_inc,
     });
     arr.push(shaping);
@@ -126,8 +124,8 @@ function shapeInfo(code, arr) {
     let shape_right_dec = 0;
     let shape_right_inc = 0;
     let shape_knit = true;
-    let left_px1 = code[i].indexOf(1); //first black px //testing here
-    let right_px1 = code[i].lastIndexOf(1); //last black px
+    let left_px1 = code[i].indexOf(1); ////first black px
+    let right_px1 = code[i].lastIndexOf(1); ////last black px
     let prev_left;
     let prev_right;
     if (i > 0) {
@@ -208,14 +206,13 @@ if (shape_code_reverse !== null) {
     shortrow_bindoff = shortrow_bindoff.filter((e) => e);
   }
 }
-console.log(shaping_arr); //remove
-console.log(left_shortrow_arr); //remove
-console.log(right_shortrow_arr); //remove
-console.log(shortrow_bindoff); //remove
-console.log(`first short row: ${first_short_row}`); //remove
-console.log(`last short row: ${last_short_row}`); //remove
-console.log(shaping_arr[shaping_arr.length - 1].ROW); //remove
-//TODO: //come back! look over this from test-kcode.js (clean it up too)
+// console.log(shaping_arr); //remove
+// console.log(left_shortrow_arr); //remove
+// console.log(right_shortrow_arr); //remove
+// console.log(shortrow_bindoff); //remove
+// console.log(`first short row: ${first_short_row}`); //remove
+// console.log(`last short row: ${last_short_row}`); //remove
+// console.log(shaping_arr[shaping_arr.length - 1].ROW); //remove
 
 //-------------------------------------------------------------
 //***GET USER INPUT (IN FILE & SAVE AS) AND WRITE FILE TO ARRAY
@@ -226,14 +223,10 @@ if (fs.existsSync('SOURCE_FILE.txt')) {
   let source_data = fs.readFileSync('SOURCE_FILE.txt').toString().split('\n');
   source_file = source_data[0];
   source_dir = source_data[1];
-  console.log(source_file); //remove
-  console.log(source_dir); //remove
   fs.unlinkSync('SOURCE_FILE.txt');
 }
 //TODO: limit it to creating new files or just editing ones produced by image processing program (and remove option of pulling from 'knit-in-files' folder)
-// let source_file, source_dir;
 if (source_file === undefined) {
-  //new !
   readlineSync.setDefaultOptions({ prompt: chalk`{blue.bold \nWhat is the name of the file that you would like to add shaping to? }` });
   readlineSync.promptLoop(function (input) {
     if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
@@ -340,7 +333,7 @@ if (short_row_section) {
     }
   }
 }
-console.log(`shortrowcarriers = ${short_row_carriers}`); //remove ////only for kniterate
+// console.log(`shortrowcarriers = ${short_row_carriers}`); //remove ////only for kniterate
 
 if (short_row_carriers.length < 3 && short_row_section && !sinkers) {
   console.log(
@@ -406,8 +399,25 @@ needle_count_arr.some((el) => el.includes('knit') && el.includes(' b')) ? (doubl
 needle_count_arr = needle_count_arr.map((el) => el.match(/\d+/g));
 needle_count_arr = needle_count_arr.map((arr) => arr.splice(0, 1));
 needle_count_arr = needle_count_arr.map((el) => Number(el));
-const R_NEEDLE = Math.max(...needle_count_arr);
-const L_NEEDLE = Math.min(...needle_count_arr);
+function getMax(arr) {
+  let len = arr.length;
+  let max = -Infinity;
+  while (len--) {
+    max = arr[len] > max ? arr[len] : max;
+  }
+  return max;
+};
+function getMin(arr) {
+  let min = arr[0];
+  for (let idx = 0; idx < arr.length; ++idx) {
+    min = arr[idx] < min ? arr[idx] : min;
+  }
+  return min;
+}
+const R_NEEDLE = getMax(needle_count_arr);
+// const R_NEEDLE = Math.max(...needle_count_arr);
+const L_NEEDLE = getMin(needle_count_arr);
+// const L_NEEDLE = Math.min(...needle_count_arr);
 
 //----------------------------
 //***PROTO STACK DEC FUNCTIONS
@@ -954,21 +964,7 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
       warning = true;
     }
     if (r < last_shape_row && r >= shaping_arr[shaping_arr.length - 2].ROW && short_row_section) {
-      //?
-      // if (!short_row_section) {
-      // if (!warning) {
-      //   console.log(
-      //     chalk.black.bgYellow(`! WARNING:`) +
-      //       ` The program has finished running through all rows in the custom shape. The rest of the file will maintain the shape's final width.` //TODO: alter this once have function to chop off excess rows
-      //   );
-      // }
-      // warning = true;
-      // } else {
       shortrow_time = true;
-      console.log(dec_row_interval); //remove
-      console.log(r + dec_row_interval); //remove fs
-      console.log(first_short_row - 1); //remove fs
-      // dec_row_interval = first_short_row - r; //check this! //-1 //?
       for (let i = r + dec_row_interval; i < first_short_row - 1; ++i) {
         for (let p = 0; p < rows[i].length; ++p) {
           cookie = rows[i][p]; //?
@@ -1020,9 +1016,7 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
         }
       }
       left_carriers = [...new Set(left_carriers)]; //.sort((a, b) => a - b);
-      console.log(`left_carriers = ${left_carriers}`);
       right_carriers = [...new Set(right_carriers)]; //.sort((a, b) => a - b);
-      console.log(`right_carriers = ${right_carriers}`);
       let idxs = [];
       right_carriers.map((el) => idxs.push(carriers.indexOf(el)));
       new_carriers = carriers.map((c) => {
@@ -1127,10 +1121,6 @@ if (!errors && !shape_error) {
   } else {
     console.log(chalk.red.bgWhite.bold(`\nErrors found--unable to write file. Please refer to console log for details.`));
   }
-  // fs.writeFile(`./knit-out-files/${new_file}`, final_file, function (err) {
-  //   if (err) return console.log(err);
-  //   console.log(chalk.green(`\nThe knitout file has successfully been altered and saved. The path to the new file is: ${new_file}`));
-  // });
 }
 
 //ERROR BRAINSTORM: check for things like undefined/null

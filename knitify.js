@@ -45,7 +45,7 @@ imageColors
   .then(() => {
     machine = colors_arr.pop();
     palette = colors_arr.pop();
-    colors_arr = colors_arr.reverse(); //new //come back! and //check
+    colors_arr = colors_arr.reverse();
     color_count = palette.length;
     machine.includes('kniterate') ? ((needle_bed = 253), (init_dir = '+'), (other_dir = '-')) : ((needle_bed = 541), (init_dir = '-'), (other_dir = '+')); ////one extra so not counting from 0
   })
@@ -276,11 +276,7 @@ imageColors
         );
         return overwrite;
       }
-      // if (!/\.k$/i.test(input)) {
-      //   console.log(chalk.red(`-- ${input} is not a knitout (.k) file.\n`));
-      // }
       if (!fs.existsSync(`./knit-out-files/${input}`)) {
-        // return /\.k$/i.test(input);
         return !fs.existsSync(`./knit-out-files/${input}.k`);
       }
     });

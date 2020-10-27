@@ -30,9 +30,7 @@ if (fs.existsSync('INPUT_DATA.json')) {
       last_row = max.pop();
     }
   }
-  console.log(`last_row = ${last_row}`); //remove
-  console.log(`rgb_arr.length = ${rgb_arr.length}`); //remove
-
+  // console.log(`last_row = ${last_row}`); //remove
   let shape_row = [];
   let curr_row = 0;
   for (let i = 0; i < rgb_arr.length; ++i) {
@@ -53,7 +51,6 @@ if (fs.existsSync('INPUT_DATA.json')) {
       shape_row = [];
     }
   }
-
   //TODO: maybe remove this
   let xtra_char;
   for (let i = 0; i < shape_code.length - 1; ++i) {
@@ -71,7 +68,6 @@ if (fs.existsSync('INPUT_DATA.json')) {
   ////make sure there aren't any floating white dots in the middle
   // console.log(`Xpixel count = ${shape_code[0].length}`); //remove
   // console.log(`Ypixel count = ${shape_code.length}`); //remove
-
   let splice_arr = [];
   for (let y = 0; y < shape_code.length - 1; ++y) {
     let px_arr = shape_code[y];
@@ -138,7 +134,7 @@ if (fs.existsSync('INPUT_DATA.json')) {
     for (let x = 0; x < shape_code[0].length; ++x) {
       if (shape_code[y + 1] !== undefined) {
         if (px_arr[x] === 0) {
-          //to prevent throwing errors after overlapping stitches to the left, if consecutive
+          ////to prevent throwing errors after overlapping stitches to the left, if consecutive
           overlap1 === undefined;
         }
         if (px_arr[x] === 1) {
@@ -215,11 +211,11 @@ if (fs.existsSync('INPUT_DATA.json')) {
   first_short_row = shape_code_reverse.length - 1 - splice_arr[splice_arr.length - 1];
   last_short_row = shape_code_reverse.length - 1 - splice_arr[0];
   ///////
-  let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],'); ////TEMP file to show what the output shape_code looks like
+  let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],'); ////remove? TEMP file to show what the output shape_code looks like
   txt_file = txt_file.join('\n').replace(/\]|,/g, '');
   fs.writeFile('SHAPE-CODE.txt', txt_file, function (err) {
     if (err) return console.log(err);
-    console.log('WRITING FILE');
+    console.log(`WRITING 'SHAPE-CODE.txt' FILE IN WORKING DIRECTORY`);
   });
 } else {
   shape_code = null;

@@ -36,7 +36,7 @@ let max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would 
   ),
 });
 max_colors = Number(max_colors);
-console.log(chalk.green(`-- Knitting with ${max_colors} colors.`)); //TODO: decide how to phrase this (? model ??)
+console.log(chalk.green(`-- Knitting with ${max_colors} colors.`)); 
 
 let opts = {
   colors: max_colors,
