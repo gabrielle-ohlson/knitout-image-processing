@@ -14,7 +14,7 @@ let carrier_passes = [];
 let rows = [];
 let jacquard_passes = [];
 let caston = [];
-let bindoff = [];
+let bindoff = []; //TODO: add bind-off
 
 // let imageColors;
 // if (fs.existsSync('abort.txt')) {
@@ -57,10 +57,11 @@ imageColors
     machine.includes('kniterate') ? ((needle_bed = 253), (init_dir = '+'), (other_dir = '-')) : ((needle_bed = 541), (init_dir = '-'), (other_dir = '+')); ////one extra so not counting from 0
     //TODO: check to see how many needles Shima SWG091N2 actually has (15 gauge, 36inch??)
   })
-  .then((op, dir, bed, needle, carrier) => {
+  // .then((op, dir, bed, needle, carrier) => {
+  .then((dir, needle, carrier) => {
     for (let y = 0; y < colors_arr.length; ++y) {
-      op = 'knit'; //TODO: make this vary
-      bed = 'f'; //TODO: make this vary
+      // op = 'knit'; //TODO: make this vary //?
+      // bed = 'f'; //go back! //?
       for (let x = 0; x < colors_arr[y].length; ++x) {
         needle = x + 1; ////so counting from 1 not 0
         carrier = colors_arr[y][x];
@@ -75,29 +76,26 @@ imageColors
       row = [];
       carrier_passes = [];
     }
-    let passes_per_row = []; //? optional
+    let passes_per_row = [];
     for (let i = 0; i < rows.length; ++i) {
       if (i % 2 !== 0) {
         rows[i].reverse();
       }
-      passes_per_row.push(rows[i].length); //? optional
+      passes_per_row.push(rows[i].length);
     }
     jacquard_passes = rows.flat();
-    let row_count = 1; //? optional
-    knitout.push(`;row: ${row_count}`); //? optional //go back! //?
-    // knitout.push(`;!row`); //? optional
-    let prev_row = 0; //? optional
+    let row_count = 1;
+    knitout.push(`;row: ${row_count}`);
+    let prev_row = 0;
     let taken;
     let inhook;
     let neg_carrier;
     for (let i = 0; i < jacquard_passes.length; ++i) {
       if (i === prev_row + passes_per_row[row_count - 1]) {
-        //? optional
-        row_count += 1; //TODO: see if this needs to start as two
-        knitout.push(`;row: ${row_count}`); //go back! //?
-        // knitout.push(`;!row`); //? optional
+        row_count += 1;
+        knitout.push(`;row: ${row_count}`);
         prev_row = i;
-      } //?
+      }
       i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
       carrier = jacquard_passes[i][0][1];
       if (!knitout.some((el) => el === `inhook ${carrier}`) && machine.includes('shima') && carrier !== jacquard_passes[0][0][1]) {
@@ -144,7 +142,9 @@ imageColors
     }
     let carriers_str = '';
     let carriers_arr = [];
-    for (let i = 1; i <= color_count; ++i) {
+    let max_carriers;
+    machine.includes('kniterate') ? max_carriers = 6 : max_carriers = 10; //TODO: add more options for this, or maybe take it from command-line input (i.e. stoll machines have anywhere from 8 - 16 carriers [maybe even > || < for some])
+    for (let i = 1; i <= max_carriers; ++i) {
       carriers_str = `${carriers_str} ${i}`;
       carriers_arr.push(i);
     }
@@ -231,7 +231,7 @@ imageColors
     fs.writeFile(`./knit-out-files/${new_file}.k`, knitout_str, function (err) {
       if (err) return console.log(err);
       console.log(
-        chalk`{green \nThe knitout file has successfully been written and can be found in the 'knit-out-files' folder.\nOpen 'knit_motif.png' (located in the parent directory) to see a visual depiction of the knitting instructions.} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'npm run shapeify'}`
+        chalk`{green \nThe knitout file has successfully been written and can be found in the 'knit-out-files' folder.\nOpen 'knit_motif.png'} {green.italic (located in the 'out-colorwork-images' folder)} {green to see a visual depiction of the knitting instructions.} {green.italic This folder also contains: 'colorwork.png', which depicts the resized image. Please note that, if applicable, the program has renamed files in that folder from earlier sessions, by appending a number to the end.)} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'npm run shapeify'}`
       );
     });
   });

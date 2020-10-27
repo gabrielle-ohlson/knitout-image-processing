@@ -26,7 +26,7 @@ let machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machi
 });
 machine = machine.toLowerCase();
 console.log(chalk.green(`-- Model: ${machine}`)); //? model ??
-
+//TODO: add support for different shima modesls (and maybe stoll?)
 let carrier_count;
 machine.includes('shima') ? (carrier_count = 10) : (carrier_count = 6); //TODO: limit needle bed with this too (prob will have to use promises)
 let max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would you like to use? '), {
@@ -48,7 +48,7 @@ let opts = {
 // if (fs.existsSync('color_work.png')) {
 function getData() {
   const processImage = new Promise((resolve) => {
-    Jimp.read('color_work.png').then((image) => {
+    Jimp.read(`./out-colorwork-images/colorwork.png`).then((image) => {
       width = image.bitmap.width;
       height = image.bitmap.height;
       data = image.bitmap.data;
@@ -60,6 +60,15 @@ function getData() {
         hex_arr.push(Jimp.rgbaToInt(palette[h][0], palette[h][1], palette[h][2], 255)); //255 bc hex
       }
       reduced = q.reduce(data, 2); ////indexed array
+       let motif_path = `./out-colorwork-images/knit_motif.png`;
+       if (fs.existsSync(motif_path)) {
+         rename: for (let i = 1; i < 100; ++i) {
+           if (!fs.existsSync(`./out-colorwork-images/knit_motif${i}.png`)) {
+             fs.renameSync(colorwork_path, `./out-colorwork-images/knit_motif${i}.png`);
+             break rename;
+           }
+         }
+       }
       new Jimp(width, height, (err, img) => {
         if (err) throw err;
         for (let y = 0; y < height; ++y) {
@@ -73,7 +82,7 @@ function getData() {
           }
         }
         colors_arr.push(palette, machine);
-        img.write('knit_motif.png');
+        img.write(motif_path); //new
         resolve(colors_arr);
       });
     });

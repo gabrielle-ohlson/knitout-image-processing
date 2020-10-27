@@ -31,6 +31,8 @@ needle_count = readlineSync.question(
   {
     limit: [
       function (input) {
+        if (input.includes('.') && !isNumeric(input)) input = input.slice(0, input.indexOf('.')); //new
+        input = `${input}.k`; //new
         return isNumeric(input) || fs.existsSync(`./knit-in-files/${input}`) || fs.existsSync(`./knit-out-files/${input}`);
       },
     ],
@@ -39,6 +41,7 @@ needle_count = readlineSync.question(
 );
 if (isNumeric(needle_count)) {
   needle_count = Number(needle_count);
+  console.log(chalk.green(`-- Needle count: ${needle_count}`));
   row_count = readlineSync.question(chalk`{blue.bold \nHow many rows long?} {blue.italic (press enter to scale rows according to img dimensions) }`, {
     defaultInput: -1,
     limit: Number,
@@ -46,11 +49,15 @@ if (isNumeric(needle_count)) {
   });
   row_count === '-1' ? console.log(chalk.green(`-- Row count: AUTO`)) : console.log(chalk.green(`-- Row count: ${row_count}`));
 } else {
+  if (needle_count.includes('.')) needle_count = needle_count.slice(0, needle_count.indexOf('.'));
+  needle_count = `${needle_count}.k`;
+  console.log(chalk.green(`-- Reading from: ${needle_count}`));
   if (fs.existsSync(`./knit-in-files/${needle_count}`)) {
     source_dir = './knit-in-files/';
   } else if (fs.existsSync(`./knit-out-files/${needle_count}`)) {
     source_dir = './knit-out-files/';
   }
+  fs.writeFileSync('SOURCE_FILE.txt', `${needle_count}\n${source_dir}`); //new //check
   let source_file = fs
     .readFileSync(source_dir + needle_count)
     .toString()

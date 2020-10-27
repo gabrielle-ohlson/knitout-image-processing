@@ -234,31 +234,44 @@ console.log(shaping_arr[shaping_arr.length - 1].ROW); //remove
 //-------------------------------------------------------------
 //***GET USER INPUT (IN FILE & SAVE AS) AND WRITE FILE TO ARRAY
 //-------------------------------------------------------------
-//TODO: limit it to creating new files or just editing ones produced by image processing program (and remove option of pulling from 'knit-in-files' folder)
 let source_file, source_dir;
-readlineSync.setDefaultOptions({ prompt: chalk`{blue.bold \nWhat is the name of the file that you would like to add shaping to? }` });
-readlineSync.promptLoop(function (input) {
-  if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
-  input = `${input}.k`;
-  source_file = input;
-  if (
-    !fs.existsSync(`./knit-out-files/${input}`) &&
-    !fs.existsSync(`./knit-out-files/${input}.k`) &&
-    !fs.existsSync(`./knit-in-files/${input}`) &&
-    !fs.existsSync(`./knit-in-files/${input}.k`)
-  ) {
-    console.log(chalk`{red -- Input valid name of a knitout (.k) file that exists in either the 'knit-out-files' or 'knit-in-files' folder, please.}`);
-  }
-  if (fs.existsSync(`./knit-in-files/${input}`)) {
-    source_dir = './knit-in-files/';
-  } else if (fs.existsSync(`./knit-out-files/${input}`)) {
-    source_dir = './knit-out-files/';
-  }
-  return fs.existsSync(`./knit-out-files/${input}`) || fs.existsSync(`./knit-in-files/${input}`);
-});
-console.log(chalk.green(`-- Reading from: ${source_file}`));
+if (fs.existsSync('SOURCE_FILE.txt')) {
+  console.log('Reading source file data...');
+  let source_data = fs.readFileSync('SOURCE_FILE.txt').toString().split('\n');
+  source_file = source_data[0];
+  source_dir = source_data[1];
+  console.log(source_file); //remove
+  console.log(source_dir); //remove
+  fs.unlinkSync('SOURCE_FILE.txt');
+}
+//TODO: limit it to creating new files or just editing ones produced by image processing program (and remove option of pulling from 'knit-in-files' folder)
+// let source_file, source_dir;
+if (source_file === undefined) {
+  //new !
+  readlineSync.setDefaultOptions({ prompt: chalk`{blue.bold \nWhat is the name of the file that you would like to add shaping to? }` });
+  readlineSync.promptLoop(function (input) {
+    if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
+    input = `${input}.k`;
+    source_file = input;
+    if (
+      !fs.existsSync(`./knit-out-files/${input}`) &&
+      !fs.existsSync(`./knit-out-files/${input}.k`) &&
+      !fs.existsSync(`./knit-in-files/${input}`) &&
+      !fs.existsSync(`./knit-in-files/${input}.k`)
+    ) {
+      console.log(chalk`{red -- Input valid name of a knitout (.k) file that exists in either the 'knit-out-files' or 'knit-in-files' folder, please.}`);
+    }
+    if (fs.existsSync(`./knit-in-files/${input}`)) {
+      source_dir = './knit-in-files/';
+    } else if (fs.existsSync(`./knit-out-files/${input}`)) {
+      source_dir = './knit-out-files/';
+    }
+    return fs.existsSync(`./knit-out-files/${input}`) || fs.existsSync(`./knit-in-files/${input}`);
+  });
+  console.log(chalk.green(`-- Reading from: ${source_file}`));
+}
 
-readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nSave as: ') });
+readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nSave new file as: ') });
 let new_file, overwrite;
 readlineSync.promptLoop(function (input) {
   if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
@@ -635,9 +648,11 @@ function parseShape(arr, r) {
   });
 }
 
+let left_bindC, right_bindC;
 function insertXferPasses(left, right, xtype) {
   let xfer_needle1, xcount1, xfer_needle2, xcount2, side, stitches1, stitches2;
   if (left === null) {
+    bindoff_carrier = right_bindC;
     xfer_needle2 = xcount2 = stitches2 = null; //new (moved)
     xfer_needle1 = right;
     side = 'right';
@@ -645,6 +660,7 @@ function insertXferPasses(left, right, xtype) {
     stitches1 = right_dec_count;
   } else {
     if (right === null) {
+      bindoff_carrier = left_bindC;
       xfer_needle2 = xcount2 = stitches2 = null; //new (move)
       xfer_needle1 = left;
       side = 'left';
@@ -670,6 +686,7 @@ function insertXferPasses(left, right, xtype) {
       } else if (stitches1 === 2) {
         dec2DoubleBed(xfer_needle1, side1);
       } else {
+        bindoff_carrier = left_bindC;
         BINDOFF(xfer_needle1, stitches1, side1, true);
       }
       if (side === 'both') {
@@ -679,6 +696,7 @@ function insertXferPasses(left, right, xtype) {
         } else if (stitches2 === 2) {
           dec2DoubleBed(xfer_needle2, 'right');
         } else {
+          bindoff_carrier = right_bindC;
           BINDOFF(xfer_needle2, stitches2, 'right', true);
         }
       }
@@ -716,46 +734,62 @@ let Xright_needle = R_NEEDLE;
 let warning = false;
 let shortrow_time = false; //new //check
 let insert_arr = []; //new //check
-let short_Xright_needle;
-let short_Xleft_needle;
+let short_Xright_needle, short_Xleft_needle, last_shape_row;
 if (shape_code_reverse !== null) {
   ////start decreasing at first row where decreases happen
   dec_row_interval = shaping_arr[0].ROW;
+  if (short_row_section) last_shape_row = shaping_arr[shaping_arr.length - 1].ROW;
 }
 let cookie;
+///////
+// const shortRowCarriers = (cookie) => {
+//   for (let c = 0; c < carriers.length; ++c) {
+//     cookie = cookie.map((el) => {
+//       if (el.charAt(el.length - 1) === carriers[c]) {
+//         return el.slice(0, -1).concat(short_row_carriers[c]);
+//       } else {
+//         return el;
+//       }
+//     });
+//   }
+// };
 ////////////////////
 let shaped_rows = [];
-if (short_row_section && !sinkers) {
-  //new //check
-  let carriers_line = caston_section.findIndex((el) => el.includes(';;Carriers:'));
-  console.log(`carriers_line = ${carriers_line}`); //remove
-  for (let c = 0; c < carriers.length; ++c) {
-    caston_section[carriers_line] = `${caston_section[carriers_line]} ${short_row_carriers[c]}`;
-    // caston_section[carriers_line] = caston_section[carriers_line].concat(short_row_carriers[c]);
-  }
-}
+let new_carriers = []; ////for when swap carriers during shortrowing
+// if (short_row_section && !sinkers) { //remove: don't need this anymore because heading is meant to have all possible carriers
+//   //new //check
+//   let carriers_line = caston_section.findIndex((el) => el.includes(';;Carriers:'));
+//   for (let c = 0; c < carriers.length; ++c) {
+//     caston_section[carriers_line] = `${caston_section[carriers_line]} ${short_row_carriers[c]}`;
+//   }
+// }
 shaped_rows.push(caston_section);
 
 for (let r = 0; r < dec_row_interval; ++r) {
   shaped_rows.push(rows[r]);
 }
 for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
-  bindoff_carrier = rows[r - 1][rows[r - 1].length - 1];
-  bindoff_carrier = bindoff_carrier[bindoff_carrier.length - 1].charAt(bindoff_carrier[bindoff_carrier.length - 1].length - 1);
-  console.log(`bindoff_carrier = ${bindoff_carrier}`); //remove //come back!
+  for (let i = 0; i < rows[r - 1].length; ++i) {
+    if (rows[r - 1][i].some((el) => el.includes('-'))) {
+      let last_op = rows[r - 1][i][rows[r - 1][i].length - 1];
+      left_bindC = last_op.charAt(last_op.length - 1);
+    } else if (rows[r - 1][i].some((el) => el.includes('+'))) {
+      let last_op = rows[r - 1][i][rows[r - 1][i].length - 1];
+      right_bindC = last_op.charAt(last_op.length - 1);
+    }
+  }
+  console.log(`left_bindC = ${left_bindC} && right_bindC = ${right_bindC}`); //remove //come back!
+  // bindoff_carrier = rows[r - 1][rows[r - 1].length - 1];
+  // bindoff_carrier = bindoff_carrier[bindoff_carrier.length - 1].charAt(bindoff_carrier[bindoff_carrier.length - 1].length - 1);
+  // console.log(`bindoff_carrier = ${bindoff_carrier}`); //remove //come back!
   if (shape_code_reverse !== null && !warning) {
     if (!shortrow_time) {
-      //check //?
       parseShape(shaping_arr, r);
+      // if (short_row_section && r === last_shape_row) dec_row_interval = 1;
     } else {
+      left_bindC = new_carriers[carriers.indexOf(left_bindC)]; //new //?
+      right_bindC = new_carriers[carriers.indexOf(right_bindC)]; //new //?
       dec_row_interval = 1; //necessary//? / move down//?
-      // if (r === first_short_row) {
-      //   // short_Xleft_needle = shortrow_bindoff[0]; //?
-      //   short_Xleft_needle = shortrow_bindoff[1];
-      //   short_Xright_needle = Xright_needle;
-      //   // Xright_needle = shortrow_bindoff[1]; //?
-      //   Xright_needle = shortrow_bindoff[0];
-      // }
       parseShape(left_shortrow_arr, r);
     }
   }
@@ -816,7 +850,7 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
     }
   }
   ///////////////////////////////
-  function cookieCutter(XleftN, XrightN) {
+  function cookieCutter(XleftN, XrightN, replacement) {
     // if (Xleft_needle !== L_NEEDLE) {
     if (XleftN !== L_NEEDLE) {
       //new //?
@@ -830,12 +864,25 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
         cookie = cookie.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
       }
     }
+    if (shortrow_time) {
+      //new //? //come back!
+      // XleftN === Xleft_needle ? (replacement = new_carriers) : (replacement = short_row_carriers);
+      for (let c = 0; c < carriers.length; ++c) {
+        cookie = cookie.map((el) => {
+          if (el.charAt(el.length - 1) === carriers[c]) {
+            return el.slice(0, -1).concat(replacement[c]);
+          } else {
+            return el;
+          }
+        });
+      }
+    }
   }
   if (!warning) {
     for (let i = r; i < r + dec_row_interval; ++i) {
       for (let p = 0; p < rows[i].length; ++p) {
         cookie = rows[i][p];
-        cookieCutter(Xleft_needle, Xright_needle);
+        cookieCutter(Xleft_needle, Xright_needle, new_carriers);
         shaped_rows.push(cookie);
       }
     }
@@ -843,7 +890,7 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
     for (let w = r; w < rows.length; ++w) {
       for (let p = 0; p < rows[w].length; ++p) {
         cookie = rows[w][p];
-        cookieCutter(Xleft_needle, Xright_needle);
+        cookieCutter(Xleft_needle, Xright_needle, new_carriers);
         shaped_rows.push(cookie);
       }
     }
@@ -863,119 +910,36 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
         XleftN = short_Xleft_needle;
         XrightN = short_Xright_needle;
       }
+      ///////
+      // for (let c = 0; c < carriers.length; ++c) {
+      //   if (bindoff_carrier === carriers[c]) {
+      //     bindoff_carrier = short_row_carriers[c];
+      //     // break; //?
+      //   }
+      // }
       for (let c = 0; c < carriers.length; ++c) {
-        if (bindoff_carrier === carriers[c]) {
-          bindoff_carrier = short_row_carriers[c];
-          // break; //?
+        // if (left_bindC === carriers[c]) {
+        if (left_bindC === new_carriers[c]) {
+          //new //?
+          left_bindC = short_row_carriers[c];
+        }
+        // if (right_bindC === carriers[c]) {
+        if (right_bindC === new_carriers[c]) {
+          right_bindC = short_row_carriers[c];
         }
       }
       insertXferPasses(XleftN, XrightN, xtype);
-      // insertXferPasses(short_Xleft_needle, short_Xright_needle, xtype);
       insert_arr.push(xfer_section);
       xfer_section = []; //new
     }
     short_Xleft_needle += left_dec_count;
     short_Xright_needle -= right_dec_count;
-    // let count;
-    // if (shortrow_count % 2 !== 0) {
-    //   //TODO: //FIXME: //come back! figure out what to do here
-    //   let x = 0;
-    //   if (shortrow_count === 0) {
-    //     x += 1;
-    //   }
-    //   for (let i = r; i < r + dec_row_interval + x; ++i) {
-    //     for (let p = 0; p < rows[i].length; ++p) {
-    //       cookie = rows[i][p].split(','); //?
-    //       cookieCutter(); //TODO: shortrowR_pass num ???
-    //       insert_arr.push(cookie);
-    //     }
-    //     shortrow_count += 1;
-    //   }
-    // } else {
-    // short_Xleft_needle += left_dec_count;
-    // short_Xright_needle -= right_dec_count;
     for (let i = r; i < r + dec_row_interval; ++i) {
       for (let p = 0; p < rows[i].length; ++p) {
         cookie = rows[i][p];
-        cookieCutter(short_Xleft_needle, short_Xright_needle);
-        for (let c = 0; c < carriers.length; ++c) {
-          cookie = cookie.map((el) => {
-            if (el.charAt(el.length - 1) === carriers[c]) {
-              return el.slice(0, -1).concat(short_row_carriers[c]);
-            } else {
-              return el;
-            }
-          });
-        }
-        insert_arr.push(cookie);
-      }
-      // if ((i - first_short_row) % 2 !== 0) {
-      //   //?
-      //   console.log(insert_arr); //remove
-      //   insert_arr = insert_arr.flat();
-      //   console.log(insert_arr); //remove
-      //   shaped_rows.push(insert_arr); //? flat ?
-      //   console.log(`last : ${shaped_rows[shaped_rows.length - 1]}`); //remove
-      //   insert_arr = [];
-      // }
-      // short_Xleft_needle += left_dec_count;
-      // short_Xright_needle -= right_dec_count;
-    }
-    if ((r - first_short_row) % 2 !== 0) {
-      //?
-      insert_arr = insert_arr.flat();
-      shaped_rows.push(insert_arr); //? flat ?
-      insert_arr = [];
-    }
-    // }
-  }
-  ////
-  if (shape_code_reverse !== null) {
-    if (r === shaping_arr[shaping_arr.length - 1].ROW) {
-      //go back! //?
-      if (!short_row_section) {
-        if (!warning) {
-          console.log(
-            chalk.black.bgYellow(`! WARNING:`) +
-              ` The program has finished running through all rows in the custom shape. The rest of the file will maintain the shape's final width.` //TODO: alter this once have function to chop off excess rows
-          );
-        }
-        warning = true;
-      } else {
-        shortrow_time = true;
-        // shaped_rows.push(`;short row section`); //new
-        console.log(`shortrow_time!!!`); //remove fs
-        // dec_row_interval = first_short_row - r; //check this! //-1 //?
-        // left_dec = right_dec = true; //check this ... doing this so it chops of edges on both sides, according to most recent dec(could be 0 on one side )
-        for (let i = r + dec_row_interval; i < first_short_row - 1; ++i) {
-          for (let p = 0; p < rows[i].length; ++p) {
-            /////
-            cookie = rows[i][p]; //?
-            cookieCutter(Xleft_needle, Xright_needle);
-            // insert_arr.push(cookie);
-            shaped_rows.push(cookie);
-          }
-        }
-        let bindoff_pass;
-        for (let p = 0; p < rows[first_short_row - 1].length; ++p) {
-          if (rows[first_short_row - 1][p].some((el) => el.includes(`-`))) {
-            bindoff_pass = p; ////keeps redefining until end
-          }
-        }
-        shaped_rows.push(`;short row section`); //new
-        for (let p = 0; p < bindoff_pass; ++p) {
-          cookie = rows[first_short_row - 1][p]; //?
-          cookieCutter(Xleft_needle, Xright_needle);
-          shaped_rows.push(cookie);
-        }
-        //////
-        short_Xleft_needle = shortrow_bindoff[1];
-        short_Xright_needle = Xright_needle;
-        Xright_needle = shortrow_bindoff[0];
-        /////
-        cookie = rows[first_short_row - 1][bindoff_pass];
-        cookieCutter(short_Xleft_needle, short_Xright_needle); //? shortrow_bindoff[1] + 1?
-        // for (let c = 0; c < carriers.length; ++c) {
+        cookieCutter(short_Xleft_needle, short_Xright_needle, short_row_carriers);
+        // shortRowCarriers(cookie);
+        // for (let c = 0; c < carriers.length; ++c) { //go back! //?
         //   cookie = cookie.map((el) => {
         //     if (el.charAt(el.length - 1) === carriers[c]) {
         //       return el.slice(0, -1).concat(short_row_carriers[c]);
@@ -984,35 +948,134 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
         //     }
         //   });
         // }
-        shaped_rows.push(cookie);
-        bindoff_carrier = cookie[cookie.length - 1].charAt(cookie[cookie.length - 1].length - 1);
-        BINDOFF(short_Xleft_needle - 1, short_Xleft_needle - Xright_needle - 1, 'right', double_bed);
-        // BINDOFF(short_Xleft_needle, short_Xleft_needle - Xright_needle + 1, 'left', double_bed); //TODO: check whether this is backwards in the function
-        shaped_rows.push(xfer_section);
-        xfer_section = [];
-        cookie = rows[first_short_row - 1][bindoff_pass];
-        cookieCutter(Xleft_needle, Xright_needle); //shortrow_bindoff[0] - 1?
-        shaped_rows.push(cookie);
-        if (rows[first_short_row - 1].length - 1 !== bindoff_pass) {
-          console.log(`err at opt`); //remove
-          cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
-          cookieCutter(Xleft_needle, Xright_needle); //shortrow_bindoff[0] - 1?
-          shaped_rows.push(cookie);
-          cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
-          cookieCutter(short_Xleft_needle, short_Xright_needle); //? shortrow_bindoff[1] + 1?
-          for (let c = 0; c < carriers.length; ++c) {
-            cookie = cookie.map((el) => {
-              if (el.charAt(el.length - 1) === carriers[c]) {
-                return el.slice(0, -1).concat(short_row_carriers[c]);
-              } else {
-                return el;
-              }
-            });
-          }
-          insert_arr.push(cookie);
-        }
-        dec_row_interval = first_short_row - r; //check this! //-1 //?
+        insert_arr.push(cookie);
       }
+    }
+    if ((r - first_short_row) % 2 !== 0) {
+      insert_arr = insert_arr.flat();
+      shaped_rows.push(insert_arr);
+      insert_arr = [];
+    }
+  }
+  ////
+  if (shape_code_reverse !== null) {
+    if (r === last_shape_row && !short_row_section) {
+      //go back! //?
+      if (!warning) {
+        console.log(
+          chalk.black.bgYellow(`! WARNING:`) +
+            ` The program has finished running through all rows in the custom shape. The rest of the file will maintain the shape's final width.` //TODO: alter this once have function to chop off excess rows
+        );
+      }
+      warning = true;
+    }
+    if (r < last_shape_row && r >= shaping_arr[shaping_arr.length - 2].ROW && short_row_section) {
+      //?
+      // if (!short_row_section) {
+      // if (!warning) {
+      //   console.log(
+      //     chalk.black.bgYellow(`! WARNING:`) +
+      //       ` The program has finished running through all rows in the custom shape. The rest of the file will maintain the shape's final width.` //TODO: alter this once have function to chop off excess rows
+      //   );
+      // }
+      // warning = true;
+      // } else {
+      shortrow_time = true;
+      console.log(dec_row_interval); //remove
+      console.log(r + dec_row_interval); //remove fs
+      console.log(first_short_row - 1); //remove fs
+      // dec_row_interval = first_short_row - r; //check this! //-1 //?
+      for (let i = r + dec_row_interval; i < first_short_row - 1; ++i) {
+        for (let p = 0; p < rows[i].length; ++p) {
+          cookie = rows[i][p]; //?
+          cookieCutter(Xleft_needle, Xright_needle, carriers);
+          shaped_rows.push(cookie);
+        }
+      }
+      let bindoff_pass;
+      for (let p = 0; p < rows[first_short_row - 1].length; ++p) {
+        if (rows[first_short_row - 1][p].some((el) => el.includes(`-`))) {
+          bindoff_pass = p; ////keeps redefining until end, so ends up being final match
+        }
+      }
+      shaped_rows.push(`;short row section`);
+      for (let p = 0; p < bindoff_pass; ++p) {
+        cookie = rows[first_short_row - 1][p]; //?
+        cookieCutter(Xleft_needle, Xright_needle, carriers);
+        shaped_rows.push(cookie);
+      }
+      //////
+      short_Xleft_needle = shortrow_bindoff[1];
+      short_Xright_needle = Xright_needle;
+      Xright_needle = shortrow_bindoff[0];
+      /////
+      cookie = rows[first_short_row - 1][bindoff_pass];
+      cookieCutter(short_Xleft_needle, short_Xright_needle, carriers); //? shortrow_bindoff[1] + 1?
+      shaped_rows.push(cookie);
+      bindoff_carrier = cookie[cookie.length - 1].charAt(cookie[cookie.length - 1].length - 1);
+      // right_bindC = cookie[cookie.length - 1].charAt(cookie[cookie.length - 1].length - 1);
+      BINDOFF(short_Xleft_needle - 1, short_Xleft_needle - Xright_needle - 1, 'right', double_bed);
+      shaped_rows.push(xfer_section);
+      xfer_section = [];
+      cookie = rows[first_short_row - 1][bindoff_pass];
+      cookieCutter(Xleft_needle, Xright_needle, carriers); //shortrow_bindoff[0] - 1?
+      shaped_rows.push(cookie);
+      ////////
+      let left_carriers = [];
+      let right_carriers = [];
+      // for (let i = 0; i < rows[first_short_row - 1].length; ++i) {
+      let adjustment;
+      rows[first_short_row - 1][rows[first_short_row - 1].length - 1] !== bindoff_pass ? (adjustment = -1) : (adjustment = 0);
+      for (let i = 0; i < rows[first_short_row - 1].length + adjustment; ++i) {
+        if (rows[first_short_row - 1][i].some((el) => el.includes('-'))) {
+          let last_op = rows[first_short_row - 1][i][rows[first_short_row - 1][i].length - 1];
+          left_carriers.push(last_op.charAt(last_op.length - 1));
+        } else if (rows[first_short_row - 1][i].some((el) => el.includes('+'))) {
+          let last_op = rows[first_short_row - 1][i][rows[first_short_row - 1][i].length - 1];
+          right_carriers.push(last_op.charAt(last_op.length - 1));
+        }
+      }
+      left_carriers = [...new Set(left_carriers)]; //.sort((a, b) => a - b);
+      console.log(`left_carriers = ${left_carriers}`);
+      right_carriers = [...new Set(right_carriers)]; //.sort((a, b) => a - b);
+      console.log(`right_carriers = ${right_carriers}`);
+      let idxs = [];
+      right_carriers.map((el) => idxs.push(carriers.indexOf(el)));
+      new_carriers = carriers.map((c) => {
+        if (idxs.includes(carriers.indexOf(c))) {
+          return (c = short_row_carriers[carriers.indexOf(c)]);
+        } else {
+          return c;
+        }
+      });
+      short_row_carriers = short_row_carriers.map((c) => {
+        if (idxs.includes(short_row_carriers.indexOf(c))) {
+          return (c = carriers[short_row_carriers.indexOf(c)]);
+        } else {
+          return c;
+        }
+      });
+      ///////
+      if (rows[first_short_row - 1][rows[first_short_row - 1].length - 1] !== bindoff_pass) {
+        //new
+        cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
+        cookieCutter(Xleft_needle, Xright_needle, new_carriers); //shortrow_bindoff[0] - 1? //TODO: //check make sure this isn't messed up by new func in cookieCutter ////doing carriers not new_carriers for now to prevent this but.... should check
+        shaped_rows.push(cookie);
+        cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
+        cookieCutter(short_Xleft_needle, short_Xright_needle, short_row_carriers); //? shortrow_bindoff[1] + 1?
+        // for (let c = 0; c < carriers.length; ++c) { //go back! //?
+        //   cookie = cookie.map((el) => {
+        //     if (el.charAt(el.length - 1) === carriers[c]) {
+        //       return el.slice(0, -1).concat(short_row_carriers[c]);
+        //     } else {
+        //       return el;
+        //     }
+        //   });
+        // }
+        insert_arr.push(cookie);
+      }
+      dec_row_interval = first_short_row - r; //check this! //-1 //?
+      // }
     }
   }
   //////////////

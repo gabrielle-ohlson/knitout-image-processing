@@ -5,7 +5,8 @@
   "main": "knitify.js",
   "scripts": {
     "start": "node image-resize.js && node knitify.js",
-    "shapeify": "node shape-cropper.js && node shape-writer.js && node shape-processor.js && node shapeify.js"
+    "shapeify": "node shape-cropper.js && node shape-writer.js && node shape-processor.js && node shapeify.js",
+    "knitify": "node image-resize.js && node knitify.js"
   },
   "engines": {
     "node": ">=11.15.0"
