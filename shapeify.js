@@ -156,18 +156,7 @@ function shapeInfo(code, arr) {
   }
 }
 ////FUNCTION FOR DETECTION SHAPING PARAMETERS FOR ACTIVE ROWS FROM SHAPE-PROCESSOR IMAGE
-function shapingDetection(
-  i,
-  left_px1,
-  shape_left_dec,
-  shape_left_inc,
-  shape_knit,
-  right_px1,
-  shape_right_dec,
-  shape_right_inc,
-  prev_left,
-  prev_right
-) {
+function shapingDetection(i, left_px1, shape_left_dec, shape_left_inc, shape_knit, right_px1, shape_right_dec, shape_right_inc, prev_left, prev_right) {
   if (i > 0 && left_px1 !== prev_left) {
     if (left_px1 > prev_left) {
       shape_left_dec = prev_left - left_px1;
@@ -406,7 +395,7 @@ function getMax(arr) {
     max = arr[len] > max ? arr[len] : max;
   }
   return max;
-};
+}
 function getMin(arr) {
   let min = arr[0];
   for (let idx = 0; idx < arr.length; ++idx) {
@@ -739,28 +728,9 @@ if (shape_code_reverse !== null) {
   if (short_row_section) last_shape_row = shaping_arr[shaping_arr.length - 1].ROW;
 }
 let cookie;
-///////
-// const shortRowCarriers = (cookie) => {
-//   for (let c = 0; c < carriers.length; ++c) {
-//     cookie = cookie.map((el) => {
-//       if (el.charAt(el.length - 1) === carriers[c]) {
-//         return el.slice(0, -1).concat(short_row_carriers[c]);
-//       } else {
-//         return el;
-//       }
-//     });
-//   }
-// };
 ////////////////////
 let shaped_rows = [];
 let new_carriers = []; ////for when swap carriers during shortrowing
-// if (short_row_section && !sinkers) { //remove: don't need this anymore because heading is meant to have all possible carriers
-//   //new //check
-//   let carriers_line = caston_section.findIndex((el) => el.includes(';;Carriers:'));
-//   for (let c = 0; c < carriers.length; ++c) {
-//     caston_section[carriers_line] = `${caston_section[carriers_line]} ${short_row_carriers[c]}`;
-//   }
-// }
 shaped_rows.push(caston_section);
 
 for (let r = 0; r < dec_row_interval; ++r) {
@@ -779,7 +749,6 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
   if (shape_code_reverse !== null && !warning) {
     if (!shortrow_time) {
       parseShape(shaping_arr, r);
-      // if (short_row_section && r === last_shape_row) dec_row_interval = 1;
     } else {
       left_bindC = new_carriers[carriers.indexOf(left_bindC)]; //new //?
       right_bindC = new_carriers[carriers.indexOf(right_bindC)]; //new //?
@@ -835,7 +804,6 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
   // }
   ///////////////////////////////
   if (!warning) {
-    //new moved
     if (left_dec) {
       Xleft_needle += left_dec_count;
     }
@@ -845,7 +813,6 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
   }
   ///////////////////////////////
   function cookieCutter(XleftN, XrightN, replacement) {
-    // if (Xleft_needle !== L_NEEDLE) {
     if (XleftN !== L_NEEDLE) {
       //new //?
       for (let cc = L_NEEDLE; cc < XleftN; ++cc) {
@@ -853,14 +820,11 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
       }
     }
     if (XrightN !== R_NEEDLE) {
-      //new //?
       for (let cc = R_NEEDLE; cc > XrightN; --cc) {
         cookie = cookie.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
       }
     }
     if (shortrow_time) {
-      //new //? //come back!
-      // XleftN === Xleft_needle ? (replacement = new_carriers) : (replacement = short_row_carriers);
       for (let c = 0; c < carriers.length; ++c) {
         cookie = cookie.map((el) => {
           if (el.charAt(el.length - 1) === carriers[c]) {
@@ -905,26 +869,18 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
         XrightN = short_Xright_needle;
       }
       ///////
-      // for (let c = 0; c < carriers.length; ++c) {
-      //   if (bindoff_carrier === carriers[c]) {
-      //     bindoff_carrier = short_row_carriers[c];
-      //     // break; //?
-      //   }
-      // }
       for (let c = 0; c < carriers.length; ++c) {
-        // if (left_bindC === carriers[c]) {
         if (left_bindC === new_carriers[c]) {
           //new //?
           left_bindC = short_row_carriers[c];
         }
-        // if (right_bindC === carriers[c]) {
         if (right_bindC === new_carriers[c]) {
           right_bindC = short_row_carriers[c];
         }
       }
       insertXferPasses(XleftN, XrightN, xtype);
       insert_arr.push(xfer_section);
-      xfer_section = []; //new
+      xfer_section = [];
     }
     short_Xleft_needle += left_dec_count;
     short_Xright_needle -= right_dec_count;
@@ -932,16 +888,6 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
       for (let p = 0; p < rows[i].length; ++p) {
         cookie = rows[i][p];
         cookieCutter(short_Xleft_needle, short_Xright_needle, short_row_carriers);
-        // shortRowCarriers(cookie);
-        // for (let c = 0; c < carriers.length; ++c) { //go back! //?
-        //   cookie = cookie.map((el) => {
-        //     if (el.charAt(el.length - 1) === carriers[c]) {
-        //       return el.slice(0, -1).concat(short_row_carriers[c]);
-        //     } else {
-        //       return el;
-        //     }
-        //   });
-        // }
         insert_arr.push(cookie);
       }
     }
@@ -1001,6 +947,10 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
       cookieCutter(Xleft_needle, Xright_needle, carriers); //shortrow_bindoff[0] - 1?
       shaped_rows.push(cookie);
       ////////
+      if (carriers.length > 3 && !errors) {
+        //new //? //TODO: figure out what to about carriers leaving tails on side from before shortrowsection (pause machine & cut them?)
+        carriers = carriers.filter((el) => !short_row_carriers.includes(el));
+      }
       let left_carriers = [];
       let right_carriers = [];
       // for (let i = 0; i < rows[first_short_row - 1].length; ++i) {
@@ -1041,33 +991,12 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
         shaped_rows.push(cookie);
         cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
         cookieCutter(short_Xleft_needle, short_Xright_needle, short_row_carriers); //? shortrow_bindoff[1] + 1?
-        // for (let c = 0; c < carriers.length; ++c) { //go back! //?
-        //   cookie = cookie.map((el) => {
-        //     if (el.charAt(el.length - 1) === carriers[c]) {
-        //       return el.slice(0, -1).concat(short_row_carriers[c]);
-        //     } else {
-        //       return el;
-        //     }
-        //   });
-        // }
         insert_arr.push(cookie);
       }
-      dec_row_interval = first_short_row - r; //check this! //-1 //?
-      // }
+      dec_row_interval = first_short_row - r;
     }
   }
-  //////////////
-  // if (!warning) {
-  //   if (left_dec) {
-  //     Xleft_needle += left_dec_count;
-  //   }
-  //   if (right_dec) {
-  //     Xright_needle -= right_dec_count;
-  //   }
-  // }
   //////////////////////////
-  // if (rows[r + dec_row_interval + dec_row_interval] === undefined) {
-  //?
   if (rows[r + dec_row_interval] === undefined) {
     if (shape_code_reverse === null) {
       break;
@@ -1076,24 +1005,82 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
         break;
       }
     }
-    //FIXME:
     // if (rows[r + dec_row_interval] === undefined || reached_bindoff) {
     //?
-    // break;
   }
 }
 
+//--------------
+//***ADD BINDOFF
+//--------------
+//TODO: add tag at end of bindoff?
+shaped_rows = shaped_rows.flat();
+let bindoff = [];
+let bindoff_side, Bxfer_needle, bindoff_count;
+last_carrier: for (let i = shaped_rows.length - 1; i > 0; --i) {
+  if (shaped_rows[i].includes('knit')) {
+    bindoff_carrier = shaped_rows[i].charAt(shaped_rows[i].length - 1);
+    shaped_rows[i].includes('+') ? (bindoff_side = 'right') : (bindoff_side = 'left');
+    break last_carrier;
+  }
+}
+if (short_row_section && short_row_carriers.includes(bindoff_carrier)) {
+  bindoff_side === 'right' ? (Bxfer_needle = short_Xright_needle) : (Bxfer_needle = short_Xleft_needle);
+  bindoff_count = short_Xright_needle - short_Xleft_needle + 1;
+} else {
+  bindoff_side === 'right' ? (Bxfer_needle = Xright_needle) : (Bxfer_needle = Xleft_needle);
+  bindoff_count = Xright_needle - Xleft_needle + 1;
+}
+xfer_section.push(`;bindoff section`);
+BINDOFF(Bxfer_needle, bindoff_count, bindoff_side, double_bed);
+bindoff.push(xfer_section);
+xfer_section = [];
+if (short_row_section) {
+  function bindOtherSide(carrier_arr) {
+    last_carrier: for (let i = shaped_rows.length - 1; i > 0; --i) {
+      for (let c = 0; c < carrier_arr.length; ++c) {
+        if (shaped_rows[i].includes('knit') && shaped_rows[i].charAt(shaped_rows[i].length - 1) === carrier_arr[c]) {
+          bindoff_carrier = carrier_arr[c];
+          shaped_rows[i].includes('+') ? (bindoff_side = 'right') : (bindoff_side = 'left');
+          break last_carrier;
+        }
+      }
+    }
+  }
+  if (!short_row_carriers.includes(bindoff_carrier)) {
+    bindOtherSide(short_row_carriers);
+    bindoff_side === 'right' ? (Bxfer_needle = short_Xright_needle) : (Bxfer_needle = short_Xleft_needle);
+    bindoff_count = short_Xright_needle - short_Xleft_needle + 1;
+  } else {
+    bindOtherSide(new_carriers);
+    bindoff_side === 'right' ? (Bxfer_needle = Xright_needle) : (Bxfer_needle = Xleft_needle);
+    bindoff_count = Xright_needle - Xleft_needle + 1;
+  }
+  BINDOFF(Bxfer_needle, bindoff_count, bindoff_side, double_bed);
+  bindoff.push(xfer_section);
+  xfer_section = [];
+}
+bindoff = bindoff.flat();
+shaped_rows.push(bindoff);
+
+//-------------------------------------------
+//***ADDITIONAL ERROR CHECK
+//-------------------------------------------
+if (shaped_rows.some((line) => line.includes(undefined) || line.includes(null))) {
+  //? string or var?
+  console.log(chalk`{red.bold ERR:} {file includes invalid value such as 'undefined'.}`);
+  errors = true;
+}
 //--------------------------------
 //***FINALLY, STRINGIFY FINAL_FILE
 //--------------------------------
-shaped_rows = shaped_rows.flat(); //TODO: determine necessary depth of flat
+shaped_rows = shaped_rows.flat();
 let final_file = JSON.stringify(shaped_rows).replace(/"/gi, '').replace(/\[|\]/gi, '').split(',');
-final_file = final_file.join('\n'); //new
+final_file = final_file.join('\n');
 
 //-------------------------------------------
 //***CHECK FOR ERRORS BEFORE WRITING THE FILE
 //-------------------------------------------
-
 if (!errors && !shape_error) {
   console.log(
     // chalk`{green \nno errors found :-) don't forget to change the new file name to 'command.kc' before uploading it to the machine!}\n{black.bgYellow ! WARNING:} {italic IT IS RECOMMENDED THAT YOU EMAIL THIS FILE TO:} {bold support@kniterate.com} {italic BEFORE USE TO ENSURE THAT NO DAMAGE WILL BE CAUSED TO YOUR MACHINE.\n***contact:} {bold info@edgygrandma.com} {italic if you have any questions about this program.}`
@@ -1122,5 +1109,3 @@ if (!errors && !shape_error) {
     console.log(chalk.red.bgWhite.bold(`\nErrors found--unable to write file. Please refer to console log for details.`));
   }
 }
-
-//ERROR BRAINSTORM: check for things like undefined/null

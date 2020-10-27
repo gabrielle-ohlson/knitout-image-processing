@@ -187,6 +187,7 @@ imageColors
   })
   .then(() => {
     //TODO: make sure the bindoff ends ok
+    //TODO: add tag at end of bindoff?
     ////bindoff
     bindoff.push(`;bindoff section`); //new
     let side, double_bed;
