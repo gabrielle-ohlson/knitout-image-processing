@@ -1,4 +1,3 @@
-//TODO: figure out why shape comes out all wonky
 const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
@@ -100,18 +99,15 @@ function shortRowInfo(left, right, arr, main_left, main_right) {
       if (curr_row[right] !== prev_row[right]) {
         //1, but now right
         curr_row[right] < prev_row[right] ? (shape_right_dec = curr_row[right] - prev_row[right]) : (shape_right_inc = curr_row[right] - prev_row[right]);
-        // shape_knit = false;
       }
     } else {
       if (curr_row[left] !== main_left && main_left !== null) {
         //0, but now left
         curr_row[left] > main_left ? (shape_left_dec = main_left - curr_row[left]) : (shape_left_inc = main_left - curr_row[left]);
-        // shape_knit = false;
       }
       if (curr_row[right] !== main_right && main_right !== null) {
         //1, but now right
         curr_row[right] < main_right ? (shape_right_dec = curr_row[right] - main_right) : (shape_right_inc = curr_row[right] - main_right);
-        // shape_knit = false;
       }
     }
     let shaping = SHAPING({
@@ -150,7 +146,6 @@ function shapeInfo(code, arr) {
       prev_left,
       prev_right
     ));
-    //TODO: make sure this is in the right direction
     if (!shape_knit) {
       //new
       let shaping = SHAPING({
@@ -173,23 +168,15 @@ function shapingDetection(
   shape_right_dec,
   shape_right_inc,
   prev_left,
-  prev_right,
-  R_left_px1,
-  R_right_px1
+  prev_right
 ) {
-  if (R_left_px1 !== undefined) {
-    left_px1 = R_left_px1;
-    right_px1 = R_right_px1;
-    shape_left_dec = 0; //check on these
-    shape_left_inc = 0;
-    shape_right_dec = 0;
-    shape_right_inc = 0;
-  }
   if (i > 0 && left_px1 !== prev_left) {
     if (left_px1 > prev_left) {
       shape_left_dec = prev_left - left_px1;
+      shape_knit = false;
     } else {
       shape_left_inc = prev_left - left_px1;
+      shape_knit = false;
     }
   }
   if (i > 0 && right_px1 !== prev_right) {
@@ -779,10 +766,6 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
       right_bindC = last_op.charAt(last_op.length - 1);
     }
   }
-  console.log(`left_bindC = ${left_bindC} && right_bindC = ${right_bindC}`); //remove //come back!
-  // bindoff_carrier = rows[r - 1][rows[r - 1].length - 1];
-  // bindoff_carrier = bindoff_carrier[bindoff_carrier.length - 1].charAt(bindoff_carrier[bindoff_carrier.length - 1].length - 1);
-  // console.log(`bindoff_carrier = ${bindoff_carrier}`); //remove //come back!
   if (shape_code_reverse !== null && !warning) {
     if (!shortrow_time) {
       parseShape(shaping_arr, r);

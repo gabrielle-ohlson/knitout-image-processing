@@ -214,6 +214,13 @@ if (fs.existsSync('INPUT_DATA.json')) {
   shape_code_reverse = shape_code_reverse.reverse();
   first_short_row = shape_code_reverse.length - 1 - splice_arr[splice_arr.length - 1];
   last_short_row = shape_code_reverse.length - 1 - splice_arr[0];
+  ///////
+  let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],'); ////TEMP file to show what the output shape_code looks like
+  txt_file = txt_file.join('\n').replace(/\]|,/g, '');
+  fs.writeFile('SHAPE-CODE.txt', txt_file, function (err) {
+    if (err) return console.log(err);
+    console.log('WRITING FILE');
+  });
 } else {
   shape_code = null;
   short_row_section = null;
@@ -244,6 +251,7 @@ if (short_row_section) {
   shortrow_code = [...shape_code_reverse];
   shape_code_reverse = shortrow_code.splice(0, first_short_row);
 }
+
 module.exports = {
   shape_code,
   shape_code_reverse,
