@@ -1,5 +1,4 @@
 //TODO: figure out why shape comes out all wonky
-//TODO: figure out how to avoid float after bind off in middle section for kniterate machine
 const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
@@ -229,7 +228,7 @@ console.log(shortrow_bindoff); //remove
 console.log(`first short row: ${first_short_row}`); //remove
 console.log(`last short row: ${last_short_row}`); //remove
 console.log(shaping_arr[shaping_arr.length - 1].ROW); //remove
-//TODO: //come back! look over this from test-kcode.js (clean it up tho)
+//TODO: //come back! look over this from test-kcode.js (clean it up too)
 
 //-------------------------------------------------------------
 //***GET USER INPUT (IN FILE & SAVE AS) AND WRITE FILE TO ARRAY
@@ -299,7 +298,9 @@ for (let i = 0; i < in_file.length; ++i) {
   in_file[i] = in_file[i].filter((el) => !el.includes('ow:'));
 }
 let caston_section = in_file.shift();
-console.log(caston_section); //remove
+
+let bindoff_section = in_file[in_file.length - 1].splice(in_file[in_file.length - 1].indexOf(`;bindoff section`)); //new!!! //need to double check this
+
 //--------------------------------------------
 //***CREATE ARRAY OF CARRIERS USED IN THE FILE
 //--------------------------------------------

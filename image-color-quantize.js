@@ -64,7 +64,7 @@ function getData() {
        if (fs.existsSync(motif_path)) {
          rename: for (let i = 1; i < 100; ++i) {
            if (!fs.existsSync(`./out-colorwork-images/knit_motif${i}.png`)) {
-             fs.renameSync(colorwork_path, `./out-colorwork-images/knit_motif${i}.png`);
+             fs.renameSync(motif_path, `./out-colorwork-images/knit_motif${i}.png`);
              break rename;
            }
          }

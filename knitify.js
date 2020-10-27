@@ -1,6 +1,5 @@
-//TODO: //check with lab whether should include inhook etc. for kniterate or just forgo it (depending on backend stuff)
-//TODO: add options for bind - off and cast - on(//? maybe if kniterate machine, make default cast-on waste yarn, and then otherwise, give option?)
-//TODO: add option for fair isle and intarsia too (not just jacquard... also maybe minimal jacquard ?)
+//TODO: (//? maybe if kniterate machine, make default cast-on waste yarn, and then otherwise, give option?)
+//TODO: add option for fair isle and intarsia too (not just jacquard... also maybe ladderback jacquard ?)
 
 const fs = require('fs');
 const readlineSync = require('readline-sync');
@@ -11,18 +10,12 @@ let colors_arr = [];
 let knitout = [];
 let row = [];
 let carrier_passes = [];
+let carriers_arr = [];
 let rows = [];
 let jacquard_passes = [];
 let caston = [];
-let bindoff = []; //TODO: add bind-off
-
-// let imageColors;
-// if (fs.existsSync('abort.txt')) {
-//   fs.unlinkSync('abort.txt');
-//   process.exit();
-// } else {
-//   imageColors = require('./image-color-quantize.js');
-// }
+let bindoff = [];
+let last_pass_dir, xfer_needle, last_needle, bindoff_carrier;
 
 let stitch_number = readlineSync.question(
   chalk`{blue.italic \n(OPTIONAL: press enter to skip this step)} {blue.bold What would you like to set the stitch number as? }`,
@@ -55,13 +48,9 @@ imageColors
     colors_arr = colors_arr.reverse(); //new //come back! and //check
     color_count = palette.length;
     machine.includes('kniterate') ? ((needle_bed = 253), (init_dir = '+'), (other_dir = '-')) : ((needle_bed = 541), (init_dir = '-'), (other_dir = '+')); ////one extra so not counting from 0
-    //TODO: check to see how many needles Shima SWG091N2 actually has (15 gauge, 36inch??)
   })
-  // .then((op, dir, bed, needle, carrier) => {
   .then((dir, needle, carrier) => {
     for (let y = 0; y < colors_arr.length; ++y) {
-      // op = 'knit'; //TODO: make this vary //?
-      // bed = 'f'; //go back! //?
       for (let x = 0; x < colors_arr[y].length; ++x) {
         needle = x + 1; ////so counting from 1 not 0
         carrier = colors_arr[y][x];
@@ -141,9 +130,8 @@ imageColors
       }
     }
     let carriers_str = '';
-    let carriers_arr = [];
     let max_carriers;
-    machine.includes('kniterate') ? max_carriers = 6 : max_carriers = 10; //TODO: add more options for this, or maybe take it from command-line input (i.e. stoll machines have anywhere from 8 - 16 carriers [maybe even > || < for some])
+    machine.includes('kniterate') ? (max_carriers = 6) : (max_carriers = 10); //TODO: add more options for this, or maybe take it from command-line input (i.e. stoll machines have anywhere from 8 - 16 carriers [maybe even > || < for some])
     for (let i = 1; i <= max_carriers; ++i) {
       carriers_str = `${carriers_str} ${i}`;
       carriers_arr.push(i);
@@ -176,10 +164,9 @@ imageColors
       for (let i = 0; i < 14; ++i) {
         i % 2 !== 0 && i < 13 ? (dir = '-') : (dir = '+'); //check
         if (i === 13) carrier = neg_carrier; ////make draw thread the carrier that needs to end up on right side so its positioned there
-        //TODO: ask lab whether should include kickback pass inbtw drop and draw thread since in same direction, or if backend will be able to figure that out
         if (dir === '+') {
           for (let x = 1; x <= colors_arr[0].length; ++x) {
-            i !== 12 ? waste_yarn_section.push(`knit + f${x} ${carrier}`) : waste_yarn_section.push(`drop + b${x}`); //TODO: //check with lab whether drop is the right op
+            i !== 12 ? waste_yarn_section.push(`knit + f${x} ${carrier}`) : waste_yarn_section.push(`drop + b${x}`);
           }
         } else {
           for (let x = colors_arr[0].length; x > 0; --x) {
@@ -193,12 +180,84 @@ imageColors
     }
     if (speed_number !== '-1') knitout.unshift(`x-speed-number ${speed_number}`);
     if (stitch_number !== '-1') knitout.unshift(`x-stitch-number ${stitch_number}`);
-    knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`); //TODO: ask lab whether Carriers heading should include all possible carriers or just the used ones
+    knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`);
+    bindoff_carrier = knitout[knitout.length - 1].charAt(knitout[knitout.length - 1].length - 1);
+    last_needle = colors_arr[0].length;
+    knitout[knitout.length - 1].includes('+') ? ((last_pass_dir = '+'), (xfer_needle = last_needle)) : ((last_pass_dir = '-'), (xfer_needle = 1));
+  })
+  .then(() => {
+    //TODO: make sure the bindoff ends ok
+    ////bindoff
+    bindoff.push(`;bindoff section`); //new
+    let side, double_bed;
+    let count = last_needle;
+    knitout.some((el) => el.includes('knit') && el.includes(' b')) ? (double_bed = true) : (double_bed = false);
+    last_pass_dir === '+' ? (side = 'right') : (side = 'left');
+    if (side === 'right') {
+      xfer_needle = xfer_needle - count + 1;
+    }
+    const posLoop = (op, bed) => {
+      for (let x = xfer_needle; x < xfer_needle + count; ++x) {
+        if (op === 'knit') {
+          bindoff.push(`knit + ${bed}${x} ${bindoff_carrier}`);
+        }
+        if (op === 'xfer') {
+          let receive;
+          bed === 'f' ? (receive = 'b') : (receive = 'f');
+          bindoff.push(`xfer ${bed}${x} ${receive}${x}`);
+        }
+        if (op === 'bind') {
+          bindoff.push(`xfer b${x} f${x}`);
+          bindoff.push(`rack -1`);
+          bindoff.push(`xfer f${x} b${x + 1}`);
+          bindoff.push(`rack 0`);
+          bindoff.push(`knit + b${x} ${bindoff_carrier}`);
+        }
+      }
+    };
+    const negLoop = (op, bed) => {
+      for (let x = xfer_needle + count - 1; x >= xfer_needle; --x) {
+        if (op === 'knit') {
+          bindoff.push(`knit - ${bed}${x} ${bindoff_carrier}`);
+        }
+        if (op === 'xfer') {
+          let receive;
+          bed === 'f' ? (receive = 'b') : (receive = 'f');
+          bindoff.push(`xfer ${bed}${x} ${receive}${x}`);
+        }
+        if (op === 'bind') {
+          bindoff.push(`xfer b${x} f${x}`);
+          bindoff.push(`rack 1`);
+          bindoff.push(`xfer f${x} b${x - 1}`);
+          bindoff.push(`rack 0`);
+          bindoff.push(`knit - b${x} ${bindoff_carrier}`);
+        }
+      }
+    };
+    if (side === 'left') {
+      posLoop('knit', 'f');
+      if (double_bed) negLoop('knit', 'f');
+      if (double_bed) posLoop('knit', 'b');
+      negLoop('xfer', 'f'); //? kickback?
+      negLoop('knit', 'b');
+      posLoop('bind', null);
+    } else if (side === 'right') {
+      negLoop('knit', 'f');
+      if (double_bed) posLoop('knit', 'f');
+      if (double_bed) negLoop('knit', 'b');
+      posLoop('xfer', 'f'); //? kickback?
+      posLoop('knit', 'b');
+      negLoop('bind', null);
+    }
+    knitout.push(bindoff);
+    knitout = knitout.flat();
     if (machine.includes('shima')) {
       for (let i = 1; i <= carriers_arr.length; ++i) {
-        let carrier_search = knitout.map((el) => el.includes(` ${i}`));
+        let carrier_search = knitout.map((el) => el.includes(` ${i}`) && el.includes(`knit`));
         let last = carrier_search.lastIndexOf(true);
-        knitout.splice(last + 1, 0, `outhook ${i}`); //TODO: make sure this doesn't get thrown off by increasing splice (might need to increment ?)
+        if (last !== -1) {
+          knitout.splice(last + 1, 0, `outhook ${i}`); //TODO: make sure this doesn't get thrown off by increasing splice (might need to increment ?)
+        }
       }
     }
   })
