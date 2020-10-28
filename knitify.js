@@ -5,7 +5,7 @@ const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
 const imageColors = require('./image-color-quantize.js');
-let machine, palette, color_count, init_dir, other_dir, needle_bed; //, bird, odd_bird, even_bird;
+let background, machine, palette, color_count, init_dir, other_dir, needle_bed; //, bird, odd_bird, even_bird;
 let colors_arr = [];
 let knitout = [];
 let row = [];
@@ -43,6 +43,7 @@ imageColors
     return result;
   })
   .then(() => {
+    background = colors_arr.pop(); //new
     machine = colors_arr.pop();
     palette = colors_arr.pop();
     colors_arr = colors_arr.reverse();
@@ -137,8 +138,8 @@ imageColors
       carriers_arr.push(i);
     }
     if (machine.includes('shima')) {
-      caston.unshift(`inhook ${jacquard_passes[0][0][1]}`); //new //?
-      caston.push(`releasehook ${jacquard_passes[0][0][1]}`); //new //?
+      caston.unshift(`inhook ${jacquard_passes[0][0][1]}`);
+      caston.push(`releasehook ${jacquard_passes[0][0][1]}`);
       knitout.unshift(caston);
     } else if (machine.includes('kniterate')) {
       let pass2 = caston[caston.length - 1];
@@ -153,6 +154,7 @@ imageColors
         let carrier_caston = kniterate_caston_base.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${carrier}`));
         i === 0 ? kniterate_caston.push(carrier_caston, carrier_caston) : kniterate_caston.push(carrier_caston);
       }
+      kniterate_caston.push(`;kniterate yarns in`); //new
       kniterate_caston = kniterate_caston.flat();
       let waste_yarn_section = [];
       carrier = jacquard_passes[0][0][1];
@@ -163,7 +165,10 @@ imageColors
       }
       for (let i = 0; i < 14; ++i) {
         i % 2 !== 0 && i < 13 ? (dir = '-') : (dir = '+'); //check
-        if (i === 13) carrier = neg_carrier; ////make draw thread the carrier that needs to end up on right side so its positioned there
+        if (i === 13) {
+          waste_yarn_section.push(`;draw thread`); //new //TODO: make draw thread carrier other than waste yarn carrier (so distinct)
+          carrier = neg_carrier;
+        } ////make draw thread the carrier that needs to end up on right side so its positioned there
         if (dir === '+') {
           for (let x = 1; x <= colors_arr[0].length; ++x) {
             i !== 12 ? waste_yarn_section.push(`knit + f${x} ${carrier}`) : waste_yarn_section.push(`drop + b${x}`);
@@ -174,10 +179,12 @@ imageColors
           }
         }
       }
+      // waste_yarn_section.push(`;kniterate waste yarn end`); //new
       waste_yarn_section = waste_yarn_section.flat();
       knitout.unshift(waste_yarn_section);
       knitout.unshift(kniterate_caston);
     }
+    knitout.unshift(`;background color: ${background}`); //new
     if (speed_number !== '-1') knitout.unshift(`x-speed-number ${speed_number}`);
     if (stitch_number !== '-1') knitout.unshift(`x-stitch-number ${stitch_number}`);
     knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`);

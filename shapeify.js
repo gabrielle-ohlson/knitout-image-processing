@@ -117,6 +117,11 @@ function shortRowInfo(left, right, arr, main_left, main_right) {
   }
 }
 // -----------------------------
+let row1_small = false;
+const L_NEEDLE = 1;
+const R_NEEDLE = shape_code_reverse[0].length;
+let row1_Lneedle = L_NEEDLE;
+let row1_Rneedle = R_NEEDLE;
 function shapeInfo(code, arr) {
   for (let i = 0; i < code.length; ++i) {
     let shape_left_dec = 0;
@@ -128,11 +133,29 @@ function shapeInfo(code, arr) {
     let right_px1 = code[i].lastIndexOf(1); ////last black px
     let prev_left;
     let prev_right;
+    ////
+    if (i === 0) {
+      //new //// for when there are increases: check to see if the shape starts out smaller than max width
+      if (left_px1 !== 0) {
+        //new
+        row1_small = true;
+        row1_Lneedle = left_px1;
+      }
+      if (right_px1 !== code.length - 1) {
+        row1_small = true;
+        row1_Rneedle = right_px1;
+      }
+      console.log(L_NEEDLE); //remove
+      console.log(code[i].length); //remove
+      console.log(R_NEEDLE); //remove
+    }
+    ///
     if (i > 0) {
       prev_left = code[i - 1].indexOf(1);
       prev_right = code[i - 1].lastIndexOf(1);
     }
     const MAIN = ({ shape_left_dec, shape_left_inc, shape_knit, shape_right_dec, shape_right_inc } = shapingDetection(
+      // code, //new
       i,
       left_px1,
       shape_left_dec,
@@ -145,7 +168,6 @@ function shapeInfo(code, arr) {
       prev_right
     ));
     if (!shape_knit) {
-      //new
       let shaping = SHAPING({
         ROW: i,
         LEFT: MAIN.shape_left_dec + MAIN.shape_left_inc, //if >0 (pos), then it's an inc. if <0 (neg). then it's a dec.
@@ -195,7 +217,7 @@ if (shape_code_reverse !== null) {
     shortrow_bindoff = shortrow_bindoff.filter((e) => e);
   }
 }
-// console.log(shaping_arr); //remove
+console.log(shaping_arr); //remove
 // console.log(left_shortrow_arr); //remove
 // console.log(right_shortrow_arr); //remove
 // console.log(shortrow_bindoff); //remove
@@ -267,8 +289,62 @@ for (let i = 0; i < in_file.length; ++i) {
   in_file[i] = in_file[i].filter((el) => !el.includes('ow:'));
 }
 let caston_section = in_file.shift();
+let bg_color = caston_section.find((line) => line.includes(`;background color:`)); ////method to do fake seam carving (use background needles only when xfering in middle of panel)
+bg_color = bg_color.charAt(bg_color.length - 1);
 
-let bindoff_section = in_file[in_file.length - 1].splice(in_file[in_file.length - 1].indexOf(`;bindoff section`)); //new!!! //need to double check this
+let bindoff_section = in_file[in_file.length - 1].splice(in_file[in_file.length - 1].indexOf(`;bindoff section`));
+
+//------------------------------------------
+//***SHIFT CAST-ON SECTION OVER IF NECESSARY
+//------------------------------------------
+
+//TODO: add this for shima caston
+let header = [];
+let yarns_in = [];
+if (row1_small && caston_section[1].includes(`kniterate`)) {
+  header = caston_section;
+  yarns_in = header.splice(header.findIndex((el) => el.includes(`;background color:`)) + 1);
+  caston_section = yarns_in.splice(yarns_in.findIndex((el) => el.includes(`;kniterate yarns in`)) + 1);
+  // let wasteyarn_carrier = caston_section[0].charAt(caston_section[0].length - 1);
+  let left_diff = row1_Lneedle - L_NEEDLE;
+  let kniterate_caston = [];
+  kniterate_caston.push(header);
+  console.log(yarns_in[1]);
+  yarnsin: for (let i = 0; i < yarns_in.length; ++i) {
+    let line = yarns_in[i].split(' ');
+    console.log(line); //remove
+    if (line[0] === 'knit' || line[0] === 'drop') {
+      [bed, line[2]] = [line[2][0], line[2].substr(1)];
+      let n_count = Number(line[2]) + left_diff;
+      line[2] = `${bed}${n_count}`;
+      if (n_count <= row1_Rneedle) {
+        kniterate_caston.push(line.join(' '));
+      } else {
+        // break yarnsin;
+        continue yarnsin;
+      }
+    } else {
+      kniterate_caston.push(yarns_in[i]);
+    }
+  }
+  caston: for (let i = 0; i < caston_section.length; ++i) {
+    let line = caston_section[i].split(' ');
+    if (line[0] === 'knit' || line[0] === 'drop') {
+      [bed, line[2]] = [line[2][0], line[2].substr(1)];
+      let n_count = Number(line[2]) + left_diff;
+      line[2] = `${bed}${n_count}`;
+      if (n_count <= row1_Rneedle) {
+        kniterate_caston.push(line.join(' '));
+      } else {
+        continue caston;
+        // break caston;
+      }
+    } else {
+      kniterate_caston.push(caston_section[i]);
+    }
+  }
+  caston_section = kniterate_caston.flat();
+}
 
 //--------------------------------------------
 //***CREATE ARRAY OF CARRIERS USED IN THE FILE
@@ -301,13 +377,6 @@ let sinkers = readlineSync.keyInYNStrict(
 //***FOR KNITERATE: CREATE ARRAY OF CARRIERS AVAILABLE TO USE FOR SHORT ROWING, & THROW ERR IF NOT ENOUGH
 //-------------------------------------------------------------------------------------------------------
 let short_row_carriers = ['1', '2', '3', '4', '5', '6'];
-// for (let c = 1; c <= 6; ++c) {
-//   c = c.toString();
-//   if (!carriers.includes(c)) {
-//     short_row_carriers.push(c);
-//   }
-//   c = Number(c);
-// }
 
 if (short_row_section) {
   for (let r = first_short_row; r <= last_short_row; ++r) {
@@ -379,7 +448,7 @@ for (let i = 0; i < in_file.length; ++i) {
 }
 
 //----------------------------------------------------------------------------
-//***DETERMINE IF SINGLE OR DOUBLE BED; IDENTIFY THE LEFT & RIGHT MOST NEEDLES
+//***DETERMINE IF SINGLE OR DOUBLE BED //; IDENTIFY THE LEFT & RIGHT MOST NEEDLES
 //----------------------------------------------------------------------------
 let needle_count_arr = rows.flat(2);
 let double_bed;
@@ -388,25 +457,23 @@ needle_count_arr.some((el) => el.includes('knit') && el.includes(' b')) ? (doubl
 needle_count_arr = needle_count_arr.map((el) => el.match(/\d+/g));
 needle_count_arr = needle_count_arr.map((arr) => arr.splice(0, 1));
 needle_count_arr = needle_count_arr.map((el) => Number(el));
-function getMax(arr) {
-  let len = arr.length;
-  let max = -Infinity;
-  while (len--) {
-    max = arr[len] > max ? arr[len] : max;
-  }
-  return max;
-}
-function getMin(arr) {
-  let min = arr[0];
-  for (let idx = 0; idx < arr.length; ++idx) {
-    min = arr[idx] < min ? arr[idx] : min;
-  }
-  return min;
-}
-const R_NEEDLE = getMax(needle_count_arr);
-// const R_NEEDLE = Math.max(...needle_count_arr);
-const L_NEEDLE = getMin(needle_count_arr);
-// const L_NEEDLE = Math.min(...needle_count_arr);
+// function getMax(arr) {
+//   let len = arr.length;
+//   let max = -Infinity;
+//   while (len--) {
+//     max = arr[len] > max ? arr[len] : max;
+//   }
+//   return max;
+// }
+// function getMin(arr) {
+//   let min = arr[0];
+//   for (let idx = 0; idx < arr.length; ++idx) {
+//     min = arr[idx] < min ? arr[idx] : min;
+//   }
+//   return min;
+// }
+// const R_NEEDLE = getMax(needle_count_arr);
+// const L_NEEDLE = getMin(needle_count_arr);
 
 //----------------------------
 //***PROTO STACK DEC FUNCTIONS
@@ -581,11 +648,78 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
 //----------------------
 //***PROTO INC FUNCTIONS
 //----------------------
-// const incSingleBed = (inc_needles1, side, inc_needles2) => {
-// }
+////twice if inc both sides
+let bg_needles = [];
+// const incSingleBed = (bg_needles, Xside_needle, Oside_needle, side) => {
+const incSingleBed = (Xside_needle, side, bg_side) => {
+  if (side === 'left') {
+    for (let b = 0; b < bg_side.length; ++b) {
+      let shift_count = Math.abs(Xside_needle - bg_side[b]) + 1;
+      RIGHT_XFER(xfer_section, bg_side[b], shift_count, 'f', 0, false);
+      xfer_section.push(`rack -1`);
+      RIGHT_XFER(xfer_section, bg_side[b] + 1, shift_count, 'b', -1, false);
+      --Xside_needle; //new
+    }
+    xfer_section.push(`rack 0`);
+  } else if (side === 'right') {
+    for (let b = 0; b < bg_side.length; ++b) {
+      let shift_count = Math.abs(Xside_needle - bg_side[b]) + 1;
+      LEFT_XFER(xfer_section, bg_side[b], shift_count, 'f', 0, false);
+      xfer_section.push(`rack 1`);
+      LEFT_XFER(xfer_section, bg_side[b], shift_count, 'b', 1, false);
+      xfer_section.push(`rack 0`);
+      ++Xside_needle; //new
+    }
+  }
+};
+function cleanInc(r) {
+  return () => {
+    function getRandomInt(max) {
+      return Math.floor(Math.random() * Math.floor(max));
+    }
+    //TODO: rename this so includes inc too
+    let bg_c;
+    let carrier_occur = rows[r][0].map((el) => el.charAt(el.length - 1));
+    carrier_occur = carrier_occur.reduce((a, b, i, arr) => (arr.filter((v) => v === a).length >= arr.filter((v) => v === b).length ? a : b), null);
+    rows[r][0].some(el.charAt(el.length - 1) == bg_color ? (bg_c = bg_color) : (bg_c = carrier_occur));
+    let bg_arr = rows[r][0].filter((el) => el.charAt(el.length - 1) == bg_c); // == so doesn't matter that its a number
+    let bgN_arr = [];
+    for (let b = 0; b < bg_arr.length; ++b) {
+      let bg_op_arr = bg_arr[b].split(' ');
+      bg_op_arr[2] = bg_op_arr[2].slice(1); //// remove the f or b
+      console.log(bg_op_arr[2]);
+      bgN_arr.push(Number(bg_op_arr[2]));
+    }
+    let bgN_idx = [];
+    for (let b = 0; b < left_dec_count + right_dec_count; ++b) {
+      let idx = getRandomInt(bgN_arr.length);
+      if (!bgN_idx.includes(idx)) {
+        bgN_idx.push(idx);
+        bg_needles.push(bgN_arr[idx]);
+      } else {
+        b -= 1;
+      }
+    }
+  };
+}
 
-// const incDoubleBed = (inc_needles1, side, inc_needles2) => {
-// }
+const incDoubleBed = (Xside_needle, side) => {
+  xfer_section.push(`rack -2`);
+  if (side === 'left') {
+    xfer_section.push(`xfer b${Xside_needle + 1} f${Xside_needle - 1}`);
+    bg_needles.push(`b${Xside_needle + 1}`);
+    xfer_section.push(`rack 2`);
+    xfer_section.push(`xfer f${Xside_needle + 1} b${Xside_needle - 1}`);
+    bg_needles.push(`f${Xside_needle + 1}`);
+  } else if (side === 'right') {
+    xfer_section.push(`xfer f${Xside_needle - 1} b${Xside_needle + 1}`);
+    bg_needles.push(`f${Xside_needle - 1}`);
+    xfer_section.push(`rack 2`);
+    xfer_section.push(`xfer b${Xside_needle - 1} f${Xside_needle + 1}`);
+    bg_needles.push(`b${Xside_needle - 1}`);
+  }
+  xfer_section.push(`rack 0`);
+};
 
 //---------------------------
 //***INSERT TRANSFER SECTIONS
@@ -598,32 +732,23 @@ function parseShape(arr, r) {
     if (element.ROW === r) {
       if (element.LEFT > 0 || element.RIGHT > 0) {
         xtype = 'inc';
-        console.log(
-          chalk`{red.bold \nERR:} {red AT ROW ${r}: custom shape includes increasing, which this program does not currently support. Will hopefully fix this issue soon, but for now, please upload a shape that only uses decreases.}`
-        );
-        errors = true;
+        // console.log(
+        //   chalk`{red.bold \nERR:} {red AT ROW ${r}: custom shape includes increasing, which this program does not currently support. Will hopefully fix this issue soon, but for now, please upload a shape that only uses decreases.}`
+        // );
+        // errors = true;
       } else {
         xtype = 'dec';
       }
       left_dec = right_dec = false; ////for now
       left_dec_count = right_dec_count = 0; ////for now
       if (element.RIGHT !== 0) {
-        // left_dec_count = 0; //NEW
         right_dec_count = -element.RIGHT; //NEW
         // dec_count_num = -element.RIGHT; //TODO: change dec_count_num to be for dec and inc or add separate variables / functions for increases
         right_dec = true;
-        // left_dec = false;
       }
       if (element.LEFT !== 0) {
         left_dec_count = -element.LEFT; //NEW
         left_dec = true;
-        // right_dec_count = 0; //NEW
-        // right_dec = false;
-        // } else {
-        // left_dec_count = -element.LEFT; //NEW
-        // right_dec_count = -element.RIGHT; //NEW
-        // left_dec = true;
-        // right_dec = true;
       }
       if (arr.indexOf(element) < arr.length - 1) {
         let next_element = arr.indexOf(element) + 1;
@@ -638,6 +763,8 @@ function parseShape(arr, r) {
 let left_bindC, right_bindC;
 function insertXferPasses(left, right, xtype) {
   let xfer_needle1, xcount1, xfer_needle2, xcount2, side, stitches1, stitches2;
+  let bg_arr1 = [...bg_needles]; //check if this becomes a problem for double bed inc
+  let bg_arr2 = [...bg_needles];
   if (left === null) {
     bindoff_carrier = right_bindC;
     xfer_needle2 = xcount2 = stitches2 = null; //new (moved)
@@ -661,6 +788,16 @@ function insertXferPasses(left, right, xtype) {
       xcount2 = right_dec_count + 2;
       side = 'both';
       stitches2 = right_dec_count;
+      if (!double_bed) {
+        for (let b = 0; b < right_dec_count; ++b) {
+          //new
+          bg_arr1.pop();
+        }
+        for (let b = 0; b < left_dec_count; ++b) {
+          //new
+          bg_arr2.shift();
+        }
+      }
     }
   }
   let side1;
@@ -688,8 +825,15 @@ function insertXferPasses(left, right, xtype) {
         }
       }
     } else {
-      console.log(chalk`{red ERR: don't have support for inc yet.}`); //FIXME: add inc support
-      errors = true;
+      //new
+      xfer_section.push(`;inc ${stitches1} on ${side1}`);
+      incDoubleBed(xfer_needle1, side1);
+      if (side === 'both') {
+        xfer_section.push(`;inc ${stitches2} on right`);
+        incDoubleBed(xfer_needle2, 'right');
+      }
+      // console.log(chalk`{red ERR: don't have support for inc yet.}`); //FIXME: add inc support
+      // errors = true;
     }
   } else {
     if (xtype === 'dec') {
@@ -707,8 +851,15 @@ function insertXferPasses(left, right, xtype) {
         }
       }
     } else {
-      console.log(chalk`{red ERR: don't have support for inc yet.}`); //FIXME: add inc support
-      errors = true;
+      //new
+      xfer_section.push(`;inc ${stitches1} on ${side1}`);
+      incSingleBed(xfer_needle1, side1, bg_arr1);
+      if (side === 'both') {
+        xfer_section.push(`;inc ${stitches2} on right`);
+        incSingleBed(xfer_needle2, 'right', bg_arr2);
+      }
+      // console.log(chalk`{red ERR: don't have support for inc yet.}`); //FIXME: add inc support
+      // errors = true;
     }
   }
 }
@@ -733,18 +884,33 @@ let shaped_rows = [];
 let new_carriers = []; ////for when swap carriers during shortrowing
 shaped_rows.push(caston_section);
 
-for (let r = 0; r < dec_row_interval; ++r) {
-  shaped_rows.push(rows[r]);
+// if (dec_row_interval !== 0) {
+if (!row1_small) {
+  //new
+  for (let r = 0; r < dec_row_interval; ++r) {
+    shaped_rows.push(rows[r]);
+  }
+} else {
+  dec_row_interval = 0; //?
+  Xleft_needle = row1_Lneedle;
+  Xright_needle = row1_Rneedle;
 }
 for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
-  for (let i = 0; i < rows[r - 1].length; ++i) {
-    if (rows[r - 1][i].some((el) => el.includes('-'))) {
-      let last_op = rows[r - 1][i][rows[r - 1][i].length - 1];
-      left_bindC = last_op.charAt(last_op.length - 1);
-    } else if (rows[r - 1][i].some((el) => el.includes('+'))) {
-      let last_op = rows[r - 1][i][rows[r - 1][i].length - 1];
-      right_bindC = last_op.charAt(last_op.length - 1);
+  xtype = undefined; ////reset for now in case no xfers
+  //TODO: make sure this doesn't cause any issue if dec_row_interval === 0
+  if (r !== 0) {
+    //new
+    for (let i = 0; i < rows[r - 1].length; ++i) {
+      if (rows[r - 1][i].some((el) => el.includes('-'))) {
+        let last_op = rows[r - 1][i][rows[r - 1][i].length - 1];
+        left_bindC = last_op.charAt(last_op.length - 1);
+      } else if (rows[r - 1][i].some((el) => el.includes('+'))) {
+        let last_op = rows[r - 1][i][rows[r - 1][i].length - 1];
+        right_bindC = last_op.charAt(last_op.length - 1);
+      }
     }
+  } else {
+    dec_row_interval = shaping_arr[0].ROW;
   }
   if (shape_code_reverse !== null && !warning) {
     if (!shortrow_time) {
@@ -757,7 +923,8 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
     }
   }
   ////////////////////////
-  if (!warning && (left_dec || right_dec)) {
+  if (!warning && (left_dec || right_dec) && r !== 0) {
+    //&& r !== 0 is new
     let XleftN, XrightN;
     if (!left_dec) {
       XrightN = Xright_needle;
@@ -768,6 +935,10 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
     } else {
       XleftN = Xleft_needle;
       XrightN = Xright_needle;
+    }
+    if (xtype === 'inc' && !double_bed) {
+      //new
+      cleanInc(r);
     }
     insertXferPasses(XleftN, XrightN, xtype);
     shaped_rows.push(xfer_section);
@@ -803,7 +974,8 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
   //   warning = true;
   // }
   ///////////////////////////////
-  if (!warning) {
+  if (!warning && r !== 0) {
+    // if (!warning) {
     if (left_dec) {
       Xleft_needle += left_dec_count;
     }
@@ -841,6 +1013,23 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
       for (let p = 0; p < rows[i].length; ++p) {
         cookie = rows[i][p];
         cookieCutter(Xleft_needle, Xright_needle, new_carriers);
+        if (xtype === 'inc' && p === 0) {
+          //new
+          for (let b = 0; b < bg_needles.length; ++b) {
+            cookie = cookie.map((el) => {
+              if (el.includes(`f${bg_needles[b]} `) || el.includes(`b${bg_needles[b]} `)) {
+                if (el.includes('+')) {
+                  return (el = el.replace('+', '-'));
+                } else if (el.includes('-')) {
+                  return (el = el.replace('-', '+'));
+                }
+              } else {
+                return el;
+              }
+            });
+          }
+          bg_needles = [];
+        }
         shaped_rows.push(cookie);
       }
     }
@@ -871,12 +1060,15 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
       ///////
       for (let c = 0; c < carriers.length; ++c) {
         if (left_bindC === new_carriers[c]) {
-          //new //?
           left_bindC = short_row_carriers[c];
         }
         if (right_bindC === new_carriers[c]) {
           right_bindC = short_row_carriers[c];
         }
+      }
+      if (xtype === 'inc' && !double_bed) {
+        //new
+        cleanInc(r);
       }
       insertXferPasses(XleftN, XrightN, xtype);
       insert_arr.push(xfer_section);
@@ -888,6 +1080,22 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
       for (let p = 0; p < rows[i].length; ++p) {
         cookie = rows[i][p];
         cookieCutter(short_Xleft_needle, short_Xright_needle, short_row_carriers);
+        if (xtype === 'inc' && p === 0) {
+          for (let b = 0; b < bg_needles.length; ++b) {
+            cookie = cookie.map((el) => {
+              if (el.includes(`f${bg_needles[b]} `) || el.includes(`b${bg_needles[b]} `)) {
+                if (el.includes('+')) {
+                  return (el = el.replace('+', '-'));
+                } else if (el.includes('-')) {
+                  return (el = el.replace('-', '+'));
+                }
+              } else {
+                return el;
+              }
+            });
+          }
+          bg_needles = [];
+        }
         insert_arr.push(cookie);
       }
     }
