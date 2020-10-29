@@ -91,20 +91,16 @@ function shortRowInfo(left, right, arr, main_left, main_right) {
     let prev_row = shortrow_sides[r - 1];
     if (r > 0) {
       if (curr_row[left] !== prev_row[left]) {
-        //0, but now left
         curr_row[left] > prev_row[left] ? (shape_left_dec = prev_row[left] - curr_row[left]) : (shape_left_inc = prev_row[left] - curr_row[left]);
       }
       if (curr_row[right] !== prev_row[right]) {
-        //1, but now right
         curr_row[right] < prev_row[right] ? (shape_right_dec = curr_row[right] - prev_row[right]) : (shape_right_inc = curr_row[right] - prev_row[right]);
       }
     } else {
       if (curr_row[left] !== main_left && main_left !== null) {
-        //0, but now left
         curr_row[left] > main_left ? (shape_left_dec = main_left - curr_row[left]) : (shape_left_inc = main_left - curr_row[left]);
       }
       if (curr_row[right] !== main_right && main_right !== null) {
-        //1, but now right
         curr_row[right] < main_right ? (shape_right_dec = curr_row[right] - main_right) : (shape_right_inc = curr_row[right] - main_right);
       }
     }
@@ -137,7 +133,6 @@ function shapeInfo(code, arr) {
     if (i === 0) {
       //new //// for when there are increases: check to see if the shape starts out smaller than max width
       if (left_px1 !== 0) {
-        //new
         row1_small = true;
         row1_Lneedle = left_px1;
       }
@@ -145,9 +140,6 @@ function shapeInfo(code, arr) {
         row1_small = true;
         row1_Rneedle = right_px1;
       }
-      console.log(L_NEEDLE); //remove
-      console.log(code[i].length); //remove
-      console.log(R_NEEDLE); //remove
     }
     ///
     if (i > 0) {
@@ -155,7 +147,6 @@ function shapeInfo(code, arr) {
       prev_right = code[i - 1].lastIndexOf(1);
     }
     const MAIN = ({ shape_left_dec, shape_left_inc, shape_knit, shape_right_dec, shape_right_inc } = shapingDetection(
-      // code, //new
       i,
       left_px1,
       shape_left_dec,
@@ -217,7 +208,7 @@ if (shape_code_reverse !== null) {
     shortrow_bindoff = shortrow_bindoff.filter((e) => e);
   }
 }
-console.log(shaping_arr); //remove
+// console.log(shaping_arr); //remove
 // console.log(left_shortrow_arr); //remove
 // console.log(right_shortrow_arr); //remove
 // console.log(shortrow_bindoff); //remove
@@ -287,6 +278,7 @@ let in_file = fs
 for (let i = 0; i < in_file.length; ++i) {
   in_file[i] = in_file[i].split('\n');
   in_file[i] = in_file[i].filter((el) => !el.includes('ow:'));
+  in_file[i] = in_file[i].filter((el) => !el.includes('out ')); //// remove yarn-outs so can add them back in @ correct positions
 }
 let caston_section = in_file.shift();
 let bg_color = caston_section.find((line) => line.includes(`;background color:`)); ////method to do fake seam carving (use background needles only when xfering in middle of panel)
@@ -294,57 +286,56 @@ bg_color = bg_color.charAt(bg_color.length - 1);
 
 let bindoff_section = in_file[in_file.length - 1].splice(in_file[in_file.length - 1].indexOf(`;bindoff section`));
 
-//------------------------------------------
-//***SHIFT CAST-ON SECTION OVER IF NECESSARY
-//------------------------------------------
-
-//TODO: add this for shima caston
-let header = [];
-let yarns_in = [];
-if (row1_small && caston_section[1].includes(`kniterate`)) {
-  header = caston_section;
-  yarns_in = header.splice(header.findIndex((el) => el.includes(`;background color:`)) + 1);
-  caston_section = yarns_in.splice(yarns_in.findIndex((el) => el.includes(`;kniterate yarns in`)) + 1);
-  // let wasteyarn_carrier = caston_section[0].charAt(caston_section[0].length - 1);
-  let left_diff = row1_Lneedle - L_NEEDLE;
-  let kniterate_caston = [];
-  kniterate_caston.push(header);
-  console.log(yarns_in[1]);
-  yarnsin: for (let i = 0; i < yarns_in.length; ++i) {
-    let line = yarns_in[i].split(' ');
-    console.log(line); //remove
-    if (line[0] === 'knit' || line[0] === 'drop') {
-      [bed, line[2]] = [line[2][0], line[2].substr(1)];
-      let n_count = Number(line[2]) + left_diff;
-      line[2] = `${bed}${n_count}`;
-      if (n_count <= row1_Rneedle) {
-        kniterate_caston.push(line.join(' '));
-      } else {
-        // break yarnsin;
-        continue yarnsin;
-      }
-    } else {
-      kniterate_caston.push(yarns_in[i]);
-    }
-  }
-  caston: for (let i = 0; i < caston_section.length; ++i) {
-    let line = caston_section[i].split(' ');
-    if (line[0] === 'knit' || line[0] === 'drop') {
-      [bed, line[2]] = [line[2][0], line[2].substr(1)];
-      let n_count = Number(line[2]) + left_diff;
-      line[2] = `${bed}${n_count}`;
-      if (n_count <= row1_Rneedle) {
-        kniterate_caston.push(line.join(' '));
-      } else {
-        continue caston;
-        // break caston;
-      }
-    } else {
-      kniterate_caston.push(caston_section[i]);
-    }
-  }
-  caston_section = kniterate_caston.flat();
-}
+// //------------------------------------------
+// //***SHIFT CAST-ON SECTION OVER IF NECESSARY
+// //------------------------------------------
+// //TODO: add this for shima caston
+// let header = [];
+// let yarns_in = [];
+// if (row1_small && caston_section[1].includes(`kniterate`)) {
+//   header = caston_section;
+//   yarns_in = header.splice(header.findIndex((el) => el.includes(`;background color:`)) + 1);
+//   caston_section = yarns_in.splice(yarns_in.findIndex((el) => el.includes(`;kniterate yarns in`)) + 1);
+//   // let wasteyarn_carrier = caston_section[0].charAt(caston_section[0].length - 1);
+//   let left_diff = row1_Lneedle - L_NEEDLE;
+//   let kniterate_caston = [];
+//   kniterate_caston.push(header);
+//   console.log(yarns_in[1]);
+//   yarnsin: for (let i = 0; i < yarns_in.length; ++i) {
+//     let line = yarns_in[i].split(' ');
+//     console.log(line); //remove
+//     if (line[0] === 'knit' || line[0] === 'drop') {
+//       [bed, line[2]] = [line[2][0], line[2].substr(1)];
+//       let n_count = Number(line[2]) + left_diff;
+//       line[2] = `${bed}${n_count}`;
+//       if (n_count <= row1_Rneedle) {
+//         kniterate_caston.push(line.join(' '));
+//       } else {
+//         // break yarnsin;
+//         continue yarnsin;
+//       }
+//     } else {
+//       kniterate_caston.push(yarns_in[i]);
+//     }
+//   }
+//   caston: for (let i = 0; i < caston_section.length; ++i) {
+//     let line = caston_section[i].split(' ');
+//     if (line[0] === 'knit' || line[0] === 'drop') {
+//       [bed, line[2]] = [line[2][0], line[2].substr(1)];
+//       let n_count = Number(line[2]) + left_diff;
+//       line[2] = `${bed}${n_count}`;
+//       if (n_count <= row1_Rneedle) {
+//         kniterate_caston.push(line.join(' '));
+//       } else {
+//         continue caston;
+//         // break caston;
+//       }
+//     } else {
+//       kniterate_caston.push(caston_section[i]);
+//     }
+//   }
+//   caston_section = kniterate_caston.flat();
+// }
 
 //--------------------------------------------
 //***CREATE ARRAY OF CARRIERS USED IN THE FILE
@@ -391,6 +382,8 @@ if (short_row_section) {
     }
   }
 }
+let xtra_carriers = short_row_carriers.filter((el) => !carriers.includes(el));
+console.log(`carriers: ${carriers}, shortrowcarriers: ${short_row_carriers}, xtra_carriers: ${xtra_carriers}`); //remove
 // console.log(`shortrowcarriers = ${short_row_carriers}`); //remove ////only for kniterate
 
 if (short_row_carriers.length < 3 && short_row_section && !sinkers) {
@@ -398,6 +391,79 @@ if (short_row_carriers.length < 3 && short_row_section && !sinkers) {
     chalk`{red.bold \nERR:} {red the section of the panel that will be altered to include short-rowing contains ${short_row_carriers.length} colors, but the maximum color-count for that section is 3 (to allow for separate carriers to work either side while short-rowing).}`
   );
   errors = true;
+}
+
+//-------------------------------------------------------------------------------------
+//***SHIFT CAST-ON SECTION OVER IF NECESSARY/ADD IN SHORTROW YARN CARRIERS IF NECESSARY
+//-------------------------------------------------------------------------------------
+//TODO: add this for shima caston
+let header = [];
+let yarns_in = [];
+if ((row1_small || xtra_carriers.length > 0) && caston_section[1].includes(`kniterate`)) {
+  header = caston_section;
+  yarns_in = header.splice(header.findIndex((el) => el.includes(`;background color:`)) + 1);
+  // caston_section = yarns_in.splice(yarns_in.findIndex((el) => el.includes(`;kniterate yarns in`)) + 1);
+  caston_section = yarns_in.splice(yarns_in.findIndex((el) => el.includes(`;kniterate yarns in`)));
+  // let wasteyarn_carrier = caston_section[0].charAt(caston_section[0].length - 1);
+  let left_diff = row1_Lneedle - L_NEEDLE;
+  let kniterate_caston = [];
+  kniterate_caston.push(header);
+  yarnsin: for (let i = 0; i < yarns_in.length; ++i) {
+    let line = yarns_in[i].split(' ');
+    if (line[0] === 'knit' || line[0] === 'drop') {
+      let n;
+      line[0] === 'knit' ? (n = 2) : (n = 1);
+      [bed, line[n]] = [line[n][0], line[n].substr(1)];
+      let n_count = Number(line[n]) + left_diff;
+      line[n] = `${bed}${n_count}`;
+      if (n_count <= row1_Rneedle) {
+        kniterate_caston.push(line.join(' '));
+      } else {
+        // break yarnsin;
+        continue yarnsin;
+      }
+    } else {
+      kniterate_caston.push(yarns_in[i]);
+    }
+  }
+  console.log(kniterate_caston[kniterate_caston.length - 1]);
+  if (xtra_carriers.length > 0) {
+    let base = [...kniterate_caston];
+    console.log(`base = ${base}`); //remove
+    base.reverse();
+    console.log(`base = ${base}`); //remove
+    base.splice(base.findIndex((el) => el.includes('in ')));
+    base.reverse();
+    // let base = [kniterate_caston[kniterate_caston.length - 2], kniterate_caston[kniterate_caston.length - 1]];
+    console.log(`base = ${base}`); //remove
+    for (let i = 0; i < xtra_carriers.length; ++i) {
+      let xcarrier = xtra_carriers[i];
+      // kniterate_caston.push(`in ${xcarrier}`); //remove
+      // let yarn_in = `in ${xcarrier}`; //new
+      let xtra_rows = base.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${xcarrier}`));
+      kniterate_caston.push(`in ${xcarrier}`, xtra_rows);
+      // i === 0 ? kniterate_caston.push(yarn_in, carrier_caston, carrier_caston) : kniterate_caston.push(yarn_in, carrier_caston);
+    }
+  }
+  caston: for (let i = 0; i < caston_section.length; ++i) {
+    let line = caston_section[i].split(' ');
+    if (line[0] === 'knit' || line[0] === 'drop') {
+      let n;
+      line[0] === 'knit' ? (n = 2) : (n = 1);
+      [bed, line[n]] = [line[n][0], line[n].substr(1)];
+      let n_count = Number(line[n]) + left_diff;
+      line[n] = `${bed}${n_count}`;
+      if (n_count <= row1_Rneedle) {
+        kniterate_caston.push(line.join(' '));
+      } else {
+        continue caston;
+        // break caston;
+      }
+    } else {
+      kniterate_caston.push(caston_section[i]);
+    }
+  }
+  caston_section = kniterate_caston.flat();
 }
 
 //---------------------------------------------------------
@@ -1193,9 +1259,8 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
       });
       ///////
       if (rows[first_short_row - 1][rows[first_short_row - 1].length - 1] !== bindoff_pass) {
-        //new
         cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
-        cookieCutter(Xleft_needle, Xright_needle, new_carriers); //shortrow_bindoff[0] - 1? //TODO: //check make sure this isn't messed up by new func in cookieCutter ////doing carriers not new_carriers for now to prevent this but.... should check
+        cookieCutter(Xleft_needle, Xright_needle, new_carriers);
         shaped_rows.push(cookie);
         cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
         cookieCutter(short_Xleft_needle, short_Xright_needle, short_row_carriers); //? shortrow_bindoff[1] + 1?
@@ -1205,7 +1270,7 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
     }
   }
   //////////////////////////
-  if (rows[r + dec_row_interval] === undefined) {
+  if (rows[r + dec_row_interval + dec_row_interval] === undefined) {
     if (shape_code_reverse === null) {
       break;
     } else {
@@ -1213,7 +1278,7 @@ for (let r = dec_row_interval; r < rows.length; r += dec_row_interval) {
         break;
       }
     }
-    // if (rows[r + dec_row_interval] === undefined || reached_bindoff) {
+    // if (rows[r + dec_row_interval + dec_row_interval] === undefined || reached_bindoff) {
     //?
   }
 }
@@ -1274,9 +1339,10 @@ shaped_rows.push(bindoff);
 //-------------------------------------------
 //***ADDITIONAL ERROR CHECK
 //-------------------------------------------
-if (shaped_rows.some((line) => line.includes(undefined) || line.includes(null))) {
+if (shaped_rows.some((line) => line.includes(undefined) || line.includes(NaN) || line.includes(null))) {
+  //Nan = //new
   //? string or var?
-  console.log(chalk`{red.bold ERR:} {file includes invalid value such as 'undefined'.}`);
+  console.log(chalk`{red.bold ERR:} {red file includes invalid value such as 'undefined'.}`);
   errors = true;
 }
 //--------------------------------

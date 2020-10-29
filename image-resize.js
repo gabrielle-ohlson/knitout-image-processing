@@ -6,7 +6,7 @@ const fs = require('fs');
 let img;
 let needle_count = 0;
 let row_count = 0;
-if (!readlineSync.keyInYN(chalk.blue.bold('Would you like to input an image for custom colorwork?'))) {
+if (!readlineSync.keyInYNStrict(chalk.blue.bold('Would you like to input an image for custom colorwork?'))) {
   //remove //?
   fs.writeFileSync('abort.txt', 'ABORT!');
   process.exit();

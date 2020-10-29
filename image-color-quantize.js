@@ -95,6 +95,7 @@ function getData() {
         if (!(pal_hist[background] > 0.1 * pal_hist.reduce((a, b) => a + b, 0))) {
           background = palette[0];
         }
+        background += 1; //new ////(so not strarting from 0)
         colors_arr.push(palette, machine, background);
         img.write(motif_path);
         resolve(colors_arr);
