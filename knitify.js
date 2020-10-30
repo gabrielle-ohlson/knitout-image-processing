@@ -152,7 +152,10 @@ imageColors
       kniterate_caston_base = kniterate_caston_base.split(',');
       let kniterate_caston = [];
       // for (let i = 0; i < color_count; ++i) {
-      for (let i = 0; i <= color_count; ++i) {
+      colors: for (let i = 0; i <= color_count; ++i) {
+        if (i === 6) {
+          break colors;
+        }
         //// <= because add extra one for draw thread
         carrier = carriers_arr[i];
         color_carriers.push(carrier);
@@ -170,16 +173,22 @@ imageColors
         ////70 total passes
         waste_yarn_section.push(waste_yarn);
       }
+      // waste:
       for (let i = 0; i < 14; ++i) {
         i % 2 !== 0 && i < 13 ? (dir = '-') : (dir = '+'); //check
         if (i === 13) {
-          waste_yarn_section.push(`;draw thread`); //new //TODO: make draw thread carrier other than waste yarn carrier (so distinct)
+          waste_yarn_section.push(`;draw thread: ${color_carriers[color_carriers.length - 1]}`); //new //TODO: make draw thread carrier other than waste yarn carrier (so distinct)
           // carrier = neg_carrier;
         } ////make draw thread the carrier that needs to end up on right side so its positioned there
         if (dir === '+') {
           for (let x = 1; x <= colors_arr[0].length; ++x) {
-            i !== 12 ? waste_yarn_section.push(`knit + f${x} ${color_carriers[color_carriers.length - 1]}`) : waste_yarn_section.push(`drop b${x}`);
-            // i !== 12 ? waste_yarn_section.push(`knit + f${x} ${carrier}`) : waste_yarn_section.push(`drop b${x}`);
+            if (i === 13) {
+              waste_yarn_section.push(`knit + f${x} ${color_carriers[color_carriers.length - 1]}`); //draw thread
+              // break waste; //new
+            } else {
+              i !== 12 ? waste_yarn_section.push(`knit + f${x} ${carrier}`) : waste_yarn_section.push(`drop b${x}`);
+              // i !== 12 ? waste_yarn_section.push(`knit + f${x} ${carrier}`) : waste_yarn_section.push(`drop b${x}`);
+            }
           }
         } else {
           for (let x = colors_arr[0].length; x > 0; --x) {
@@ -188,9 +197,10 @@ imageColors
         }
       }
       waste_yarn_section.push(`rack 0.25`); ////aka rack 0.5 for kniterate (TODO: determine if this is something we're changing for kniterate backend)
-      for (let x = 1; x <= colors_arr[0].length; ++x) { //new
-        waste_yarn_section.push(`knit + f${x} ${neg_carrier}`);
-        waste_yarn_section.push(`knit + b${x} ${neg_carrier}`);
+      for (let x = 1; x <= colors_arr[0].length; ++x) {
+        //new
+        waste_yarn_section.push(`knit + f${x} ${carrier}`); //TODO: make sure this doesn't cause a float
+        waste_yarn_section.push(`knit + b${x} ${carrier}`);
       }
       waste_yarn_section.push(`rack 0`);
       waste_yarn_section = waste_yarn_section.flat();
@@ -276,11 +286,9 @@ imageColors
     machine.includes('kniterate') ? (yarn_out = 'out') : (yarn_out = 'outhook');
     // for (let i = 1; i <= carriers_arr.length; ++i) {
     for (let i = 0; i <= color_carriers.length; ++i) {
-      // let carrier_search = knitout.map((el) => el.includes(` ${i}`) && el.includes(`knit`));
       let carrier_search = knitout.map((el) => el.includes(` ${color_carriers[i]}`) && el.includes(`knit`));
       let last = carrier_search.lastIndexOf(true);
       if (last !== -1) {
-        // knitout.splice(last + 1, 0, `${yarn_out} ${i}`);
         knitout.splice(last + 1, 0, `${yarn_out} ${color_carriers[i]}`);
       }
     }
@@ -314,3 +322,5 @@ imageColors
       );
     });
   });
+
+  //TODO: maybe add error check for this one too?

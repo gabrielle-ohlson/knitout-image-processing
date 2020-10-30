@@ -4,11 +4,11 @@ const chalk = require('chalk');
 const Jimp = require('jimp');
 const RgbQuant = require('rgbquant');
 
-if (fs.existsSync('abort.txt')) {
-  fs.unlinkSync('abort.txt');
-  console.log(chalk`{bold.bgGray.underline \n*** If you would like to use this program to add shaping to a knitout file, type 'npm run shapeify'}`);
-  process.exit();
-}
+// if (fs.existsSync('abort.txt')) {
+//   fs.unlinkSync('abort.txt');
+//   console.log(chalk`{bold.bgGray.underline \n*** If you would like to use this program to add shaping to a knitout file, type 'npm run shapeify'}`);
+//   process.exit();
+// }
 
 let height, width, data;
 let palette, reduced;

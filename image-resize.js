@@ -6,11 +6,11 @@ const fs = require('fs');
 let img;
 let needle_count = 0;
 let row_count = 0;
-if (!readlineSync.keyInYNStrict(chalk.blue.bold('Would you like to input an image for custom colorwork?'))) {
-  //remove //?
-  fs.writeFileSync('abort.txt', 'ABORT!');
-  process.exit();
-} else {
+// if (!readlineSync.keyInYNStrict(chalk.blue.bold('Would you like to input an image for custom colorwork?'))) {
+//   //remove //?
+//   fs.writeFileSync('abort.txt', 'ABORT!');
+//   process.exit();
+// } else {
   readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nColorwork image file: ') });
   readlineSync.promptLoop(function (input) {
     img = input;
@@ -37,13 +37,13 @@ if (!readlineSync.keyInYNStrict(chalk.blue.bold('Would you like to input an imag
   });
   row_count = Number(row_count);
   row_count === -1 ? console.log(chalk.green(`-- Row count: AUTO`)) : console.log(chalk.green(`-- Row count: ${row_count}`));
-}
+// }
 
 if (row_count !== -1) { //TODO: check whether this is actually doing something I want it to do
   row_count += 1;
 }
 
-if (img !== undefined) {
+// if (img !== undefined) {
   if (row_count === -1) {
     row_count = Jimp.AUTO;
   }
@@ -60,4 +60,4 @@ if (img !== undefined) {
     if (err) throw err;
     image.resize(needle_count, row_count).write(colorwork_path);
   });
-}
+// }
