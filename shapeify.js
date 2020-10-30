@@ -278,21 +278,16 @@ let in_file = fs
 for (let i = 0; i < in_file.length; ++i) {
   in_file[i] = in_file[i].split('\n');
   in_file[i] = in_file[i].filter((el) => !el.includes('ow:'));
-  // in_file[i] = in_file[i].filter((el) => !el.includes('out ')); //// remove yarn-outs so can add them back in @ correct positions
 }
 let caston_section = in_file.shift();
-caston_section = caston_section.filter((el) => !el.includes('out ')); //new// remove yarn-outs so can add them back in @ correct positions
-// let final_carrier_pos = [];
-// function getAllIndexes(arr, val) {
-//   var indexes = [],
-//     i;
-//   for (let i = 0; i < arr.length; i++) if (arr[i] === val) indexes.push(i);
-//   return indexes;
-// }
+if (short_row_section) { //new
+  caston_section = caston_section.filter((el) => !el.includes('out ')); //new// remove yarn-outs so can add them back in @ correct positions
+}
+
 let bg_color = caston_section.find((line) => line.includes(`;background color:`)); ////method to do fake seam carving (use background needles only when xfering in middle of panel)
 bg_color = bg_color.charAt(bg_color.length - 1);
 
-let draw_thread = caston_section.find((line) => line.includes(`;draw thread:`)); ////for shortrowcarriers, know that first one is on the left (because draw thread) and rest are on left
+let draw_thread = caston_section.find((line) => line.includes(`;draw thread:`)); ////for shortrowcarriers, know that first one ends up on the right (because draw thread) and rest are on left
 draw_thread = draw_thread.charAt(draw_thread.length - 1);
 console.log(`draw thread: ${draw_thread}`); //new
 
@@ -337,7 +332,10 @@ if (short_row_section) {
     }
   }
 }
-let xtra_carriers = short_row_carriers.filter((el) => !carriers.includes(el));
+let xtra_carriers = [];
+if (short_row_section) xtra_carriers = short_row_carriers.filter((el) => !carriers.includes(el) && el !== draw_thread); //new with draw thread
+
+console.log(xtra_carriers); //new //remove
 
 if (short_row_carriers.length < 3 && short_row_section && !sinkers) {
   console.log(
@@ -376,7 +374,6 @@ if ((row1_small || xtra_carriers.length > 0) && caston_section[1].includes(`knit
       kniterate_caston.push(yarns_in[i]);
     }
   }
-  console.log(kniterate_caston[kniterate_caston.length - 1]);
   if (xtra_carriers.length > 0) {
     let base = [...kniterate_caston];
     base.reverse();
@@ -387,24 +384,25 @@ if ((row1_small || xtra_carriers.length > 0) && caston_section[1].includes(`knit
       let xtra_rows = base.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${xcarrier}`));
       kniterate_caston.push(`in ${xcarrier}`, xtra_rows);
     }
-  }
-  caston: for (let i = 0; i < caston_section.length; ++i) {
-    let line = caston_section[i].split(' ');
-    if (line[0] === 'knit' || line[0] === 'drop') {
-      let n;
-      line[0] === 'knit' ? (n = 2) : (n = 1);
-      [bed, line[n]] = [line[n][0], line[n].substr(1)];
-      let n_count = Number(line[n]) + left_diff;
-      line[n] = `${bed}${n_count}`;
-      if (n_count <= row1_Rneedle) {
-        kniterate_caston.push(line.join(' '));
-      } else {
-        continue caston;
-      }
-    } else {
-      kniterate_caston.push(caston_section[i]);
     }
-  }
+    caston: for (let i = 0; i < caston_section.length; ++i) {
+      let line = caston_section[i].split(' ');
+      if (line[0] === 'knit' || line[0] === 'drop') {
+        let n;
+        line[0] === 'knit' ? (n = 2) : (n = 1);
+        [bed, line[n]] = [line[n][0], line[n].substr(1)];
+        let n_count = Number(line[n]) + left_diff;
+        line[n] = `${bed}${n_count}`;
+        if (n_count <= row1_Rneedle) {
+          kniterate_caston.push(line.join(' '));
+        } else {
+          continue caston;
+        }
+      } else {
+        kniterate_caston.push(caston_section[i]);
+      }
+    }
+  // }
   caston_section = kniterate_caston.flat();
 }
 
@@ -681,7 +679,6 @@ function cleanInc(r) {
     for (let b = 0; b < bg_arr.length; ++b) {
       let bg_op_arr = bg_arr[b].split(' ');
       bg_op_arr[2] = bg_op_arr[2].slice(1); //// remove the f or b
-      console.log(bg_op_arr[2]);
       bgN_arr.push(Number(bg_op_arr[2]));
     }
     let bgN_idx = [];

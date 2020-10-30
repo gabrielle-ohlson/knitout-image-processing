@@ -11,7 +11,7 @@ let row_count = 0;
   readlineSync.promptLoop(function (input) {
     img = input;
     if (!/\.jpg|\.jpeg|\.png|\.bmp$/i.test(input) || !fs.existsSync(`./in-colorwork-images/${input}`)) {
-      let error_message = console.log(chalk.red(`The image must be a PNG, JPG, or BMP that exists in the 'in-colorwork-images' folder.`));
+      let error_message = console.log(chalk.red(`-- The image must be a PNG, JPG, or BMP that exists in the 'in-colorwork-images' folder.`));
       return error_message;
     }
     if (fs.existsSync(`./in-colorwork-images/${input}`)) {
