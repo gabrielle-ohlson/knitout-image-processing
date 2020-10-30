@@ -44,7 +44,7 @@ imageColors
     return result;
   })
   .then(() => {
-    background = colors_arr.pop(); //new
+    background = colors_arr.pop();
     machine = colors_arr.pop();
     palette = colors_arr.pop();
     colors_arr = colors_arr.reverse();
@@ -92,7 +92,7 @@ imageColors
       if (!knitout.some((el) => el === `inhook ${carrier}`) && machine.includes('shima') && carrier !== jacquard_passes[0][0][1]) {
         ////last one is to save inhook & releasehook for caston if first carrier
         knitout.push(`inhook ${carrier}`);
-        color_carriers.push(carrier); //new
+        color_carriers.push(carrier);
         inhook = true;
       }
       const knitoutLines = (x, last) => {
@@ -118,7 +118,7 @@ imageColors
         for (let x = 1; x <= colors_arr[0].length; ++x) {
           knitoutLines(x, colors_arr[0].length);
           if (i === 0 || i === 1) {
-            //TODO: determine whether it matters if first pass starts with needle on front bed
+            //TODO: determine whether it matters if first pass starts with needle on front bed (todo: alter this since it does)
             x % 2 !== 0 ? caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
           }
         }
@@ -148,10 +148,9 @@ imageColors
       let kniterate_caston_base = `${caston.slice(0, caston.indexOf(`knit + f21 ${jacquard_passes[0][0][1]}`))},${caston.slice(
         caston.indexOf(`knit - f20 ${pass2.charAt(pass2.length - 1)}`),
         caston.length
-      )}`; //TODO: figure out what to do if less than 21 needles are in work
+      )}`; //TODO: add alternative for if less than 21 needles are in work
       kniterate_caston_base = kniterate_caston_base.split(',');
       let kniterate_caston = [];
-      // for (let i = 0; i < color_count; ++i) {
       colors: for (let i = 0; i <= color_count; ++i) {
         if (i === 6) {
           break colors;
@@ -159,12 +158,11 @@ imageColors
         //// <= because add extra one for draw thread
         carrier = carriers_arr[i];
         color_carriers.push(carrier);
-        // carrier = carriers_arr.shift();
-        let yarn_in = `in ${carrier}`; //new
+        let yarn_in = `in ${carrier}`;
         let carrier_caston = kniterate_caston_base.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${carrier}`));
         i === 0 ? kniterate_caston.push(yarn_in, carrier_caston, carrier_caston) : kniterate_caston.push(yarn_in, carrier_caston);
       }
-      kniterate_caston.push(`;kniterate yarns in`); //new
+      kniterate_caston.push(`;kniterate yarns in`);
       kniterate_caston = kniterate_caston.flat();
       let waste_yarn_section = [];
       carrier = jacquard_passes[0][0][1];
@@ -173,21 +171,17 @@ imageColors
         ////70 total passes
         waste_yarn_section.push(waste_yarn);
       }
-      // waste:
       for (let i = 0; i < 14; ++i) {
-        i % 2 !== 0 && i < 13 ? (dir = '-') : (dir = '+'); //check
+        i % 2 !== 0 && i < 13 ? (dir = '-') : (dir = '+');
         if (i === 13) {
-          waste_yarn_section.push(`;draw thread: ${color_carriers[color_carriers.length - 1]}`); //new //TODO: make draw thread carrier other than waste yarn carrier (so distinct)
-          // carrier = neg_carrier;
-        } ////make draw thread the carrier that needs to end up on right side so its positioned there
+          waste_yarn_section.push(`;draw thread: ${color_carriers[color_carriers.length - 1]}`);
+        } //TODO: if 6 colors are used, make draw thread the second carrier that needs to end up on right side so its positioned there
         if (dir === '+') {
           for (let x = 1; x <= colors_arr[0].length; ++x) {
             if (i === 13) {
-              waste_yarn_section.push(`knit + f${x} ${color_carriers[color_carriers.length - 1]}`); //draw thread
-              // break waste; //new
+              waste_yarn_section.push(`knit + f${x} ${color_carriers[color_carriers.length - 1]}`); ////draw thread
             } else {
               i !== 12 ? waste_yarn_section.push(`knit + f${x} ${carrier}`) : waste_yarn_section.push(`drop b${x}`);
-              // i !== 12 ? waste_yarn_section.push(`knit + f${x} ${carrier}`) : waste_yarn_section.push(`drop b${x}`);
             }
           }
         } else {
@@ -198,8 +192,7 @@ imageColors
       }
       waste_yarn_section.push(`rack 0.25`); ////aka rack 0.5 for kniterate (TODO: determine if this is something we're changing for kniterate backend)
       for (let x = 1; x <= colors_arr[0].length; ++x) {
-        //new
-        waste_yarn_section.push(`knit + f${x} ${carrier}`); //TODO: make sure this doesn't cause a float
+        waste_yarn_section.push(`knit + f${x} ${carrier}`);
         waste_yarn_section.push(`knit + b${x} ${carrier}`);
       }
       waste_yarn_section.push(`rack 0`);
@@ -207,7 +200,7 @@ imageColors
       knitout.unshift(waste_yarn_section);
       knitout.unshift(kniterate_caston);
     }
-    knitout.unshift(`;background color: ${background}`); //new
+    knitout.unshift(`;background color: ${background}`);
     if (speed_number !== '-1') knitout.unshift(`x-speed-number ${speed_number}`);
     if (stitch_number !== '-1') knitout.unshift(`x-stitch-number ${stitch_number}`);
     knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`);
@@ -219,7 +212,7 @@ imageColors
     //TODO: make sure the bindoff ends ok
     //TODO: add tag at end of bindoff?
     ////bindoff
-    bindoff.push(`;bindoff section`); //new
+    bindoff.push(`;bindoff section`);
     let side, double_bed;
     let count = last_needle;
     knitout.some((el) => el.includes('knit') && el.includes(' b')) ? (double_bed = true) : (double_bed = false);
@@ -284,7 +277,6 @@ imageColors
     knitout = knitout.flat();
     let yarn_out;
     machine.includes('kniterate') ? (yarn_out = 'out') : (yarn_out = 'outhook');
-    // for (let i = 1; i <= carriers_arr.length; ++i) {
     for (let i = 0; i <= color_carriers.length; ++i) {
       let carrier_search = knitout.map((el) => el.includes(` ${color_carriers[i]}`) && el.includes(`knit`));
       let last = carrier_search.lastIndexOf(true);

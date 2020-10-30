@@ -6,11 +6,7 @@ const fs = require('fs');
 let img;
 let needle_count = 0;
 let row_count = 0;
-// if (!readlineSync.keyInYNStrict(chalk.blue.bold('Would you like to input an image for custom colorwork?'))) {
-//   //remove //?
-//   fs.writeFileSync('abort.txt', 'ABORT!');
-//   process.exit();
-// } else {
+
   readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nColorwork image file: ') });
   readlineSync.promptLoop(function (input) {
     img = input;
@@ -19,7 +15,7 @@ let row_count = 0;
       return error_message;
     }
     if (fs.existsSync(`./in-colorwork-images/${input}`)) {
-      return /\.jpg|\.jpeg|\.png|\.bmp$/i.test(input); //TODO: test that the program does work with .bmp, and maybe also add .svg
+      return /\.jpg|\.jpeg|\.png|\.bmp$/i.test(input); //TODO: test that the program does work with .bmp
     }
   });
   console.log(chalk.green(`-- Reading colorwork data from: ${img}`));
@@ -43,7 +39,6 @@ if (row_count !== -1) { //TODO: check whether this is actually doing something I
   row_count += 1;
 }
 
-// if (img !== undefined) {
   if (row_count === -1) {
     row_count = Jimp.AUTO;
   }
@@ -60,4 +55,3 @@ if (row_count !== -1) { //TODO: check whether this is actually doing something I
     if (err) throw err;
     image.resize(needle_count, row_count).write(colorwork_path);
   });
-// }

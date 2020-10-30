@@ -30,7 +30,6 @@ if (fs.existsSync('INPUT_DATA.json')) {
       last_row = max.pop();
     }
   }
-  // console.log(`last_row = ${last_row}`); //remove
   let shape_row = [];
   let curr_row = 0;
   for (let i = 0; i < rgb_arr.length; ++i) {
@@ -66,13 +65,11 @@ if (fs.existsSync('INPUT_DATA.json')) {
   }
   ////////////////////////////////////////////////////////
   ////make sure there aren't any floating white dots in the middle
-  // console.log(`Xpixel count = ${shape_code[0].length}`); //remove
-  // console.log(`Ypixel count = ${shape_code.length}`); //remove
   let splice_arr = [];
   for (let y = 0; y < shape_code.length - 1; ++y) {
     let px_arr = shape_code[y];
     if (px_arr.includes(0) && px_arr.includes(1)) {
-      let px0_arr = []; //array for white pixels
+      let px0_arr = []; ////array for white pixels
       for (let i = 0; i < px_arr.length; ++i) {
         if (px_arr.indexOf(0, i) === -1) {
           break;
@@ -82,13 +79,12 @@ if (fs.existsSync('INPUT_DATA.json')) {
           px0_arr.push(px_idx);
         }
       }
-      let left_px1 = px_arr.indexOf(1); //first black px
-      let right_px1 = px_arr.lastIndexOf(1); //last black px
+      let left_px1 = px_arr.indexOf(1); ////first black px
+      let right_px1 = px_arr.lastIndexOf(1); ////last black px
       px0_arr.forEach((px0) => {
         if (px0 > left_px1 && px0 < right_px1) {
-          // shape_code[y].splice(px0, 1, 1);
-          shape_code[y].splice(px0, 1, '*'); //* means it was replaced
-          splice_arr.push(y); //to show where the first * row is
+          shape_code[y].splice(px0, 1, '*'); ////* means it was replaced
+          splice_arr.push(y); ////to show where the first * row is
         }
       });
       //TODO: write func for cleaning up floating black dots in the background
@@ -211,7 +207,7 @@ if (fs.existsSync('INPUT_DATA.json')) {
   first_short_row = shape_code_reverse.length - 1 - splice_arr[splice_arr.length - 1];
   last_short_row = shape_code_reverse.length - 1 - splice_arr[0];
   ///////
-  let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],'); ////remove? TEMP file to show what the output shape_code looks like
+  let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],');
   txt_file = txt_file.join('\n').replace(/\]|,/g, '');
   fs.writeFile('SHAPE-CODE.txt', txt_file, function (err) {
     if (err) return console.log(err);

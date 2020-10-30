@@ -10,7 +10,6 @@ function isNumeric(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
-// let error_message;
 readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nShape image file: ') });
 readlineSync.promptLoop(function (input) {
   img = input;
@@ -90,17 +89,12 @@ if (isNumeric(needle_count)) {
   })();
 }
 row_count = Number(row_count);
-// if (row_count !== -1) { //go back! //?
-//   //? forget why I did this
-//   row_count += 1;
-// }
 
 let cropX_left;
 let cropX_right;
 let cropY_top;
 let cropY_bot;
-// Create two-dimensional pixels rgb array based on image
-// if (img !== undefined) {
+////Create two-dimensional pixels rgb array based on image
 Jimp.read(`./in-shape-images/${img}`)
   .then((image) => {
     let width = image.bitmap.width;
@@ -138,4 +132,3 @@ Jimp.read(`./in-shape-images/${img}`)
   .catch((err) => {
     throw err;
   });
-// }

@@ -4,12 +4,6 @@ const chalk = require('chalk');
 const Jimp = require('jimp');
 const RgbQuant = require('rgbquant');
 
-// if (fs.existsSync('abort.txt')) {
-//   fs.unlinkSync('abort.txt');
-//   console.log(chalk`{bold.bgGray.underline \n*** If you would like to use this program to add shaping to a knitout file, type 'npm run shapeify'}`);
-//   process.exit();
-// }
-
 let height, width, data;
 let palette, reduced;
 let colors_arr = [];
@@ -30,7 +24,7 @@ machine = machine.toLowerCase();
 console.log(chalk.green(`-- Model: ${machine}`)); //? model ??
 //TODO: add support for different shima modesls (and maybe stoll?)
 let carrier_count;
-machine.includes('shima') ? (carrier_count = 10) : (carrier_count = 6); //TODO: limit needle bed with this too (prob will have to use promises)
+machine.includes('shima') ? (carrier_count = 10) : (carrier_count = 6); //TODO: limit needle bed with this too (prob will have to use promises :,( )
 let max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would you like to use? '), {
   limit: machine.includes('shima') ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [1, 2, 3, 4, 5, 6],
   limitMessage: chalk.red(
@@ -47,7 +41,6 @@ let opts = {
   minHueCols: 0, //TODO: test this more too
 };
 
-// if (fs.existsSync('color_work.png')) {
 function getData() {
   const processImage = new Promise((resolve) => {
     Jimp.read(`./out-colorwork-images/colorwork.png`).then((image) => {
@@ -58,7 +51,6 @@ function getData() {
       q.sample(data, width);
       palette = q.palette(true, true);
       q.idxi32.forEach(function (i32) {
-        //new
         ////return array of palette color occurrences
         // pal_hist.push({ color: q.i32rgb[i32], count: q.histogram[i32] });
         pal_hist.push(q.histogram[i32]);
@@ -81,7 +73,7 @@ function getData() {
         if (err) throw err;
         for (let y = 0; y < height; ++y) {
           let px_arr = reduced.splice(0, width);
-          background.push(px_arr[0], px_arr[px_arr.length - 1]); //new ////push edge colors to background array
+          background.push(px_arr[0], px_arr[px_arr.length - 1]); ////push edge colors to background array
           let px_map = [...px_arr];
           px_map = px_map.map((el) => (el += 1));
           colors_arr.push(px_map); ////make it into an array with rows
@@ -95,7 +87,7 @@ function getData() {
         if (!(pal_hist[background] > 0.1 * pal_hist.reduce((a, b) => a + b, 0))) {
           background = palette[0];
         }
-        background += 1; //new ////(so not strarting from 0)
+        background += 1; ////(so not strarting from 0)
         colors_arr.push(palette, machine, background);
         img.write(motif_path);
         resolve(colors_arr);
@@ -104,5 +96,5 @@ function getData() {
   });
   return processImage;
 }
-// }
+
 module.exports = { getData, colors_arr };
