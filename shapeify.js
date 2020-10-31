@@ -134,13 +134,11 @@ function shapeInfo(code, arr) {
       //new //// for when there are increases: check to see if the shape starts out smaller than max width
       if (left_px1 !== 0) {
         row1_small = true;
-        // row1_Lneedle = left_px1; //go back! //?
-        row1_Lneedle = left_px1 + 1; //new //? //come back!
+        row1_Lneedle = left_px1 + 1;
       }
       if (right_px1 !== code.length - 1) {
         row1_small = true;
-        // row1_Rneedle = right_px1; //go back! //?
-        row1_Rneedle = right_px1 + 1; //new //? //come back!
+        row1_Rneedle = right_px1 + 1;
       }
     }
     ///
@@ -673,7 +671,6 @@ function cleanInc(r) {
     function getRandomInt(max) {
       return Math.floor(Math.random() * Math.floor(max));
     }
-    //TODO: rename this so includes inc too
     let bg_c;
     let carrier_occur = rows[r][0].map((el) => el.charAt(el.length - 1));
     carrier_occur = carrier_occur.reduce((a, b, i, arr) => (arr.filter((v) => v === a).length >= arr.filter((v) => v === b).length ? a : b), null);
@@ -722,9 +719,7 @@ const incDoubleBed = (Xside_needle, side) => {
 let left_xfer = true; ////for now
 let right_xfer = true;
 let xtype, left_xfer_count, right_xfer_count, xfer_row_interval;
-// let xtype, left_xfer_count, right_xfer_count, xfer_row_interval, consec_Ldec, consec_Rdec;
 function parseShape(arr, r) {
-  // consec_Ldec = consec_Rdec = false;
   arr.some((element) => {
     if (element.ROW === r) {
       if (element.LEFT > 0 || element.RIGHT > 0) {
@@ -736,12 +731,10 @@ function parseShape(arr, r) {
       left_xfer_count = right_xfer_count = 0; ////for now
       if (element.RIGHT !== 0) {
         xtype === 'dec' ? (right_xfer_count = -element.RIGHT) : (right_xfer_count = element.RIGHT);
-        // right_xfer_count = -element.RIGHT;
         right_xfer = true;
       }
       if (element.LEFT !== 0) {
         xtype === 'dec' ? (left_xfer_count = -element.LEFT) : (left_xfer_count = element.LEFT);
-        // left_xfer_count = -element.LEFT;
         left_xfer = true;
       }
       if (arr.indexOf(element) < arr.length - 1) {
@@ -750,12 +743,6 @@ function parseShape(arr, r) {
       } else {
         xfer_row_interval = 1;
       }
-      // if (xtype === 'dec' && arr[arr.indexOf(element) + 1].RIGHT !== 0) {
-      //   consec_Rdec = true;
-      // }
-      // if (xtype === 'dec' && arr[arr.indexOf(element) + 1].LEFT !== 0) {
-      //   consec_Ldec = true;
-      // }
     }
   });
 }
@@ -799,7 +786,6 @@ function insertXferPasses(left, right, xtype) {
   let side1;
   side === 'both' ? (side1 = 'left') : (side1 = side);
   if (double_bed) {
-    // xfer_section.push(`;dec ${stitches1} on ${side1}`);
     if (xtype === 'dec') {
       xfer_section.push(`;dec ${stitches1} on ${side1}`);
       if (stitches1 === 1) {
@@ -887,49 +873,6 @@ if (!row1_small) {
   Xright_needle = row1_Rneedle;
 }
 ///////
-// let front_XknitL, back_XknitL, backXknitL2, backXknitL3, front_XknitR, back_XknitR, back_XknitR2, back_XknitR3;
-// function searchForStack(r, interval) {
-//   front_XknitL = back_XknitL = backXknitL2 = backXknitL3 = front_XknitR = back_XknitR = back_XknitR2 = back_XknitR3 = true;
-//   for (let i = r; i < r + interval; ++i) {
-//     if (consec_Ldec) {
-//       rows[i].forEach((p) => {
-//         if (p.some((el) => el.includes(`f${Xleft_needle}`))) {
-//           front_XknitL = false;
-//         }
-//         if (p.some((el) => el.includes(`b${Xleft_needle}`))) {
-//           back_XknitL = false;
-//         }
-//         if (left_xfer_count === 2) {
-//           if (p.some((el) => el.includes(`b${Xleft_needle + 1}`))) {
-//             back_XknitL2 = false;
-//           }
-//           if (p.some((el) => el.includes(`b${Xleft_needle + 2}`))) {
-//             back_XknitL3 = false;
-//           }
-//         }
-//       });
-//     }
-//     if (consec_Rdec) {
-//       rows[i].forEach((p) => {
-//         if (p.some((el) => el.includes(`f${Xright_needle}`))) {
-//           front_XknitR = false;
-//         }
-//         if (p.some((el) => el.includes(`b${Xright_needle}`))) {
-//           back_XknitR = false;
-//         }
-//         if (right_xfer_count === 2) {
-//           if (p.some((el) => el.includes(`b${Xright_needle - 1}`))) {
-//             back_XknitR2 = false;
-//           }
-//           if (p.some((el) => el.includes(`b${Xright_needle - 2}`))) {
-//             back_XknitR3 = false;
-//           }
-//         }
-//       });
-//     }
-//   }
-// }
-//////
 for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
   xtype = undefined; ////reset for now in case no xfers
   if (r !== 0) {
@@ -1008,18 +951,15 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
   ///////////////////////////////
   if (!warning && r !== 0) {
     if (left_xfer) {
-      // Xleft_needle += left_xfer_count; //go back! //?
-      xtype === 'dec' ? (Xleft_needle += left_xfer_count) : (Xleft_needle -= left_xfer_count); //new //come back!
+      xtype === 'dec' ? (Xleft_needle += left_xfer_count) : (Xleft_needle -= left_xfer_count);
     }
     if (right_xfer) {
-      // Xright_needle -= right_xfer_count; //go back! //?
-      xtype === 'dec' ? (Xright_needle -= right_xfer_count) : (Xright_needle += right_xfer_count); //new //come back!
+      xtype === 'dec' ? (Xright_needle -= right_xfer_count) : (Xright_needle += right_xfer_count);
     }
   }
   ///////////////////////////////
   function cookieCutter(XleftN, XrightN, replacement, p) {
     if (XleftN !== L_NEEDLE) {
-      //new //?
       for (let cc = L_NEEDLE; cc < XleftN; ++cc) {
         cookie = cookie.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
       }
@@ -1029,164 +969,6 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
         cookie = cookie.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
       }
     }
-    // if (consec_Ldec || consec_Rdec) {
-    //   let dir, bed1, bed2, needle1, needle2;
-    //   cookie.some((el) => el.includes('+')) ? (dir = '+') : (dir = '-');
-    //   dir === '+' ? ((bed1 = 'b'), (bed2 = 'f')) : ((bed1 = 'f'), (bed2 = 'b'));
-    //   //new
-    //   function findSpliceIndex(Xneedle, bed) {
-    //     // let dir, adjust, idx, bed, other_bed;
-    //     let idx, other_bed;
-    //     bed === 'f' ? (other_bed = 'b') : (other_bed = 'f');
-    //     // cookie.some((el) => el.includes('+')) ? (dir = '+') : (dir = '-');
-    //     // dir === '+' ? (bed = ) : (adjust = 1);
-    //     // dir === '+' ? (adjust = -1) : (adjust = 1);
-    //     // Xneedle === Xleft_needle || Xneedle === Xleft_needle + 1 ? (adjust = -1) : (adjust = 1);
-    //     let carrier = cookie[cookie.findIndex((el) => el.includes('knit'))].charAt(cookie[cookie.findIndex((el) => el.includes('knit'))].length - 1);
-    //     //  if (!cookie.some((el) => el.includes(`f${Xneedle - adjust}`))) other = `knit ${dir} f${Xneedle - adjust} ${carrier}`;
-    //     if (dir === '+') {
-    //       if (Xneedle === Xleft_needle || Xneedle === Xleft_needle + 1) {
-    //         if (cookie.some((el) => el.includes(`${other_bed}${Xneedle}`))) {
-    //           idx = cookie.findIndex((el) => el.includes(`${other_bed}${Xneedle}`));
-    //           if (bed === 'b') idx += 1;
-    //         } else {
-    //           idx = 0;
-    //         }
-    //         // idx = 0;
-    //       } else {
-    //         if (cookie.some((el) => el.includes(`${other_bed}${Xneedle}`))) {
-    //           // idx = cookie[cookie.findIndex((el) => el.includes(`${other_bed}${Xneedle}`))];
-    //           idx = cookie.findIndex((el) => el.includes(`${other_bed}${Xneedle}`));
-    //           if (bed === 'b') idx += 1;
-    //           // idx = cookie.length - 2;
-    //         } else {
-    //           // idx = cookie.length - 1;
-    //           idx = cookie.length;
-    //         }
-    //       }
-    //     } else {
-    //       if (Xneedle === Xleft_needle || Xneedle === Xleft_needle + 1) {
-    //         if (cookie.some((el) => el.includes(`${other_bed}${Xneedle}`))) {
-    //           idx = cookie.findIndex((el) => el.includes(`${other_bed}${Xneedle}`));
-    //           if (bed === 'f') idx += 1;
-    //           // idx = cookie.length - 2;
-    //         } else {
-    //           // idx = cookie.length - 1;
-    //           idx = cookie.length;
-    //         }
-    //       } else {
-    //         if (cookie.some((el) => el.includes(`${other_bed}${Xneedle}`))) {
-    //           idx = cookie.findIndex((el) => el.includes(`${other_bed}${Xneedle}`));
-    //           if (bed === 'f') idx += 1;
-    //           // if (bed === 'b' && idx !== 0) idx -= 1;
-    //         } else {
-    //           idx = 0;
-    //         }
-    //       }
-    //     }
-    //     // if (cookie.some((el) => el.includes(`${other_bed}${Xneedle}`))) {
-    //     //   dir === '+' ? idx = 1 : idx = cookie.length - 1; //with built in adjust
-    //     // } else {
-    //     //   dir === '+' ? (idx = 1) : (idx = cookie.length - 1);
-    //     // }
-    //     // idx_loop: for (let c = 0; c < cookie.length; ++c) {
-    //     //   if (cookie[c].includes(`f${Xneedle + adjust}`)) {
-    //     //     idx = c;
-    //     //   } else if (cookie[c].includes(`b${Xneedle}`)) {
-    //     //     idx = c;
-    //     //     break idx_loop;
-    //     //   }
-    //     // }
-    //     cookie.splice(idx, 0, `knit ${dir} ${bed}${Xneedle} ${carrier}`);
-    //     //  other !== undefined
-    //     //    ? cookie.splice(idx + 1, 0, `knit ${dir} f${Xneedle} ${carrier}`, other)
-    //     //    : cookie.splice(idx + 1, 0, `knit ${dir} f${Xneedle} ${carrier}`);
-    //   }
-    //   function spliceCookie(xfer_needle, adjust, xfer_count, order, front_bool, back_bool, back_bool2, back_bool3) {
-    //     function frontSplice() {
-    //       // if (!cookie.some((el) => el.includes(`f${xfer_needle}`))) {
-    //       if (p === 0 && front_bool) {
-    //         findSpliceIndex(xfer_needle, 'f');
-    //       }
-    //       // }
-    //     }
-    //     function backSplice() {
-    //       // let adjustments = [];
-    //       if (order === 'ascend') {
-    //         if (p === 1 && back_bool) findSpliceIndex(xfer_needle, 'b');
-    //         if (xfer_count === 2 && p === 0) {
-    //           if (back_bool2) findSpliceIndex(xfer_needle + adjust, 'b');
-    //           if (back_bool3) findSpliceIndex(xfer_needle + adjust + adjust, 'b');
-    //         }
-    //       } else {
-    //         if (xfer_count === 2) {
-    //           if (p === 0) {
-    //             if (back_bool3) findSpliceIndex(xfer_needle + adjust + adjust, 'b');
-    //             if (back_bool2) findSpliceIndex(xfer_needle + adjust, 'b');
-    //           }
-    //           if (p === 1) findSpliceIndex(xfer_needle, 'b');
-    //         } else {
-    //           if (p === 0 && back_bool) {
-    //             findSpliceIndex(xfer_needle, 'b');
-    //           }
-    //         }
-    //       }
-    //       // order === 'ascend' ? adjustments.push(0, adjust, adjust + adjust) : adjustments.push(adjust + adjust, adjust, 0);
-    //       // if (xfer_count !== 2) adjustments[0] = 0;
-    //       // // if (!cookie.some((el) => el.includes(`b${xfer_needle}`))) {
-    //       // if (p === 1) {
-    //       //   findSpliceIndex(xfer_needle + adjustments[0], 'b');
-    //       // }
-    //       // // }
-    //       // if (xfer_count === 2) {
-    //       //   if (p === 0) {
-    //       //     if (!cookie.some((el) => el.includes(`b${xfer_needle + adjust}`))) {
-    //       //       findSpliceIndex(xfer_needle + adjustments[1], 'b');
-    //       //     }
-    //       //     if (!cookie.some((el) => el.includes(`b${xfer_needle + adjust + adjust}`))) {
-    //       //       findSpliceIndex(xfer_needle + adjustments[2], 'b');
-    //       //     }
-    //       // }
-    //       // }
-    //     }
-    //     // if (bed1 === 'f' && front_bool) {
-    //     if (bed1 === 'f') {
-    //       frontSplice();
-    //       backSplice();
-    //     } else if (bed1 === 'b') {
-    //       backSplice();
-    //       frontSplice();
-    //     }
-    //     // if (!cookie.some((el) => el.includes(`f${xfer_needle}`))) {
-    //     //     frontSplice();
-    //     //   // findSpliceIndex(Xleft_needle + 1, bed1);
-    //     //   // findSpliceIndex(needle1, bed1);
-    //     // }
-    //     // if (!cookie.some((el) => el.includes(`${bed2}${needle1}`))) {
-    //     //   findSpliceIndex(needle1, bed2);
-    //     // }
-    //     // if (!cookie.some((el) => el.includes(`${bed1}${needle2}`))) {
-    //     //   findSpliceIndex(needle2, bed1);
-    //     // }
-    //     // if (!cookie.some((el) => el.includes(`${bed2}${needle2}`))) {
-    //     //   findSpliceIndex(needle2, bed2);
-    //     // }
-    //   }
-    //   if (consec_Ldec && (front_XknitL || back_XknitL)) {
-    //     let order;
-    //     dir === '+' ? (order = 'ascend') : (order = 'descend');
-    //     spliceCookie(Xleft_needle, 1, left_xfer_count, order, front_XknitL, back_XknitL, back_XknitL2, back_XknitL3);
-    //     // dir === '+' ? ((needle1 = Xleft_needle + 1), (needle2 = Xleft_needle)) : ((needle1 = Xleft_needle + 1), (needle2 = Xleft_needle));
-    //     // spliceCookie(needle1, needle2);
-    //   }
-    //   if (consec_Rdec && (front_XknitR || back_XknitR)) {
-    //     let order;
-    //     dir === '+' ? (order = 'descend') : (order = 'ascend');
-    //     spliceCookie(Xright_needle, -1, right_xfer_count, order, front_XknitR, back_XknitR, back_XknitR2, back_XknitR3);
-    //     // dir === '+' ? ((needle1 = Xright_needle), (needle2 = Xright_needle - 1)) : ((needle1 = Xright_needle - 1), (needle2 = Xright_needle));
-    //     // spliceCookie(needle1, needle2);
-    //   }
-    // } //new //?
     if (shortrow_time) {
       for (let c = 0; c < carriers.length; ++c) {
         cookie = cookie.map((el) => {
@@ -1200,17 +982,9 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
     }
   }
   if (!warning) {
-    // if (consec_Ldec || consec_Rdec) {
-    //   searchForStack(r, xfer_row_interval);
-    // }
     for (let i = r; i < r + xfer_row_interval; ++i) {
       for (let p = 0; p < rows[i].length; ++p) {
         cookie = rows[i][p];
-        // if (p === 2) {
-        //   //new //?
-        //   consec_Ldec = false;
-        //   consec_Rdec = false;
-        // } //?
         cookieCutter(Xleft_needle, Xright_needle, new_carriers, p);
         if (xtype === 'inc' && p === 0) {
           for (let b = 0; b < bg_needles.length; ++b) {
@@ -1271,21 +1045,11 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       insert_arr.push(xfer_section);
       xfer_section = [];
     }
-    // short_Xleft_needle += left_xfer_count; //go back! //?
-    // short_Xright_needle -= right_xfer_count; //go back! //?
-    xtype === 'dec' ? (short_Xleft_needle += left_xfer_count) : (short_Xleft_needle -= left_xfer_count); //new //come back!
-    xtype === 'dec' ? (short_Xright_needle -= right_xfer_count) : (short_Xright_needle += right_xfer_count); //new //come back!
-    // if (consec_Ldec || consec_Rdec) {
-    //   searchForStack(r, xfer_row_interval);
-    // }
+    xtype === 'dec' ? (short_Xleft_needle += left_xfer_count) : (short_Xleft_needle -= left_xfer_count);
+    xtype === 'dec' ? (short_Xright_needle -= right_xfer_count) : (short_Xright_needle += right_xfer_count);
     for (let i = r; i < r + xfer_row_interval; ++i) {
       for (let p = 0; p < rows[i].length; ++p) {
         cookie = rows[i][p];
-        // if (p === 2) {
-        //   //new //?
-        //   consec_Ldec = false;
-        //   consec_Rdec = false;
-        // } //?
         cookieCutter(short_Xleft_needle, short_Xright_needle, short_row_carriers, p);
         if (xtype === 'inc' && p === 0) {
           for (let b = 0; b < bg_needles.length; ++b) {
@@ -1325,17 +1089,9 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
     }
     if (r < last_shape_row && r >= shaping_arr[shaping_arr.length - 2].ROW && short_row_section) {
       shortrow_time = true;
-      // if (consec_Ldec || consec_Rdec) {
-      //   searchForStack(r, xfer_row_interval);
-      // }
       for (let i = r + xfer_row_interval; i < first_short_row - 1; ++i) {
         for (let p = 0; p < rows[i].length; ++p) {
-          cookie = rows[i][p]; //?
-          // if (p === 2) {
-          //   //new //?
-          //   consec_Ldec = false;
-          //   consec_Rdec = false;
-          // } //?
+          cookie = rows[i][p];
           cookieCutter(Xleft_needle, Xright_needle, carriers, p);
           shaped_rows.push(cookie);
         }
