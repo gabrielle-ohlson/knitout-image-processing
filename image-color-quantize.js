@@ -9,6 +9,7 @@ let palette, reduced;
 let colors_arr = [];
 let pal_hist = [];
 let background = [];
+let colors_data = []; //new loc
 
 let machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machine will you be using? '), {
   limit: [
@@ -56,9 +57,21 @@ function getData() {
         pal_hist.push(q.histogram[i32]);
       });
       let hex_arr = [];
+      const RGBToHex = (r, g, b) => ((r << 16) + (g << 8) + b).toString(16).padStart(6, '0');
       for (let h = 0; h < palette.length; ++h) {
         hex_arr.push(Jimp.rgbaToInt(palette[h][0], palette[h][1], palette[h][2], 255)); //255 bc hex
+        colors_data.push(RGBToHex(palette[h][0], palette[h][1], palette[h][2]));
       }
+      for (let h = 1; h <= colors_data.length; ++h) {
+        colors_data[h - 1] = `x-vis-color #${colors_data[h - 1]} ${h}`;
+      }
+      let colors_data_str = JSON.stringify(colors_data)
+        .replace(/\[|\]|"/gi, '')
+        .split(',')
+        .join('\n');
+      fs.writeFileSync('COLORS_DATA.txt', colors_data_str); //new
+      console.log(colors_data); //new
+      /////
       reduced = q.reduce(data, 2); ////indexed array
       let motif_path = `./out-colorwork-images/knit_motif.png`;
       if (fs.existsSync(motif_path)) {
@@ -94,7 +107,13 @@ function getData() {
       });
     });
   });
+  // const colorsData = processImage.then((resolve) => {
+  //   return colors_data;
+  // });
+  // return Promise.all([processImage, colorsData]).then((values) => {
+  //   return values;
+  // });
   return processImage;
 }
 
-module.exports = { getData, colors_arr };
+module.exports = { getData, colors_arr, colors_data };

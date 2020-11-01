@@ -5,6 +5,7 @@
 const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
+const Jimp = require('jimp');
 const imageColors = require('./image-color-quantize.js');
 // const { colors_data } = require('./image-color-quantize.js');
 let background, machine, palette, color_count, init_dir, other_dir;
@@ -23,7 +24,7 @@ let pos_caston = [];
 let neg_caston = [];
 let bindoff = [];
 let last_pass_dir, xfer_needle, last_needle, bindoff_carrier;
-// let colors_data = [];
+let colors_data = [];
 
 let carrier_track = [];
 const FINDMYCARRIER = ({ CARRIER, DIR }) => ({
@@ -53,21 +54,26 @@ speed_number === '-1' ? console.log(chalk.green(`-- Speed number: UNSPECIFIED`))
 imageColors
   .getData()
   .then((result) => {
+    // colors_arr = result.flat(); //?
     colors_data = result.pop(); //?
     colors_arr = result.flat();
     return result;
   })
   .then(() => {
+    // colors_data = colors_arr.pop();
     background = colors_arr.pop();
     machine = colors_arr.pop();
     palette = colors_arr.pop();
     colors_arr = colors_arr.reverse();
     color_count = palette.length;
+    // machine.includes('kniterate') ? ((needle_bed = 253), (init_dir = '+'), (other_dir = '-')) : ((needle_bed = 541), (init_dir = '-'), (other_dir = '+')); ////one extra so not counting from 0
     init_dir = '-';
     other_dir = '+';
     machine.includes('kniterate') ? (needle_bed = 253) : (needle_bed = 541); ////one extra so not counting from 0
   })
   .then((dir, needle, carrier) => {
+    // let even_bird = [];
+    // let odd_bird = [];
     for (let x = 1; x <= colors_arr[0].length; ++x) {
       //new
       x % 2 === 0 ? even_bird.push(x) : odd_bird.push(x);
@@ -144,25 +150,25 @@ imageColors
         } else {
           taken = false;
         }
-        // if (i % 2 === 0 && !taken && x % 2 !== 0) {
         if (i % 2 === 0 && !taken) {
           if (x % 2 !== 0) {
             knitout.push(`knit ${dir} b${x} ${carrier}`);
             back_needles.push(x);
           } else {
             let missing_needles = even_bird.filter((x) => back_needles.indexOf(x) === -1);
+            // if (jacquard_passes[i][0][0] === 'carrier' && missing_needles.length > 0 && i === prev_row + passes_per_row[row_count - 1] - 1) {
             if (missing_needles.length > 0 && i === prev_row + passes_per_row[row_count - 1] - 1) {
               knitout.push(`knit ${dir} b${x} ${carrier}`);
             }
           } //?
         }
         if (i % 2 !== 0 && !taken) {
-          // if (i % 2 !== 0 && !taken && x % 2 === 0) {
           if (x % 2 === 0) {
             knitout.push(`knit ${dir} b${x} ${carrier}`);
             back_needles.push(x); //new
           } else {
             let missing_needles = odd_bird.filter((x) => back_needles.indexOf(x) === -1);
+            // if (jacquard_passes[i][0][0] === 'carrier' && missing_needles.length > 0 && i === prev_row + passes_per_row[row_count - 1] - 1) {
             if (missing_needles.length > 0 && i === prev_row + passes_per_row[row_count - 1] - 1) {
               knitout.push(`knit ${dir} b${x} ${carrier}`);
             }
@@ -363,6 +369,270 @@ imageColors
         knitout.splice(last + 1, 0, `${yarn_out} ${color_carriers[i]}`);
       }
     }
+    ///////
+    // let birdseye = [...knitout];
+    const OP = ({ TYPE, DIR, NEEDLE, CARRIER }) => ({
+      TYPE,
+      DIR,
+      NEEDLE,
+      CARRIER,
+    });
+    let pass_check = [];
+    let passes = [];
+    let pass = [];
+    let rows = [];
+    let complete_row = false;
+    pass_loop: for (let p = knitout.findIndex((el) => el.includes(';row:')); p < knitout.indexOf(';bindoff section'); ++p) {
+      let op_arr = knitout[p].split(' ');
+      let type = op_arr[0];
+      let dir, needle, carrier, bed;
+      if (type.includes('in ') || type.includes('hook') || type.includes('out ')) {
+        continue pass_loop;
+      }
+      if (type.includes(';')) {
+        if (type.includes(';row')) {
+          complete_row = true;
+        } else {
+          continue pass_loop;
+        }
+      }
+      if (type !== 'xfer') {
+        if (op_arr.length === 4 && (op_arr[1] === '+' || '-')) {
+          (dir = op_arr[1]), (needle = op_arr[2]), (carrier = op_arr[3]);
+          if (!needle.includes('b')) {
+            continue pass_loop;
+          } else {
+            needle = Number(op_arr[2].slice(1)); //new
+          }
+        } else {
+          continue pass_loop;
+        }
+      } else {
+        continue pass_loop;
+      }
+      if (pass_check.length > 0 && (pass_check[pass_check.length - 1].DIR !== dir || pass_check[pass_check.length - 1].CARRIER !== carrier)) {
+        if (pass_check[pass_check.length - 1].DIR === '-') pass = pass.reverse(); //new
+        passes.push(pass);
+        if (complete_row) {
+          rows.push(passes);
+          passes = [];
+          complete_row = false;
+        }
+        pass_check = [];
+        pass = [];
+        // pass.push(carrier);
+        pass.push([needle, carrier]);
+      } else {
+        pass_check.push(
+          OP({
+            TYPE: type,
+            DIR: dir,
+            NEEDLE: needle,
+            CARRIER: carrier,
+          })
+        );
+        // pass.push(carrier);
+        pass.push([needle, carrier]);
+      }
+    }
+    // console.log(rows[0]); //remove
+    // console.log(rows[1]); //remove
+    rows = rows.map((passes) => (passes = passes.flat()));
+    rows = rows.map((row) => row.sort((a, b) => a[0] - b[0]));
+    // console.log(rows[1]); //remove
+    let all_needles = [...even_bird, ...odd_bird].sort((a, b) => a - b);
+    for (let i = 0; i < rows.length; ++i) {
+      let just_needles = [...rows[i]];
+      just_needles = just_needles.map((el) => (el = el[0]));
+      // let just_needles = rows[i].filter((el) => typeof el === Number);
+      let holes = all_needles.filter((x) => just_needles.indexOf(x) === -1);
+      if (holes.length > 0) {
+        for (h = 0; h < holes.length; ++h) {
+          rows[i].push([holes[h], 'x']);
+        }
+      }
+    }
+    rows = rows.map((row) => row.sort((a, b) => a[0] - b[0]));
+    // console.log(rows[1]); //remove
+    // console.log(colors_data); //new
+    colors_data = colors_data.map((line) => line.split(' '));
+    colors_data.forEach((line) => line.shift());
+    // console.log(colors_data);
+    /////
+    let rgba_arr = colors_data.map((hex) => (hex = Jimp.intToRGBA(Jimp.cssColorToHex(hex[0]))));
+    // console.log(rgba_arr); //remove
+    // console.log(colors_data); //remove
+    //TODO: change name of this to rgbSaturation
+    function RGBToHSL(r, g, b) {
+      (r /= 255), (g /= 255), (b /= 255);
+      //   function getMax(arr) {
+      //     let len = arr.length;
+      //     let max = -Infinity;
+      //     while (len--) {
+      //       max = arr[len] > max ? arr[len] : max;
+      //     }
+      //     return max;
+      //   }
+      //   function getMin(arr) {
+      //     let min = arr[0];
+      //     for (let idx = 0; idx < arr.length; ++idx) {
+      //       min = arr[idx] < min ? arr[idx] : min;
+      //     }
+      //     return min;
+      //   }
+      //   let max = getMax([r, g, b]);
+      //   let min = getMin([r, g, b]);
+      let max = Math.max(r, g, b),
+        min = Math.min(r, g, b);
+      let h,
+        s,
+        l = Math.round((max + min) / 2); //new
+      if (max == min) {
+        h = s = 0; // achromatic
+      } else {
+        let d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        s = Math.round(s * 100); //new
+        switch (max) {
+          case r:
+            h = (g - b) / d + (g < b ? 6 : 0);
+            break;
+          case g:
+            h = (b - r) / d + 2;
+            break;
+          case b:
+            h = (r - g) / d + 4;
+            break;
+        }
+        h = Math.round(h * 60);
+        if (h < 0) h += 360;
+        h = Math.round(h / 60) * 60; ////round to neartest hue
+      }
+      return [h, s, l];
+    }
+    // function RGBToHSL(r, g, b) {
+    //   r /= 255;
+    //   g /= 255;
+    //   b /= 255;
+    //   let cmin = Math.min(r, g, b),
+    //     cmax = Math.max(r, g, b),
+    //     delta = cmax - cmin,
+    //     h = 0,
+    //     s = 0,
+    //     l = 0;
+    //   if (delta == 0) h = 0;
+    //   else if (cmax == r) h = ((g - b) / delta) % 6;
+    //   else if (cmax == g) h = (b - r) / delta + 2;
+    //   else h = (r - g) / delta + 4;
+    //   h = Math.round(h * 60);
+    //   if (h < 0) h += 360;
+    //   l = (cmax + cmin) / 2;
+    //   s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+    //   s = +(s * 100).toFixed(1);
+    //   l = +(l * 100).toFixed(1);
+    //   return s;
+    //   // return 'hsl(' + h + ',' + s + '%,' + l + '%)';
+    // }
+    let HSL_arr = [];
+    rgba_arr = rgba_arr.map((obj) => (obj = Object.values(obj)));
+    console.log(rgba_arr);
+    console.log(rgba_arr[0][0]);
+    for (let h = 0; h < rgba_arr.length; ++h) {
+      HSL_arr.push(RGBToHSL(rgba_arr[h][0], rgba_arr[h][1], rgba_arr[h][2]));
+    }
+    console.log(HSL_arr);
+    //TODO: invertHex for color with highest HSL S (saturation) (need to do function to find highest value)
+    //TODO: then, in invertHex func, make it colors_data[HSL_arr.indexOf(highest_sat)]
+    // TODO: then, fix the bottom stuff, and change ones with carrier 'x' to have value of invertHex
+    ///////
+    function mostSaturated(arr) {
+      if (arr.length === 0) {
+        return -1;
+      }
+      let max = arr[0][1];
+      let maxIndex = 0;
+      for (let i = 1; i < arr.length; i++) {
+        if (arr[i][1] > max) {
+          maxIndex = i;
+          max = arr[i][1];
+        }
+      }
+      return maxIndex;
+    }
+    let saturated = mostSaturated(HSL_arr);
+    if (saturated > 180) saturated *= -1;
+    console.log(saturated);
+    function contrastColor() {
+      let h = HSL_arr[saturated][0];
+      let s = HSL_arr[saturated][1];
+      let l = HSL_arr[saturated][2];
+      let cc;
+      if (h === 0 && s === 0) {
+        l === 0 ? (cc = [0, 0, 100]) : (cc = [0, 0, 0]);
+      } else {
+        if (h > 180) h *= -1;
+        cc = [h + 180, s, l];
+      }
+      return cc;
+    }
+    let contrast_color = contrastColor();
+    console.log(contrast_color);
+    // contrast_color = Jimp.cssColorToHex({ h: contrast_color[0], s: contrast_color[1], l: contrast_color[2] });
+        contrast_color = Jimp.cssColorToHex({ h: contrast_color[0], s: contrast_color[1] / 100, l: contrast_color[2] / 100 });
+    console.log(contrast_color);
+    // console.log(Jimp.cssColorToHex(contrast_color[0], contrast_color[1], contrast_color[2]));
+    // console.log(Jimp.cssColorToHex({ h: contrast_color[0], s: contrast_color[1] / 100, l: contrast_color[2] / 100 }));
+    // console.log(Jimp.cssColorToHex({ h: contrast_color[0], s: contrast_color[1], l: contrast_color[2] }));
+    // console.log(Jimp.cssColorToHex(`contrast_color[0]`, `contrast_color[1]`, `contrast_color[2]`));
+    // console.log(Jimp.cssColorToHex({ H: contrast_color[0], S: contrast_color[1] / 100, L: contrast_color[2] / 100 }));
+    // console.log(Jimp.cssColorToHex(`contrast_color[0]`, `contrast_color[1]%`, `contrast_color[2]%`));
+    // function invertHex(hex) {
+    //   return (Number(`0x1${hex}`) ^ 0xffffff).toString(16).substr(1).toUpperCase();
+    // }
+    // let no_hash = colors_data[saturated][0].slice(1);
+    // console.log(no_hash);
+    // let contrast_color = invertHex(no_hash); // Returns FF00FF
+    // console.log(contrast_color);
+    //////
+    colors_data = colors_data.map((hex) => (hex = [Jimp.cssColorToHex(hex[0]), hex[1]]));
+    colors_data.push([contrast_color, 'x']);
+    console.log(colors_data);
+    // rows = rows.flat();
+    console.log(rows[0]); //remove
+    console.log(colors_data.find((c) => c[1] == '3')[1]);
+    rows = rows.map((pass) => (pass = pass.map((el) => (el = colors_data.find((c) => c[1] == el[1])[0]))));
+    // passes = passes.map((pass) => (pass = pass.map((el) => (el[1] = colors_data.find((c) => c[1] == el[1])[0]))));
+    // console.log(rows); //remove
+    new Jimp(rows[0].length, rows.length, (err, img) => {
+      if (err) throw err;
+      for (let y = 0; y < rows.length; ++y) {
+        for (let x = 0; x < rows[y].length; ++x) {
+          img.setPixelColor(rows[y][x], x, y);
+        }
+      }
+      img.write('birdseye.png');
+
+      //   for (let y = 0; y < height; ++y) {
+      //     let px_arr = reduced.splice(0, width);
+      //     background.push(px_arr[0], px_arr[px_arr.length - 1]); ////push edge colors to background array
+      //     let px_map = [...px_arr];
+      //     px_map = px_map.map((el) => (el += 1));
+      //     colors_arr.push(px_map); ////make it into an array with rows
+      //     for (let x = 0; x < width; ++x) {
+      //       let hex = hex_arr[px_arr[x]];
+      //       img.setPixelColor(hex, x, y);
+      //     }
+      //   }
+      //   background = background.reduce((a, b, i, arr) => (arr.filter((v) => v === a).length >= arr.filter((v) => v === b).length ? a : b), null); ////find the most common edge color
+      //   //// check to see edge color is at least 10% of the colors (if not, make background the palette color with most occurrences (palette = ordered from highest->lowest occurrences))
+      //   if (!(pal_hist[background] > 0.1 * pal_hist.reduce((a, b) => a + b, 0))) {
+      //     background = palette[0];
+      //   }
+      //   background += 1; ////(so not strarting from 0)
+      //   colors_arr.push(palette, machine, background);
+      //   img.write(motif_path);
+      //   resolve(colors_arr);
+    });
   })
   //////
   .finally(() => {
