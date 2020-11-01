@@ -53,8 +53,8 @@ speed_number === '-1' ? console.log(chalk.green(`-- Speed number: UNSPECIFIED`))
 imageColors
   .getData()
   .then((result) => {
-    colors_data = result.pop(); //?
-    colors_arr = result.flat();
+    // colors_data = result.pop(); //?
+    colors_arr = result;
     return result;
   })
   .then(() => {
@@ -69,7 +69,6 @@ imageColors
   })
   .then((dir, needle, carrier) => {
     for (let x = 1; x <= colors_arr[0].length; ++x) {
-      //new
       x % 2 === 0 ? even_bird.push(x) : odd_bird.push(x);
     }
     for (let y = 0; y < colors_arr.length; ++y) {

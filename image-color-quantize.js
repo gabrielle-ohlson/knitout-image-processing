@@ -69,8 +69,7 @@ function getData() {
         .replace(/\[|\]|"/gi, '')
         .split(',')
         .join('\n');
-      fs.writeFileSync('COLORS_DATA.txt', colors_data_str); //new
-      console.log(colors_data); //new
+      fs.writeFileSync('COLORS_DATA.txt', colors_data_str);
       /////
       reduced = q.reduce(data, 2); ////indexed array
       let motif_path = `./out-colorwork-images/knit_motif.png`;
