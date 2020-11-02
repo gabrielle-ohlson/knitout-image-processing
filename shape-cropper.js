@@ -74,7 +74,9 @@ if (isNumeric(needle_count)) {
     .split('\n');
   let row_count_arr = source_file.filter((el) => el.includes(';row:'));
   row_count = row_count_arr[row_count_arr.length - 1].replace(';row: ', '');
-  let needle_count_arr = source_file.filter((el) => !el.includes(';'));
+  // let needle_count_arr = source_file.splice(source_file.findIndex((el) => el.includes(`;background color:`)));
+  // needle_count_arr = needle_count_arr.filter((el) => !el.includes(';'));
+  let needle_count_arr = source_file.filter((el) => !el.includes(';') && !el.includes('x-vis-color')); //new
   needle_count_arr = needle_count_arr.map((el) => el.match(/\d+/g));
   needle_count_arr = needle_count_arr.map((arr) => arr.splice(0, 1));
   needle_count_arr = needle_count_arr.map((el) => Number(el));

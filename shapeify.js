@@ -333,10 +333,9 @@ if (short_row_section) {
     }
   }
 }
+let redefine_carriers = [];
 let xtra_carriers = [];
-if (short_row_section) xtra_carriers = short_row_carriers.filter((el) => !carriers.includes(el) && el !== draw_thread); //new with draw thread
-
-console.log(xtra_carriers); //new //remove
+if (short_row_section) xtra_carriers = short_row_carriers.filter((el) => !carriers.includes(el) && el !== draw_thread);
 
 if (short_row_carriers.length < 3 && short_row_section && !sinkers) {
   console.log(
@@ -357,7 +356,7 @@ if ((row1_small || xtra_carriers.length > 0) && caston_section[1].includes(`knit
   caston_section = yarns_in.splice(yarns_in.findIndex((el) => el.includes(`;kniterate yarns in`)));
   let left_diff = row1_Lneedle - L_NEEDLE;
   let kniterate_caston = [];
-  kniterate_caston.push(header);
+  // kniterate_caston.push(header); //?
   yarnsin: for (let i = 0; i < yarns_in.length; ++i) {
     let line = yarns_in[i].split(' ');
     if (line[0] === 'knit' || line[0] === 'drop') {
@@ -403,7 +402,6 @@ if ((row1_small || xtra_carriers.length > 0) && caston_section[1].includes(`knit
       kniterate_caston.push(caston_section[i]);
     }
   }
-  // }
   caston_section = kniterate_caston.flat();
 }
 
@@ -581,12 +579,13 @@ const dec2DoubleBed = (dec_needle, side) => {
 //***PROTO BIND-OFF FUNCTION
 //--------------------------
 let bindoff_carrier;
+let bindoff_time = false;
 const BINDOFF = (xfer_needle, count, side, double_bed) => {
   if (side === 'right') {
     xfer_needle = xfer_needle - count + 1; //-1 //?
   }
   const posLoop = (op, bed) => {
-    for (let x = xfer_needle; x < xfer_needle + count; ++x) {
+    pos: for (let x = xfer_needle; x < xfer_needle + count; ++x) {
       if (op === 'knit') {
         xfer_section.push(`knit + ${bed}${x} ${bindoff_carrier}`);
       }
@@ -596,6 +595,10 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
         xfer_section.push(`xfer ${bed}${x} ${receive}${x}`);
       }
       if (op === 'bind') {
+        if (x === xfer_needle + count - 1 && bindoff_time) {
+          //new
+          break pos;
+        } //?
         xfer_section.push(`xfer b${x} f${x}`);
         xfer_section.push(`rack -1`);
         xfer_section.push(`xfer f${x} b${x + 1}`);
@@ -605,7 +608,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
     }
   };
   const negLoop = (op, bed) => {
-    for (let x = xfer_needle + count - 1; x >= xfer_needle; --x) {
+    neg: for (let x = xfer_needle + count - 1; x >= xfer_needle; --x) {
       if (op === 'knit') {
         xfer_section.push(`knit - ${bed}${x} ${bindoff_carrier}`);
       }
@@ -615,6 +618,10 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
         xfer_section.push(`xfer ${bed}${x} ${receive}${x}`);
       }
       if (op === 'bind') {
+        if (x === xfer_needle && bindoff_time) {
+          //new
+          break neg;
+        } //?
         xfer_section.push(`xfer b${x} f${x}`);
         xfer_section.push(`rack 1`);
         xfer_section.push(`xfer f${x} b${x - 1}`); //new (-1 instead of + 1)
@@ -623,6 +630,15 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
       }
     }
   };
+  ////
+  const bindoffTail = (last_needle, dir) => {
+    xfer_section.push(`xfer b${last_needle} f${last_needle}`);
+    for (let i = 0; i < 16; ++i) {
+      xfer_section.push(`knit ${dir} b${last_needle} ${bindoff_carrier}`);
+    }
+    xfer_section.push(`drop b${last_needle}`);
+  };
+  //////
   if (side === 'left') {
     posLoop('knit', 'f');
     if (double_bed) negLoop('knit', 'f');
@@ -630,6 +646,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
     negLoop('xfer', 'f');
     negLoop('knit', 'b');
     posLoop('bind', null);
+    if (bindoff_time) bindoffTail(xfer_needle + count - 1, '+'); //new
   } else if (side === 'right') {
     negLoop('knit', 'f');
     if (double_bed) posLoop('knit', 'f');
@@ -637,6 +654,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
     posLoop('xfer', 'f');
     posLoop('knit', 'b');
     negLoop('bind', null);
+    if (bindoff_time) bindoffTail(xfer_needle, '-'); //new
   }
 };
 
@@ -912,7 +930,6 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       XrightN = Xright_needle;
     }
     if (xtype === 'inc' && !double_bed) {
-      //new
       cleanInc(r);
     }
     insertXferPasses(XleftN, XrightN, xtype);
@@ -1196,6 +1213,14 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
           return c;
         }
       });
+      //////
+      for (let c = 0; c < new_carriers.length; ++c) {
+        if (carriers.includes(new_carriers[c])) {
+          redefine_carriers.push([new_carriers[c], short_row_carriers[c]]);
+        } else {
+          redefine_carriers.push([short_row_carriers[c], new_carriers[c]]);
+        }
+      }
       ///////
       if (rows[first_short_row - 1][rows[first_short_row - 1].length - 1] !== bindoff_pass) {
         cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
@@ -1223,7 +1248,6 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 //--------------
 //***ADD BINDOFF
 //--------------
-//TODO: add tag at end of bindoff?
 shaped_rows = shaped_rows.flat();
 let bindoff = [];
 let bindoff_side, Bxfer_needle, bindoff_count;
@@ -1241,6 +1265,7 @@ if (short_row_section && short_row_carriers.includes(bindoff_carrier)) {
   bindoff_side === 'right' ? (Bxfer_needle = Xright_needle) : (Bxfer_needle = Xleft_needle);
   bindoff_count = Xright_needle - Xleft_needle + 1;
 }
+bindoff_time = true; //new //?
 xfer_section.push(`;bindoff section`);
 BINDOFF(Bxfer_needle, bindoff_count, bindoff_side, double_bed);
 bindoff.push(xfer_section);
@@ -1291,6 +1316,18 @@ sinkers ? (yarn_out = 'outhook') : (yarn_out = 'out');
   }
 })();
 
+//-----------------------------------------------------
+//***ADD x-vis-color FOR SHORTROW CARRIERS IF NECESSARY
+//-----------------------------------------------------
+if (short_row_section && !sinkers) {
+  for (let i = 0; i < redefine_carriers.length; ++i) {
+    let correspond_color = header.find((line) => line.includes(`x-vis-color`) && line.charAt(line.length - 1) === `${redefine_carriers[i][0]}`).split(' ');
+    correspond_color = correspond_color[1];
+    shaped_rows.splice(shaped_rows.indexOf(`;short row section`) + 1, 0, `x-vis-color ${correspond_color} ${redefine_carriers[i][1]}`);
+  }
+}
+shaped_rows.unshift(header);
+
 //-------------------------
 //***ADDITIONAL ERROR CHECK
 //-------------------------
@@ -1311,7 +1348,6 @@ final_file = final_file.join('\n');
 //-------------------------------------------
 if (!errors && !shape_error) {
   console.log(
-    // chalk`{green \nno errors found :-) don't forget to change the new file name to 'command.kc' before uploading it to the machine!}\n{black.bgYellow ! WARNING:} {italic IT IS RECOMMENDED THAT YOU EMAIL THIS FILE TO:} {bold support@kniterate.com} {italic BEFORE USE TO ENSURE THAT NO DAMAGE WILL BE CAUSED TO YOUR MACHINE.\n***contact:} {bold info@edgygrandma.com} {italic if you have any questions about this program.}`
     chalk`{green \nno errors found :-)}\n{black.bgYellow ! WARNING:} {bold IT IS RECOMMENDED THAT YOU VIEW THE NEW FILE ON THE KNITOUT LIVE VISUALIZER} {italic (https://github.com/textiles-lab/knitout-live-visualizer)} {bold BEFORE USE TO ENSURE THAT IT WILL PRODUCE A KNIT TO YOUR LIKING.\n***contact:} {italic info@edgygrandma.com} {bold if you have any questions about this program.}`
   );
 }

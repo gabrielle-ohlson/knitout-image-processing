@@ -65,11 +65,11 @@ function getData() {
       for (let h = 1; h <= colors_data.length; ++h) {
         colors_data[h - 1] = `x-vis-color #${colors_data[h - 1]} ${h}`;
       }
-      let colors_data_str = JSON.stringify(colors_data)
-        .replace(/\[|\]|"/gi, '')
-        .split(',')
-        .join('\n');
-      fs.writeFileSync('COLORS_DATA.txt', colors_data_str);
+      // let colors_data_str = JSON.stringify(colors_data)
+      //   .replace(/\[|\]|"/gi, '')
+      //   .split(',')
+      //   .join('\n');
+      // fs.writeFileSync('COLORS_DATA.txt', colors_data_str);
       /////
       reduced = q.reduce(data, 2); ////indexed array
       let motif_path = `./out-colorwork-images/knit_motif.png`;
@@ -100,19 +100,13 @@ function getData() {
           background = palette[0];
         }
         background += 1; ////(so not strarting from 0)
-        colors_arr.push(palette, machine, background);
+        colors_arr.push(palette, machine, background, colors_data);
         img.write(motif_path);
         resolve(colors_arr);
       });
     });
   });
-  // const colorsData = processImage.then((resolve) => {
-  //   return colors_data;
-  // });
-  // return Promise.all([processImage, colorsData]).then((values) => {
-  //   return values;
-  // });
   return processImage;
 }
 
-module.exports = { getData, colors_arr, colors_data };
+module.exports = { getData, colors_arr };

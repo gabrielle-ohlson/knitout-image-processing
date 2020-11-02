@@ -1,12 +1,10 @@
 //TODO: (//? maybe if kniterate machine, make default cast-on waste yarn, and then otherwise, give option?)
 //TODO: add option for fair isle and intarsia too (not just jacquard... also maybe ladderback jacquard ?)
 
-//TODO: add visualization of birds eye backing
 const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
 const imageColors = require('./image-color-quantize.js');
-// const { colors_data } = require('./image-color-quantize.js');
 let background, machine, palette, color_count, init_dir, other_dir;
 let colors_arr = [];
 let knitout = [];
@@ -23,7 +21,7 @@ let pos_caston = [];
 let neg_caston = [];
 let bindoff = [];
 let last_pass_dir, xfer_needle, last_needle, bindoff_carrier;
-// let colors_data = [];
+let colors_data = [];
 
 let carrier_track = [];
 const FINDMYCARRIER = ({ CARRIER, DIR }) => ({
@@ -50,6 +48,12 @@ let speed_number = readlineSync.question(
 );
 speed_number === '-1' ? console.log(chalk.green(`-- Speed number: UNSPECIFIED`)) : console.log(chalk.green(`-- Speed number: ${speed_number}`));
 
+let back_style = ['Default', 'Birdseye'],
+  style = readlineSync.keyInSelect(back_style, chalk.blue.bold(`^What style back would you like to use?`));
+console.log(chalk.green('-- Back style: ' + back_style[style]));
+back_style = back_style[style];
+//TODO: add option for REAL birdseye (aka half rack etc) as well as ladderback birdseye
+
 imageColors
   .getData()
   .then((result) => {
@@ -58,6 +62,7 @@ imageColors
     return result;
   })
   .then(() => {
+    colors_data = colors_arr.pop(); //new
     background = colors_arr.pop();
     machine = colors_arr.pop();
     palette = colors_arr.pop();
@@ -79,12 +84,15 @@ imageColors
       }
       for (let i = 1; i <= color_count; ++i) {
         let carrier_pass = row.filter((n) => n[1] === i);
-        // if (carrier_pass.length === 0) carrier_pass = [['carrier', i]]; //? options for build up on back but true birds eye
+        if (carrier_pass.length === 0 && back_style === 'Birdseye') carrier_pass = [['carrier', i]]; //? options for build up on back but true birds eye
         carrier_passes.push(carrier_pass);
         carrier_pass = [];
       }
-      // rows.push(carrier_passes); //?
-      rows.push(carrier_passes.map((it) => it.filter((_) => true)).filter((sub) => sub.length)); ////?keep empty passes ?
+      if (back_style === 'Birdseye') {
+        rows.push(carrier_passes); //?
+      } else {
+        rows.push(carrier_passes.map((it) => it.filter((_) => true)).filter((sub) => sub.length)); ////?keep empty passes ?
+      }
       row = [];
       carrier_passes = [];
     }
@@ -279,6 +287,12 @@ imageColors
       knitout.unshift(kniterate_caston);
     }
     knitout.unshift(`;background color: ${background}`);
+    /////
+    // for (let d = 0; d < colors_data.length; ++d) {
+    for (let d = colors_data.length - 1; d >= 0; --d) {
+      knitout.unshift(colors_data[d]);
+    }
+    ////
     if (speed_number !== '-1') knitout.unshift(`x-speed-number ${speed_number}`);
     if (stitch_number !== '-1') knitout.unshift(`x-stitch-number ${stitch_number}`);
     knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`);
@@ -287,8 +301,6 @@ imageColors
     knitout[knitout.length - 1].includes('+') ? ((last_pass_dir = '+'), (xfer_needle = last_needle)) : ((last_pass_dir = '-'), (xfer_needle = 1));
   })
   .then(() => {
-    //TODO: make sure the bindoff ends ok
-    //TODO: add tag at end of bindoff?
     ////bindoff
     bindoff.push(`;bindoff section`);
     let side, double_bed;
@@ -299,7 +311,7 @@ imageColors
       xfer_needle = xfer_needle - count + 1;
     }
     const posLoop = (op, bed) => {
-      for (let x = xfer_needle; x < xfer_needle + count; ++x) {
+      pos: for (let x = xfer_needle; x < xfer_needle + count; ++x) {
         if (op === 'knit') {
           bindoff.push(`knit + ${bed}${x} ${bindoff_carrier}`);
         }
@@ -309,6 +321,10 @@ imageColors
           bindoff.push(`xfer ${bed}${x} ${receive}${x}`);
         }
         if (op === 'bind') {
+          if (x === xfer_needle + count - 1) {
+            //new
+            break pos;
+          } //?
           bindoff.push(`xfer b${x} f${x}`);
           bindoff.push(`rack -1`);
           bindoff.push(`xfer f${x} b${x + 1}`);
@@ -318,7 +334,7 @@ imageColors
       }
     };
     const negLoop = (op, bed) => {
-      for (let x = xfer_needle + count - 1; x >= xfer_needle; --x) {
+      neg: for (let x = xfer_needle + count - 1; x >= xfer_needle; --x) {
         if (op === 'knit') {
           bindoff.push(`knit - ${bed}${x} ${bindoff_carrier}`);
         }
@@ -328,6 +344,10 @@ imageColors
           bindoff.push(`xfer ${bed}${x} ${receive}${x}`);
         }
         if (op === 'bind') {
+          if (x === xfer_needle) {
+            //new
+            break neg;
+          } //?
           bindoff.push(`xfer b${x} f${x}`);
           bindoff.push(`rack 1`);
           bindoff.push(`xfer f${x} b${x - 1}`);
@@ -335,6 +355,13 @@ imageColors
           bindoff.push(`knit - b${x - 1} ${bindoff_carrier}`);
         }
       }
+    }; //if ended with pos loop dir = pos
+    const bindoffTail = (last_needle, dir) => {
+      bindoff.push(`xfer b${last_needle} f${last_needle}`);
+      for (let i = 0; i < 16; ++i) {
+        bindoff.push(`knit ${dir} b${last_needle} ${bindoff_carrier}`);
+      }
+      bindoff.push(`drop b${last_needle}`);
     };
     if (side === 'left') {
       posLoop('knit', 'f');
@@ -343,6 +370,7 @@ imageColors
       negLoop('xfer', 'f');
       negLoop('knit', 'b');
       posLoop('bind', null);
+      bindoffTail(xfer_needle + count - 1, '+'); //new
     } else if (side === 'right') {
       negLoop('knit', 'f');
       if (double_bed) posLoop('knit', 'f');
@@ -350,6 +378,7 @@ imageColors
       posLoop('xfer', 'f');
       posLoop('knit', 'b');
       negLoop('bind', null);
+      bindoffTail(xfer_needle, '-'); //new
     }
     knitout.push(bindoff);
     knitout = knitout.flat();
@@ -372,6 +401,8 @@ imageColors
     readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nSave as: ') });
     let new_file, overwrite;
     readlineSync.promptLoop(function (input) {
+      if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
+      input = `${input}.k`;
       new_file = input;
       if (fs.existsSync(`./knit-out-files/${input}`) || fs.existsSync(`./knit-out-files/${input}.k`)) {
         overwrite = readlineSync.keyInYNStrict(
@@ -383,16 +414,14 @@ imageColors
         return !fs.existsSync(`./knit-out-files/${input}.k`);
       }
     });
-    if (new_file.includes('.')) new_file = new_file.slice(0, new_file.indexOf('.'));
     console.log(chalk.green(`-- Saving new file as: ${new_file}`)); //TODO: fix this so removes wrong extension prior
     readlineSync.setDefaultOptions({ prompt: '' });
-    // if (new_file.includes('.')) new_file = new_file.slice(0, new_file.indexOf('.'));
-    fs.writeFile(`./knit-out-files/${new_file}.k`, knitout_str, function (err) {
-      if (err) return console.log(err);
-      console.log(
-        chalk`{green \nThe knitout file has successfully been written and can be found in the 'knit-out-files' folder.\nOpen 'knit_motif.png'} {green.italic (located in the 'out-colorwork-images' folder)} {green to see a visual depiction of the knitting instructions.} {green.italic This folder also contains: 'colorwork.png', which depicts the resized image. Please note that, if applicable, the program has renamed files in that folder from earlier sessions, by appending a number to the end.)} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'npm run shapeify'}`
-      );
-    });
+        fs.writeFile(`./knit-out-files/${new_file}`, knitout_str, function (err) {
+          if (err) return console.log(err);
+          console.log(
+            chalk`{green \nThe knitout file has successfully been written and can be found in the 'knit-out-files' folder.\nOpen 'knit_motif.png'} {green.italic (located in the 'out-colorwork-images' folder)} {green to see a visual depiction of the knitting instructions.} {green.italic This folder also contains: 'colorwork.png', which depicts the resized image. Please note that, if applicable, the program has renamed files in that folder from earlier sessions, by appending a number to the end.)} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'npm run shapeify'}`
+          );
+        });
   });
 
 //TODO: maybe add error check for this one too?
