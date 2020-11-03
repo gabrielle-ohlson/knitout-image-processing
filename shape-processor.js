@@ -4,16 +4,10 @@ const chalk = require('chalk');
 
 //////////////////////////////////////////////////////
 
-let brightness;
-let max;
-let last_row;
+let brightness, max, last_row, first_short_row, last_short_row, shape_error, shape_err_row;
 let shape_code = [];
 let shape_code_reverse = [];
 let short_row_section = false;
-let first_short_row;
-let last_short_row;
-let shape_error;
-let shape_err_row;
 if (fs.existsSync('INPUT_DATA.json')) {
   let colors_str = fs.readFileSync('INPUT_DATA.json').toString();
   let rgb_arr = colors_str.split(',');
@@ -54,11 +48,13 @@ if (fs.existsSync('INPUT_DATA.json')) {
   let xtra_char;
   for (let i = 0; i < shape_code.length - 1; ++i) {
     //NOTE: - 1 is correct
-    if (shape_code[i].length === last_row + 1) {
+    // if (shape_code[i].length === last_row + 1) {
+    if (shape_code[i].length === last_row + 2) {
       xtra_char = shape_code[i].pop();
       console.log(chalk.red('!!too long!!')); //remove
     }
-    if (shape_code[i + 1].length === last_row - 1) {
+    // if (shape_code[i + 1].length === last_row - 1) {
+    if (shape_code[i + 1].length === last_row) {
       shape_code[i + 1].push(xtra_char);
       console.log(chalk.red('!!too short!!')); //remove
     }
