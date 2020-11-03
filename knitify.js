@@ -1,5 +1,5 @@
 //TODO: (//? maybe if kniterate machine, make default cast-on waste yarn, and then otherwise, give option?)
-//TODO: add option for fair isle and intarsia too (not just jacquard... also maybe ladderback jacquard ?)
+//TODO: add option for fair isle too (not just jacquard... also maybe ladderback jacquard ? and real (0.5 rack) birdseye [maybe give warning that there might be too much build up on back if a lot of colors -- so recommend ladder back or default])
 
 const fs = require('fs');
 const readlineSync = require('readline-sync');
@@ -107,11 +107,16 @@ imageColors
     let row_count = 1;
     knitout.push(`;row: ${row_count}`);
     let prev_row = 0;
-    let taken;
-    let inhook;
-    let neg_carrier;
-    let back_needles = []; //new
-    let draw_thread;
+    let taken, inhook, neg_carrier, draw_thread, end_needle, dir_caston;
+    let back_needles = [];
+    /////
+    const ODD_CASTON = (x, dir, dir_caston) => {
+      x % 2 !== 0 ? dir_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : dir_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
+    };
+    const EVEN_CASTON = (x, dir, dir_caston) => {
+      x % 2 === 0 ? dir_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : dir_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
+    };
+    //////
     for (let i = 0; i < jacquard_passes.length; ++i) {
       if (i === prev_row + passes_per_row[row_count - 1]) {
         row_count += 1;
@@ -175,6 +180,13 @@ imageColors
             }
           }
         }
+        // if (x === end_needle && !taken) {
+        if (x === end_needle && !taken && !knitout[knitout.length - 1].includes(`b${end_needle}`)) {
+          //new
+          knitout.push(`miss ${dir} f${x} ${carrier}`);
+          // if ((end_needle === 1 && i % 2 === 0) || (colors_arr[0].length % 2 !== 0 && i % 2 === 0)) knitout.push(`miss ${dir} f${x} ${carrier}`);
+          // if (end_needle === colors_arr[0].length && colors_arr[0].length % 2 === 0 && i % 2 !== 0) knitout.push(`miss ${dir} f${x} ${carrier}`);
+        } //?
         if (inhook && x === last) {
           knitout.push(`releasehook ${carrier}`);
           inhook = false;
@@ -182,18 +194,29 @@ imageColors
       };
       if (dir === '+') {
         for (let x = 1; x <= colors_arr[0].length; ++x) {
+          end_needle = colors_arr[0].length; //new //?
           knitoutLines(x, colors_arr[0].length);
           if (i === 0 || i === 1) {
-            //TODO: determine whether it matters if first pass starts with needle on front bed (todo: alter this since it does)
-            x % 2 !== 0 ? pos_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : pos_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
+            // machine.includes('kniterate') ? (dir_caston = pos_caston) : (dir_caston = neg_caston);
+            machine.includes('kniterate') || (machine.includes('shima') && colors_arr[0].length % 2 === 0)
+              ? ODD_CASTON(x, dir, pos_caston)
+              : EVEN_CASTON(x, dir, pos_caston);
+            // machine.includes('kniterate') ? ODD_CASTON(x, dir, pos_caston) : ODD_CASTON(x, dir, neg_caston);
+            // x % 2 !== 0 ? dir_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : dir_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
+            // x % 2 !== 0 ? pos_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : pos_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
           }
         }
       } else {
         for (let x = colors_arr[0].length; x > 0; --x) {
+          end_needle = 1; //new //?
           knitoutLines(x, 1);
           if (i === 0 || i === 1) {
-            if (machine.includes('kniterate')) neg_carrier = carrier;
-            x % 2 === 0 ? neg_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : neg_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
+            // machine.includes('kniterate') ? ((neg_carrier = carrier), (dir_caston = neg_caston)) : (dir_caston = pos_caston);
+            machine.includes('kniterate') || (machine.includes('shima') && colors_arr[0].length % 2 === 0)
+              ? ((neg_carrier = carrier), EVEN_CASTON(x, dir, neg_caston))
+              : ODD_CASTON(x, dir, neg_caston);
+            // x % 2 === 0 ? dir_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : dir_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
+            // x % 2 === 0 ? neg_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : neg_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
           }
           if (
             machine.includes('kniterate') &&
@@ -383,9 +406,9 @@ imageColors
     knitout.push(bindoff);
     knitout = knitout.flat();
     let yarn_out;
-    machine.includes('kniterate') ? (yarn_out = 'out') : (yarn_out = 'outhook');
+    machine.includes('kniterate') ? (yarn_out = 'out') : ((yarn_out = 'outhook'), color_carriers.push(jacquard_passes[0][0][1])); //last part = //new //?
     for (let i = 0; i <= color_carriers.length; ++i) {
-      let carrier_search = knitout.map((el) => el.includes(` ${color_carriers[i]}`) && el.includes(`knit`));
+      let carrier_search = knitout.map((el) => el.includes(` ${color_carriers[i]}`) && (el.includes(`knit`) || el.includes(`miss`)));
       let last = carrier_search.lastIndexOf(true);
       if (last !== -1) {
         knitout.splice(last + 1, 0, `${yarn_out} ${color_carriers[i]}`);
@@ -414,14 +437,14 @@ imageColors
         return !fs.existsSync(`./knit-out-files/${input}.k`);
       }
     });
-    console.log(chalk.green(`-- Saving new file as: ${new_file}`)); //TODO: fix this so removes wrong extension prior
+    console.log(chalk.green(`-- Saving new file as: ${new_file}`));
     readlineSync.setDefaultOptions({ prompt: '' });
-        fs.writeFile(`./knit-out-files/${new_file}`, knitout_str, function (err) {
-          if (err) return console.log(err);
-          console.log(
-            chalk`{green \nThe knitout file has successfully been written and can be found in the 'knit-out-files' folder.\nOpen 'knit_motif.png'} {green.italic (located in the 'out-colorwork-images' folder)} {green to see a visual depiction of the knitting instructions.} {green.italic This folder also contains: 'colorwork.png', which depicts the resized image. Please note that, if applicable, the program has renamed files in that folder from earlier sessions, by appending a number to the end.)} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'npm run shapeify'}`
-          );
-        });
+    fs.writeFile(`./knit-out-files/${new_file}`, knitout_str, function (err) {
+      if (err) return console.log(err);
+      console.log(
+        chalk`{green \nThe knitout file has successfully been written and can be found in the 'knit-out-files' folder.\nOpen 'knit_motif.png'} {green.italic (located in the 'out-colorwork-images' folder)} {green to see a visual depiction of the knitting instructions.} {green.italic This folder also contains: 'colorwork.png', which depicts the resized image. Please note that, if applicable, the program has renamed files in that folder from earlier sessions, by appending a number to the end.)} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'npm run shapeify'}`
+      );
+    });
   });
 
 //TODO: maybe add error check for this one too?
