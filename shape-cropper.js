@@ -61,7 +61,7 @@ if (isNumeric(needle_count)) {
 } else {
   if (needle_count.includes('.')) needle_count = needle_count.slice(0, needle_count.indexOf('.'));
   needle_count = `${needle_count}.k`;
-  console.log(chalk.green(`-- Reading from: ${needle_count}`));
+  console.log(chalk.green(`-- Reading from: ${needle_count}\nPlease wait...`)); //new = please wait
   if (fs.existsSync(`./knit-in-files/${needle_count}`)) {
     source_dir = './knit-in-files/';
   } else if (fs.existsSync(`./knit-out-files/${needle_count}`)) {

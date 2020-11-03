@@ -9,7 +9,7 @@ let errors = false;
 let {
   shape_code,
   shape_code_reverse,
-  shortrow_code, //new
+  shortrow_code,
   short_row_section,
   first_short_row,
   last_short_row,
@@ -131,7 +131,7 @@ function shapeInfo(code, arr) {
     let prev_right;
     ////
     if (i === 0) {
-      //new //// for when there are increases: check to see if the shape starts out smaller than max width
+      ////for when there are increases: check to see if the shape starts out smaller than max width
       if (left_px1 !== 0) {
         row1_small = true;
         row1_Lneedle = left_px1 + 1;
@@ -201,7 +201,7 @@ if (shape_code_reverse !== null) {
     } else {
       shortRowSides(shortrow_code);
       shortRowInfo(0, 1, left_shortrow_arr, shape_code_reverse[shape_code_reverse.length - 1].indexOf(1), null); //left side
-      shortrow_code = [...piece_shortrow_codeR]; //new
+      shortrow_code = [...piece_shortrow_codeR];
       shortRowSides(shortrow_code);
       shortRowInfo(0, 1, right_shortrow_arr, null, shape_code_reverse[shape_code_reverse.length - 1].lastIndexOf(1)); ////right side
     }
@@ -281,8 +281,7 @@ for (let i = 0; i < in_file.length; ++i) {
 }
 let caston_section = in_file.shift();
 if (short_row_section) {
-  //new
-  caston_section = caston_section.filter((el) => !el.includes('out ')); //new// remove yarn-outs so can add them back in @ correct positions
+  caston_section = caston_section.filter((el) => !el.includes('out ')); //// remove yarn-outs so can add them back in @ correct positions
 }
 
 let bg_color = caston_section.find((line) => line.includes(`;background color:`)); ////method to do fake seam carving (use background needles only when xfering in middle of panel)
@@ -290,7 +289,6 @@ bg_color = bg_color.charAt(bg_color.length - 1);
 
 let draw_thread = caston_section.find((line) => line.includes(`;draw thread:`)); ////for shortrowcarriers, know that first one ends up on the right (because draw thread) and rest are on left
 draw_thread = draw_thread.charAt(draw_thread.length - 1);
-console.log(`draw thread: ${draw_thread}`); //new
 
 let bindoff_section = in_file[in_file.length - 1].splice(in_file[in_file.length - 1].indexOf(`;bindoff section`));
 
@@ -356,7 +354,6 @@ if ((row1_small || xtra_carriers.length > 0) && caston_section[1].includes(`knit
   caston_section = yarns_in.splice(yarns_in.findIndex((el) => el.includes(`;kniterate yarns in`)));
   let left_diff = row1_Lneedle - L_NEEDLE;
   let kniterate_caston = [];
-  // kniterate_caston.push(header); //?
   yarnsin: for (let i = 0; i < yarns_in.length; ++i) {
     let line = yarns_in[i].split(' ');
     if (line[0] === 'knit' || line[0] === 'drop') {
@@ -437,7 +434,6 @@ for (let i = 0; i < in_file.length; ++i) {
     }
     if (type.includes('hook') || type.includes('out')) {
       //TODO: maybe use this to do the inhook + releasehook for shima... maybe just to preserve it (push it to pass but make sure it doesn't throw off pass check)
-      //new
       op_arr.length > 2 ? (carrier = op_arr.slice(1)) : (carrier = op_arr[1]);
       let side;
       pass_check[pass_check.length - 1].DIR === '+' ? (side = 'right') : (side = 'left');
@@ -484,7 +480,7 @@ for (let i = 0; i < in_file.length; ++i) {
 //----------------------------------------------------------------------------
 let needle_count_arr = rows.flat(2);
 let double_bed;
-needle_count_arr.some((el) => el.includes('knit') && el.includes(' b')) ? (double_bed = true) : (double_bed = false); //check
+needle_count_arr.some((el) => el.includes('knit') && el.includes(' b')) ? (double_bed = true) : (double_bed = false);
 
 needle_count_arr = needle_count_arr.map((el) => el.match(/\d+/g));
 needle_count_arr = needle_count_arr.map((arr) => arr.splice(0, 1));
@@ -582,7 +578,7 @@ let bindoff_carrier;
 let bindoff_time = false;
 const BINDOFF = (xfer_needle, count, side, double_bed) => {
   if (side === 'right') {
-    xfer_needle = xfer_needle - count + 1; //-1 //?
+    xfer_needle = xfer_needle - count + 1;
   }
   const posLoop = (op, bed) => {
     pos: for (let x = xfer_needle; x < xfer_needle + count; ++x) {
@@ -596,14 +592,13 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
       }
       if (op === 'bind') {
         if (x === xfer_needle + count - 1 && bindoff_time) {
-          //new
           break pos;
-        } //?
+        }
         xfer_section.push(`xfer b${x} f${x}`);
         xfer_section.push(`rack -1`);
         xfer_section.push(`xfer f${x} b${x + 1}`);
         xfer_section.push(`rack 0`);
-        xfer_section.push(`knit + b${x + 1} ${bindoff_carrier}`); //new
+        xfer_section.push(`knit + b${x + 1} ${bindoff_carrier}`);
       }
     }
   };
@@ -619,14 +614,13 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
       }
       if (op === 'bind') {
         if (x === xfer_needle && bindoff_time) {
-          //new
           break neg;
-        } //?
+        }
         xfer_section.push(`xfer b${x} f${x}`);
         xfer_section.push(`rack 1`);
-        xfer_section.push(`xfer f${x} b${x - 1}`); //new (-1 instead of + 1)
+        xfer_section.push(`xfer f${x} b${x - 1}`);
         xfer_section.push(`rack 0`);
-        xfer_section.push(`knit - b${x - 1} ${bindoff_carrier}`); //new
+        xfer_section.push(`knit - b${x - 1} ${bindoff_carrier}`);
       }
     }
   };
@@ -646,7 +640,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
     negLoop('xfer', 'f');
     negLoop('knit', 'b');
     posLoop('bind', null);
-    if (bindoff_time) bindoffTail(xfer_needle + count - 1, '+'); //new
+    if (bindoff_time) bindoffTail(xfer_needle + count - 1, '+');
   } else if (side === 'right') {
     negLoop('knit', 'f');
     if (double_bed) posLoop('knit', 'f');
@@ -654,7 +648,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed) => {
     posLoop('xfer', 'f');
     posLoop('knit', 'b');
     negLoop('bind', null);
-    if (bindoff_time) bindoffTail(xfer_needle, '-'); //new
+    if (bindoff_time) bindoffTail(xfer_needle, '-');
   }
 };
 
@@ -670,7 +664,7 @@ const incSingleBed = (Xside_needle, side, bg_side) => {
       RIGHT_XFER(xfer_section, bg_side[b], shift_count, 'f', 0, false);
       xfer_section.push(`rack -1`);
       RIGHT_XFER(xfer_section, bg_side[b] + 1, shift_count, 'b', -1, false);
-      --Xside_needle; //new
+      --Xside_needle;
     }
     xfer_section.push(`rack 0`);
   } else if (side === 'right') {
@@ -680,7 +674,7 @@ const incSingleBed = (Xside_needle, side, bg_side) => {
       xfer_section.push(`rack 1`);
       LEFT_XFER(xfer_section, bg_side[b], shift_count, 'b', 1, false);
       xfer_section.push(`rack 0`);
-      ++Xside_needle; //new
+      ++Xside_needle;
     }
   }
 };
@@ -811,7 +805,7 @@ function insertXferPasses(left, right, xtype) {
       } else if (stitches1 === 2) {
         dec2DoubleBed(xfer_needle1, side1);
       } else {
-        side === 'right' ? (bindoff_carrier = right_bindC) : (bindoff_carrier = left_bindC); //new
+        side === 'right' ? (bindoff_carrier = right_bindC) : (bindoff_carrier = left_bindC);
         BINDOFF(xfer_needle1, stitches1, side1, true);
       }
       if (side === 'both') {
@@ -846,7 +840,7 @@ function insertXferPasses(left, right, xtype) {
         BINDOFF(xfer_needle1, stitches1, side1, false);
         if (side === 'both') {
           xfer_section.push(`;dec ${stitches2} on right`);
-          bindoff_carrier = right_bindC; //new
+          bindoff_carrier = right_bindC;
           BINDOFF(xfer_needle2, stitches2, 'right', false);
         }
       }
@@ -912,7 +906,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
     } else {
       left_bindC = new_carriers[carriers.indexOf(left_bindC)];
       right_bindC = new_carriers[carriers.indexOf(right_bindC)];
-      xfer_row_interval = 1; //necessary//? / move down//?
+      xfer_row_interval = 1; //necessary? / move down//?
       parseShape(left_shortrow_arr, r);
     }
   }
@@ -984,6 +978,33 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
     if (XrightN !== R_NEEDLE) {
       for (let cc = R_NEEDLE; cc > XrightN; --cc) {
         cookie = cookie.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
+      }
+    }
+    if (XleftN !== L_NEEDLE || XrightN !== R_NEEDLE) {
+      let cookie_dir, cookie_carrier, end_needle;
+      find_dir: for (let d = 0; d < cookie.length; ++d) {
+        if (cookie[d].includes(`+`)) {
+          cookie_dir = '+';
+          cookie_carrier = cookie[d].charAt(cookie[d].length - 1);
+          break find_dir;
+        } else if (cookie[d].includes(`-`) && !cookie[d].includes(`rack`)) { //TODO: maybe also add ! includes.(`;`) //?
+          cookie_dir = '-';
+          cookie_carrier = cookie[d].charAt(cookie[d].length - 1);
+          break find_dir;
+        }
+      }
+      let endN = false;
+      function findEndNeedle(end_needle) {
+        find_endN: for (let e = 0; e < cookie.length; ++e) {
+          if (cookie[e].includes(`f${end_needle}`) || cookie[e].includes(`b${end_needle}`)) {
+            endN = true;
+            break find_endN;
+          }
+        }
+      }
+      cookie_dir === '+' ? (findEndNeedle(XrightN), (end_needle = XrightN)) : (findEndNeedle(XleftN), (end_needle = XleftN));
+      if (!endN) {
+        cookie.push(`miss ${cookie_dir} f${end_needle} ${cookie_carrier}`);
       }
     }
     if (shortrow_time) {
@@ -1121,7 +1142,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       }
       shaped_rows.push(`;short row section`);
       for (let p = 0; p < bindoff_pass; ++p) {
-        cookie = rows[first_short_row - 1][p]; //?
+        cookie = rows[first_short_row - 1][p];
         cookieCutter(Xleft_needle, Xright_needle, carriers, null);
         shaped_rows.push(cookie);
       }
@@ -1167,7 +1188,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       let idxs = [];
       right_carriers.map((el) => idxs.push(carriers.indexOf(el)));
       let left_idxs = [];
-      left_carriers.map((el) => left_idxs.push(carriers.indexOf(el))); //?
+      left_carriers.map((el) => left_idxs.push(carriers.indexOf(el)));
       ////
       if (out_carriers) {
         for (let i = 0; i < final_carrier_pos.length; ++i) {
@@ -1265,7 +1286,7 @@ if (short_row_section && short_row_carriers.includes(bindoff_carrier)) {
   bindoff_side === 'right' ? (Bxfer_needle = Xright_needle) : (Bxfer_needle = Xleft_needle);
   bindoff_count = Xright_needle - Xleft_needle + 1;
 }
-bindoff_time = true; //new //?
+bindoff_time = true;
 xfer_section.push(`;bindoff section`);
 BINDOFF(Bxfer_needle, bindoff_count, bindoff_side, double_bed);
 bindoff.push(xfer_section);

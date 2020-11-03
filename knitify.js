@@ -156,7 +156,6 @@ imageColors
         } else {
           taken = false;
         }
-        // if (i % 2 === 0 && !taken && x % 2 !== 0) {
         if (i % 2 === 0 && !taken) {
           if (x % 2 !== 0) {
             knitout.push(`knit ${dir} b${x} ${carrier}`);
@@ -169,7 +168,6 @@ imageColors
           } //?
         }
         if (i % 2 !== 0 && !taken) {
-          // if (i % 2 !== 0 && !taken && x % 2 === 0) {
           if (x % 2 === 0) {
             knitout.push(`knit ${dir} b${x} ${carrier}`);
             back_needles.push(x); //new
@@ -180,13 +178,9 @@ imageColors
             }
           }
         }
-        // if (x === end_needle && !taken) {
         if (x === end_needle && !taken && !knitout[knitout.length - 1].includes(`b${end_needle}`)) {
-          //new
           knitout.push(`miss ${dir} f${x} ${carrier}`);
-          // if ((end_needle === 1 && i % 2 === 0) || (colors_arr[0].length % 2 !== 0 && i % 2 === 0)) knitout.push(`miss ${dir} f${x} ${carrier}`);
-          // if (end_needle === colors_arr[0].length && colors_arr[0].length % 2 === 0 && i % 2 !== 0) knitout.push(`miss ${dir} f${x} ${carrier}`);
-        } //?
+        }
         if (inhook && x === last) {
           knitout.push(`releasehook ${carrier}`);
           inhook = false;
@@ -194,29 +188,22 @@ imageColors
       };
       if (dir === '+') {
         for (let x = 1; x <= colors_arr[0].length; ++x) {
-          end_needle = colors_arr[0].length; //new //?
+          end_needle = colors_arr[0].length;
           knitoutLines(x, colors_arr[0].length);
           if (i === 0 || i === 1) {
-            // machine.includes('kniterate') ? (dir_caston = pos_caston) : (dir_caston = neg_caston);
             machine.includes('kniterate') || (machine.includes('shima') && colors_arr[0].length % 2 === 0)
               ? ODD_CASTON(x, dir, pos_caston)
               : EVEN_CASTON(x, dir, pos_caston);
-            // machine.includes('kniterate') ? ODD_CASTON(x, dir, pos_caston) : ODD_CASTON(x, dir, neg_caston);
-            // x % 2 !== 0 ? dir_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : dir_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
-            // x % 2 !== 0 ? pos_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : pos_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
           }
         }
       } else {
         for (let x = colors_arr[0].length; x > 0; --x) {
-          end_needle = 1; //new //?
+          end_needle = 1;
           knitoutLines(x, 1);
           if (i === 0 || i === 1) {
-            // machine.includes('kniterate') ? ((neg_carrier = carrier), (dir_caston = neg_caston)) : (dir_caston = pos_caston);
             machine.includes('kniterate') || (machine.includes('shima') && colors_arr[0].length % 2 === 0)
               ? ((neg_carrier = carrier), EVEN_CASTON(x, dir, neg_caston))
               : ODD_CASTON(x, dir, neg_caston);
-            // x % 2 === 0 ? dir_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : dir_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
-            // x % 2 === 0 ? neg_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : neg_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
           }
           if (
             machine.includes('kniterate') &&
@@ -311,7 +298,6 @@ imageColors
     }
     knitout.unshift(`;background color: ${background}`);
     /////
-    // for (let d = 0; d < colors_data.length; ++d) {
     for (let d = colors_data.length - 1; d >= 0; --d) {
       knitout.unshift(colors_data[d]);
     }
@@ -345,9 +331,8 @@ imageColors
         }
         if (op === 'bind') {
           if (x === xfer_needle + count - 1) {
-            //new
             break pos;
-          } //?
+          }
           bindoff.push(`xfer b${x} f${x}`);
           bindoff.push(`rack -1`);
           bindoff.push(`xfer f${x} b${x + 1}`);
@@ -393,7 +378,7 @@ imageColors
       negLoop('xfer', 'f');
       negLoop('knit', 'b');
       posLoop('bind', null);
-      bindoffTail(xfer_needle + count - 1, '+'); //new
+      bindoffTail(xfer_needle + count - 1, '+');
     } else if (side === 'right') {
       negLoop('knit', 'f');
       if (double_bed) posLoop('knit', 'f');
@@ -401,7 +386,7 @@ imageColors
       posLoop('xfer', 'f');
       posLoop('knit', 'b');
       negLoop('bind', null);
-      bindoffTail(xfer_needle, '-'); //new
+      bindoffTail(xfer_needle, '-');
     }
     knitout.push(bindoff);
     knitout = knitout.flat();
