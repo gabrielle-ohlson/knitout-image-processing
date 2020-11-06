@@ -6,16 +6,7 @@ let errors = false;
 //--------------------------------------------------------------------------------------
 //***RUN/GET VARIABLES FROM SHAPE-PROCESSOR.JS OR SHAPE-TEMPLATES.JS, EXTRACT SHAPE INFO
 //--------------------------------------------------------------------------------------
-let {
-  shape_code,
-  shape_code_reverse,
-  shortrow_code,
-  short_row_section,
-  first_short_row,
-  last_short_row,
-  shape_error,
-  shape_err_row,
-} = require('./shape-processor');
+let { shape_code, shape_code_reverse, shortrow_code, short_row_section, first_short_row, last_short_row, shape_error, shape_err_row } = require('./shape-processor');
 
 let shaping_arr = [];
 const SHAPING = ({ ROW, LEFT, RIGHT }) => ({
@@ -259,9 +250,7 @@ readlineSync.promptLoop(function (input) {
   input = `${input}.k`;
   new_file = input;
   if (fs.existsSync(`./knit-out-files/${input}`) || fs.existsSync(`./knit-out-files/${input}.k`)) {
-    overwrite = readlineSync.keyInYNStrict(
-      chalk.black.bgYellow(`! WARNING:`) + ` A file by the name of '${input}' already exists. Proceed and overwrite existing file?`
-    );
+    overwrite = readlineSync.keyInYNStrict(chalk.black.bgYellow(`! WARNING:`) + ` A file by the name of '${input}' already exists. Proceed and overwrite existing file?`);
     return overwrite;
   }
   if (!fs.existsSync(`./knit-out-files/${input}`)) {
@@ -987,7 +976,8 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
           cookie_dir = '+';
           cookie_carrier = cookie[d].charAt(cookie[d].length - 1);
           break find_dir;
-        } else if (cookie[d].includes(`-`) && !cookie[d].includes(`rack`)) { //TODO: maybe also add ! includes.(`;`) //?
+        } else if (cookie[d].includes(`-`) && !cookie[d].includes(`rack`)) {
+          //TODO: maybe also add ! includes.(`;`) //?
           cookie_dir = '-';
           cookie_carrier = cookie[d].charAt(cookie[d].length - 1);
           break find_dir;
@@ -1119,8 +1109,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
     if (r === last_shape_row && !short_row_section) {
       if (!warning) {
         console.log(
-          chalk.black.bgYellow(`! WARNING:`) +
-            ` The program has finished running through all rows in the custom shape. The rest of the file will maintain the shape's final width.` //TODO: alter this once have function to chop off excess rows
+          chalk.black.bgYellow(`! WARNING:`) + ` The program has finished running through all rows in the custom shape. The rest of the file will maintain the shape's final width.` //TODO: alter this once have function to chop off excess rows
         );
       }
       warning = true;
@@ -1329,7 +1318,7 @@ sinkers ? (yarn_out = 'outhook') : (yarn_out = 'out');
 ((carriers_arr) => {
   short_row_section && !sinkers ? (carriers_arr = [...new_carriers, ...short_row_carriers]) : (carriers_arr = carriers);
   for (let i = 0; i <= carriers_arr.length; ++i) {
-    let carrier_search = shaped_rows.map((el) => el.includes(` ${carriers_arr[i]}`) && el.includes(`knit`));
+    let carrier_search = shaped_rows.map((el) => el.includes(` ${carriers_arr[i]}`) && (el.includes(`knit`) || el.includes(`miss`)));
     let last = carrier_search.lastIndexOf(true);
     if (last !== -1) {
       shaped_rows.splice(last + 1, 0, `${yarn_out} ${carriers_arr[i]}`);
