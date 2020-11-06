@@ -50,31 +50,24 @@ class Sweater {
         this.chest_ease = 10;
         this.hip_ease = 5;
         this.armhole_ease = 1.5; //FIXME: maybe 0 if straight sleeves?
-        // this.upper_arm_ease = 10;
         this.upper_arm_ease = dimensions.ARM_CIRC - 16;
-        // this.wrist_ease = 8;
         this.wrist_ease = dimensions.WRIST_CIRC - 7.5;
       }
       if (fit === 'Oversized') {
         this.chest_ease = 20;
         this.hip_ease = 15;
         this.armhole_ease = 4.5;
-        // this.upper_arm_ease = 20;
         this.upper_arm_ease = dimensions.ARM_CIRC - 7;
-        // this.wrist_ease = 10;
         this.wrist_ease = dimensions.WRIST_CIRC - 5.5;
       }
     }
     this.neckline_L = this.neckline_W - 5.8;
-    // this.sweater_bottom_W = Number((dimensions.HIPS / 2 + this.hip_ease).toFixed(1));
     this.sweater_bottom_W = Number(((dimensions.HIPS + this.hip_ease) / 2).toFixed(1));
-    // this.sweater_chest_W = Number((dimensions.CHEST / 2 + this.chest_ease).toFixed(1));
     this.sweater_chest_W = Number(((dimensions.CHEST + this.chest_ease) / 2).toFixed(1));
     if (this.sweater_chest_W > this.sweater_bottom_W) {
       this.sweater_chest_W = this.sweater_bottom_W;
     }
     this.sweater_midsection_L = Number((dimensions.TORSO * 0.57 - this.body_rib_L).toFixed(1)); //TODO: //FIXME: remove rib from calculations //?
-    // this.sweater_midsection_L = Number((dimensions.TORSO * 0.57).toFixed(1));
     //
     this.sleeve_bottom_W = dimensions.WRIST_CIRC + this.wrist_ease;
     if (sleeve_style === 'Straight') {
@@ -116,16 +109,24 @@ class Sweater {
       this.sleeve_shaping_L = Math.sqrt(this.scye_L ** 2 - B ** 2);
     }
     this.sleeve_arm_W = dimensions.ARM_CIRC + this.upper_arm_ease;
-    // this.sweater_shoulder_W = Number((this.sweater_top_W / 2 - this.neckline_W).toFixed(1));
     this.sweater_shoulder_W = Number(((this.sweater_top_W - this.neckline_W) / 2).toFixed(1));
   }
 }
+//
+class Skirt {}
+//
+class Dress {}
+//
+class Pants {}
+//
+class Hat {}
+class TankTop {}
 /////////////////////////////////////////////
 let chosen_template;
 
 if (shape_code === null) {
   if (readlineSync.keyInYNStrict(chalk.blue.bold('\nWould you like to use a pre-made shape template?'))) {
-    let templates = ['Sweater', 'Skirt', 'Dress', 'Hat', 'Pants'],
+    let templates = ['Sweater', 'Skirt', 'Dress', 'Pants', 'Tank-Top', 'Hat'],
       shape = readlineSync.keyInSelect(templates, chalk.blue.bold('^Which template would you like to use?'));
     console.log(chalk.green('-- Knitting: ' + templates[shape]));
     template = templates[shape];
@@ -133,10 +134,10 @@ if (shape_code === null) {
       method = readlineSync.keyInSelect(dim_opt, chalk.blue.bold(`^How would you like to determine the dimensions of the ${template}?`));
     console.log(chalk.green('-- Determining dimensions by: ' + dim_opt[method]));
     if (dim_opt[method] === 'Size') {
-      let guides = ['Female', 'Gender-Neutral'], //TODO: deal with this
+      let guides = ['Female', 'Gender-Neutral'],
         guide = readlineSync.keyInSelect(
           guides,
-          chalk`{blue.bold ^Which measurement guide would you like to base your dimensions on?} {blue.italic (NOTE: these dimensions are from standard sizes commonly used by clothing companies--they are by no means universal, so please use the alternative 'Custom Measurements' option if you feel these sizes are not applicable to you.)}`
+          chalk`{blue.bold ^Which size guide would you like to base your dimensions on?} {blue.italic (NOTE: these dimensions are from standard sizes commonly used by clothing companies--they are by no means universal, so please use the alternative 'Custom Measurements' option if you feel these sizes are not applicable to you.)}`
         );
       console.log(chalk.green('-- Basing dimensions on: ' + genders[gender] + ' sizes'));
       guide = guides[guide];
@@ -473,58 +474,97 @@ if (shape_code === null) {
         readlineSync.question(chalk.magentaBright('Hit the Enter key when you are finished and ready to upload the files.'), { hideEchoBack: true, mask: '' });
       }
     } else {
+      dimensions = DIMENSIONS({
+        WAIST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the waist measurement} {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+        HIPS: readlineSync.questionInt(chalk`{blue.bold \nWhat is the hip measurement {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+        INSEAM: readlineSync.questionInt(chalk`{blue.bold \nWhat is the inseam length {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+        CHEST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the chest measurement } {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+        SHOULDER: readlineSync.questionInt(chalk`{blue.bold \nWhat is the shoulder width {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+        TORSO: readlineSync.questionInt(chalk`{blue.bold \nWhat is the torso length {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+        ARM_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the circumference of the upper arm {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+        WRIST_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the circumference of the wrist {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+        ARM_LENGTH: readlineSync.questionInt(chalk`{blue.bold \nWhat is the inner arm length {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+        NECK_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the neck circumference {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+        HEAD_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the head circumference {blue.italic (cm)} {blue.bold ? }`, {
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }),
+      });
       //TODO: add graphic with explanation of how to measure each
       if (template === 'Sweater') {
-        dimensions = DIMENSIONS({
-          WAIST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the waist measurement} {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          HIPS: readlineSync.questionInt(chalk`{blue.bold \nWhat is the hip measurement {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          // INSEAM,
-          CHEST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the chest measurement } {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          SHOULDER: readlineSync.questionInt(chalk`{blue.bold \nWhat is the shoulder width {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          TORSO: readlineSync.questionInt(chalk`{blue.bold \nWhat is the torso length {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          ARM_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the circumference of the upper arm {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          WRIST_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the circumference of the wrist {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          ARM_LENGTH: readlineSync.questionInt(chalk`{blue.bold \nWhat is the inner arm length {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          NECK_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the neck circumference {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          // HEAD_CIRC,
-        });
+        // dimensions = DIMENSIONS({
+        //   WAIST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the waist measurement} {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   HIPS: readlineSync.questionInt(chalk`{blue.bold \nWhat is the hip measurement {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   // INSEAM:,
+        //   CHEST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the chest measurement } {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   SHOULDER: readlineSync.questionInt(chalk`{blue.bold \nWhat is the shoulder width {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   TORSO: readlineSync.questionInt(chalk`{blue.bold \nWhat is the torso length {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   ARM_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the circumference of the upper arm {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   WRIST_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the circumference of the wrist {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   ARM_LENGTH: readlineSync.questionInt(chalk`{blue.bold \nWhat is the inner arm length {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   NECK_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the neck circumference {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   // HEAD_CIRC,
+        // });
         chosen_template = new Sweater(); //new //move //?
         chosen_template.calculate();
-      } else if (template === 'Hat') {
-        dimensions = DIMENSIONS({
-          HEAD_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the head circumference {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-        });
-      } else if (template === 'Pants') {
+      } else if (template === 'Pants' || template === 'Skirt') {
         dimensions = DIMENSIONS({
           WAIST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the waist measurement {blue.italic (cm)} {blue.bold ? }`, {
             limit: Number,
@@ -539,6 +579,88 @@ if (shape_code === null) {
             limitMessage: chalk.red('-- $<lastInput> is not a number.'),
           }),
         });
+        template === 'Pants' ? (chosen_template = new Pants()) : (chosen_template = new Skirt());
+        chosen_template.calculate();
+      } else if (template === 'Hat') {
+        // dimensions = DIMENSIONS({
+        //   HEAD_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the head circumference {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        // });
+        chosen_template = new Hat();
+        chosen_template.calculate();
+      } else if (template === 'Dress') {
+        // dimensions = DIMENSIONS({
+        //   WAIST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the waist measurement} {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   HIPS: readlineSync.questionInt(chalk`{blue.bold \nWhat is the hip measurement {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   INSEAM: readlineSync.questionInt(chalk`{blue.bold \nWhat is the inseam length {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   CHEST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the chest measurement } {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   SHOULDER: readlineSync.questionInt(chalk`{blue.bold \nWhat is the shoulder width {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   TORSO: readlineSync.questionInt(chalk`{blue.bold \nWhat is the torso length {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   // ARM_CIRC:,
+        //   // WRIST_CIRC:,
+        //   // ARM_LENGTH:,
+        //   NECK_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the neck circumference {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   // HEAD_CIRC,
+        // });
+        chosen_template = new Dress();
+        chosen_template.calculate();
+      } else if (template === 'Tank-Top') {
+        // dimensions = DIMENSIONS({
+        //   WAIST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the waist measurement} {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   HIPS: readlineSync.questionInt(chalk`{blue.bold \nWhat is the hip measurement {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   INSEAM:,
+        //   CHEST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the chest measurement } {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   SHOULDER: readlineSync.questionInt(chalk`{blue.bold \nWhat is the shoulder width {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   TORSO: readlineSync.questionInt(chalk`{blue.bold \nWhat is the torso length {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   // ARM_CIRC:,
+        //   // WRIST_CIRC:,
+        //   // ARM_LENGTH:,
+        //   NECK_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the neck circumference {blue.italic (cm)} {blue.bold ? }`, {
+        //     limit: Number,
+        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        //   }),
+        //   // HEAD_CIRC:,
+        // });
+        chosen_template = new TankTop();
+        chosen_template.calculate();
       }
     }
     //TODO: add option of decreasing/increase at custom rate
