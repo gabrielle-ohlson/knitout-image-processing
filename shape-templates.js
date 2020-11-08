@@ -117,7 +117,22 @@ class Skirt {}
 //
 class Dress {}
 //
-class Pants {}
+class Pants {
+  calculate(style, rise) {
+    if (style === 'Leggings') {
+      this.hip_W = Number((dimensions.HIPS / 2).toFixed(1));
+      this.ankle_W = (this.hip_W * 0.44).toFixed(1);
+      this.waist_W = Number((dimensions.WAIST / 2).toFixed(1));
+      this.inseam_L = Number((dimensions.INSEAM * 0.92).toFixed(1));
+      if (rise === 'High') {
+        this.rise_L = (this.inseam_L * 0.5).toFixed(1);
+      }
+      this.crotch_L = (this.rise_L * 0.2).toFixed(1);
+      this.waistrib_L = (this.crotch_L * 0.2).toFixed(1);
+    }
+    //TODO: add calculations for other styles & rises
+  }
+}
 //
 class Hat {}
 class TankTop {}
@@ -448,7 +463,6 @@ if (shape_code === null) {
           fit = readlineSync.keyInSelect(fits, chalk`{blue.bold ^Which fit?}`);
         fit = fits[fit];
         console.log(chalk.green('-- Fit: ' + fit));
-        // req_panel_height = ;
         let sleeve_styles = ['Straight', 'Set-in'],
           sleeve_style = readlineSync.keyInSelect(sleeve_styles, chalk`{blue.bold ^Which sleeve style?}`);
         sleeve_style = sleeve_styles[sleeve_style];
@@ -459,17 +473,52 @@ if (shape_code === null) {
         console.log(chalk.green('-- Neckline style: ' + template_neckline));
         ///
         piece1 = 'sweater front';
-        chosen_template = new Sweater(); //new //move //?
+        chosen_template = new Sweater();
         chosen_template.calculate(fit, sleeve_style);
         console.log(
-          //length used to be: dimensions.TORSO - chosen_template.body_rib_L
-          chalk`{green.bold \nUSING THE KNITERATE DESIGN APP AT https://design.kniterate.com/app :\n-- FOR THE SWEATER FRONT & BACK:} {green Please create two panels that are both ${
-            chosen_template.sweater_bottom_W
-          } cm wide and ${
+          chalk`{green.bold IN KNITOUT -- FOR THE SWEATER FRONT & BACK:} {green Please create two panels that are both ${chosen_template.sweater_bottom_W} cm wide and ${
             chosen_template.sweater_midsection_L + chosen_template.armhole_L
           } cm long.} {green.bold \n-- FOR THE SWEATER SLEEVES:} {green Please create two panels that are both ${chosen_template.sleeve_arm_W} cm wide and ${
             chosen_template.sleeve_total_L
-          } cm long.} {green.bold \n***} {green Once you are finished, move the k-code files you produced on the kniterate design app to this folder ('kcode-editor'). Then rename them: 'sweater_front', 'sweater_back', and 'sweater_sleeve'} {green.italic (if the sleeves use different files, you can label them with numbers to prevent overlap [i.e., 'sweater_sleeve1' & 'sweater_sleeve2']).} {green \nFinally, enter the file names as prompted below} {green.italic (one file at a time).}`
+          } cm long.} {green.bold \n***} {green Once you are finished, move the knitout files you produced (in accordance with the specs provided above) to the 'knit-in-files' folder. Then rename them: 'sweater_front', 'sweater_back', and 'sweater_sleeve'} {green.italic (if the sleeves use different files, you can label them with numbers to prevent overlap [i.e., 'sweater_sleeve1' & 'sweater_sleeve2']).} {green \nFinally, enter the file names as prompted below} {green.italic (one file at a time).}`
+        ); //TODO: cut the last bit of this off/relocate it
+        readlineSync.question(chalk.magentaBright('Hit the Enter key when you are finished and ready to upload the files.'), { hideEchoBack: true, mask: '' });
+      } else if (template === 'Pants') {
+        let styles = ['Flare', 'Oversized', 'Leggings'],
+          style = readlineSync.keyInSelect(fits, chalk`{blue.bold ^Which style?}`);
+        style = styles[style];
+        console.log(chalk.green('-- Style: ' + style));
+        let rises = ['High', 'Low'],
+          rise = readlineSync.keyInSelect(rises, chalk`{blue.bold ^Which rise?}`);
+        rise = rises[rise];
+        console.log(chalk.green('-- Rise: ' + rise));
+        piece1 = 'pant leg';
+        chosen_template = new Pants();
+        chosen_template.calculate(style, rise);
+        console.log(
+          chalk`{green.bold IN KNITOUT -- FOR THE PANT LEGS:} {green Please create panel(s) that are ${chosen_template.pant_leg_W} cm wide and ${
+            chosen_template.pant_inseam_L + chosen_template.pant_waist_L
+          } cm long.} {green Once you are finished, move the knitout file(s) you produced (in accordance with the specs provided above) to the 'knit-in-files' folder. Then rename them: 'pant_leg'} {green.italic (if the pant legs use different files, you can label them with numbers to prevent overlap [i.e., 'pant_leg1' & 'pant_leg2']).} {green \nFinally, enter the file names as prompted below} {green.italic (one file at a time).}`
+        ); //TODO: cut the last bit of this off/relocate it
+        readlineSync.question(chalk.magentaBright('Hit the Enter key when you are finished and ready to upload the files.'), { hideEchoBack: true, mask: '' });
+      } else if (template === 'Skirt') {
+        let styles = ['Flare', 'Straight', 'Fitted'],
+          style = readlineSync.keyInSelect(fits, chalk`{blue.bold ^Which style?}`);
+        style = styles[style];
+        console.log(chalk.green('-- Style: ' + style));
+        let rises = ['High', 'Low'],
+          rise = readlineSync.keyInSelect(rises, chalk`{blue.bold ^Which rise?}`);
+        rise = rises[rise];
+        console.log(chalk.green('-- Rise: ' + rise));
+        let lengths = ['Short', 'Mid', 'Long'],
+          length = readlineSync.keyInSelect(rises, chalk`{blue.bold ^Which length?}`);
+        length = lengths[length];
+        console.log(chalk.green('-- Length: ' + length));
+        piece1 = 'skirt front';
+        chosen_template = new Skirt();
+        chosen_template.calculate(style, rise, length);
+        console.log(
+          chalk`{green.bold IN KNITOUT -- FOR THE SKIRT FRONT & BACK:} {green Please create panel(s) that are ${chosen_template.skirt_bottom_W} cm wide and ${chosen_template.skirt_L} cm long.} {green Once you are finished, move the knitout file(s) you produced (in accordance with the specs provided above) to the 'knit-in-files' folder. Then rename them: 'skirt_panels'} {green.italic (if the skirt front & back use different files, you can label them with numbers to prevent overlap [i.e., 'skirt_panel1' & 'skirt_panel2']).} {green \nFinally, enter the file names as prompted below} {green.italic (one file at a time).}`
         ); //TODO: cut the last bit of this off/relocate it
         readlineSync.question(chalk.magentaBright('Hit the Enter key when you are finished and ready to upload the files.'), { hideEchoBack: true, mask: '' });
       }
@@ -522,148 +571,27 @@ if (shape_code === null) {
       });
       //TODO: add graphic with explanation of how to measure each
       if (template === 'Sweater') {
-        // dimensions = DIMENSIONS({
-        //   WAIST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the waist measurement} {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   HIPS: readlineSync.questionInt(chalk`{blue.bold \nWhat is the hip measurement {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   // INSEAM:,
-        //   CHEST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the chest measurement } {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   SHOULDER: readlineSync.questionInt(chalk`{blue.bold \nWhat is the shoulder width {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   TORSO: readlineSync.questionInt(chalk`{blue.bold \nWhat is the torso length {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   ARM_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the circumference of the upper arm {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   WRIST_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the circumference of the wrist {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   ARM_LENGTH: readlineSync.questionInt(chalk`{blue.bold \nWhat is the inner arm length {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   NECK_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the neck circumference {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   // HEAD_CIRC,
-        // });
-        chosen_template = new Sweater(); //new //move //?
+        chosen_template = new Sweater();
         chosen_template.calculate();
-      } else if (template === 'Pants' || template === 'Skirt') {
-        dimensions = DIMENSIONS({
-          WAIST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the waist measurement {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          HIPS: readlineSync.questionInt(chalk`{blue.bold \nWhat is the hips measurement {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-          INSEAM: readlineSync.questionInt(chalk`{blue.bold \nWhat is the inseam length {blue.italic (cm)} {blue.bold ? }`, {
-            limit: Number,
-            limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-          }),
-        });
-        template === 'Pants' ? (chosen_template = new Pants()) : (chosen_template = new Skirt());
+      } else if (template === 'Pants') {
+        chosen_template = new Pants();
+        chosen_template.calculate();
+      } else if (template === 'Skirt') {
+        chosen_template = new Skirt();
         chosen_template.calculate();
       } else if (template === 'Hat') {
-        // dimensions = DIMENSIONS({
-        //   HEAD_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the head circumference {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        // });
         chosen_template = new Hat();
         chosen_template.calculate();
       } else if (template === 'Dress') {
-        // dimensions = DIMENSIONS({
-        //   WAIST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the waist measurement} {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   HIPS: readlineSync.questionInt(chalk`{blue.bold \nWhat is the hip measurement {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   INSEAM: readlineSync.questionInt(chalk`{blue.bold \nWhat is the inseam length {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   CHEST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the chest measurement } {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   SHOULDER: readlineSync.questionInt(chalk`{blue.bold \nWhat is the shoulder width {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   TORSO: readlineSync.questionInt(chalk`{blue.bold \nWhat is the torso length {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   // ARM_CIRC:,
-        //   // WRIST_CIRC:,
-        //   // ARM_LENGTH:,
-        //   NECK_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the neck circumference {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   // HEAD_CIRC,
-        // });
         chosen_template = new Dress();
         chosen_template.calculate();
       } else if (template === 'Tank-Top') {
-        // dimensions = DIMENSIONS({
-        //   WAIST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the waist measurement} {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   HIPS: readlineSync.questionInt(chalk`{blue.bold \nWhat is the hip measurement {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   INSEAM:,
-        //   CHEST: readlineSync.questionInt(chalk`{blue.bold \nWhat is the chest measurement } {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   SHOULDER: readlineSync.questionInt(chalk`{blue.bold \nWhat is the shoulder width {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   TORSO: readlineSync.questionInt(chalk`{blue.bold \nWhat is the torso length {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   // ARM_CIRC:,
-        //   // WRIST_CIRC:,
-        //   // ARM_LENGTH:,
-        //   NECK_CIRC: readlineSync.questionInt(chalk`{blue.bold \nWhat is the neck circumference {blue.italic (cm)} {blue.bold ? }`, {
-        //     limit: Number,
-        //     limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-        //   }),
-        //   // HEAD_CIRC:,
-        // });
         chosen_template = new TankTop();
         chosen_template.calculate();
       }
     }
     //TODO: add option of decreasing/increase at custom rate
+    //TODO: add saving dimensions option
   }
 }
 
@@ -928,19 +856,22 @@ const templateCode = (section, section_length, section_top, template_code) => {
   }
 };
 //////////////////////////////
+//come back! add here
 if (piece1 === 'sweater front') {
   template_width = convert.sweater_bottom_W;
   template_height = convert.sweater_midsection_L + convert.armhole_L - 1; //? minus -1? //new
+} else if (piece1 === 'pant leg') {
+  template_width = convert.hip_W; ////max width
+  template_height = convert.inseam_L + convert.rise_L + convert.waistrib_L;
 }
 
 let piece_code1 = [];
 let piece_shortrow_code1 = [];
-// let piece_code1 = {}; ////object so can export without losing subarrays
-// let piece_shortrow_code1 = {};
-// let arr_count = 0;
 
+//----------
+//***SWEATER
+//----------
 ////SWEATER BODY
-console.log(chalk.red(`!!!!!!!!! MIDSECTION`)); //remove
 let uneven_dec = false;
 let no_dec_row1 = true;
 let template_Lneedle = 1;
@@ -954,7 +885,6 @@ templateCode(midsection, convert.sweater_midsection_L, convert.sweater_chest_W, 
 
 ///////////////////////////////////////////////
 ////2.SWEATER BODY: SLOPED ARMHOLE SECTION
-console.log(chalk.red(`!!!!!!!!! ARMHOLE`)); //remove
 no_dec_row1 = false;
 let armhole;
 if (convert.armhole_sloped_L !== 0) {
@@ -965,7 +895,6 @@ if (convert.armhole_sloped_L !== 0) {
 
 ///////////////////////////////////////////////
 ////3.SWEATER BODY: STRAIGHT ARMHOLE SECTION
-console.log(chalk.red(`!!!!!!!!! STRAIGHT ARMHOLE SECTION (NO DEC)`)); //remove
 let straight_section_length = convert.armhole_L - convert.armhole_sloped_L - convert.neckline_L;
 console.log(`straight_section_length = ${straight_section_length}`); //remove
 if (straight_section_length < 0) {
@@ -976,8 +905,6 @@ let straight = new Remainder();
 straight.REMAINDER_FACTORY(convert.sweater_bottom_W, convert.sweater_chest_W, convert.sweater_midsection_L - 1);
 decRatio(1, 1, straight_section_length - 1); //last one (section_length) -1 //? //new  //COME BACK! //remove //?
 
-// templateCode(straight, convert.armhole_L - armhole_sloped_L - convert.neckline_L, convert.sweater_top_W, piece_code1);
-// templateCode(straight, straight, convert.sweater_top_W, piece_code1); //TODO: determine if this causes issues if straight === 0  //TODO: figure out why this isn't working
 templateCode(straight, straight_section_length, convert.sweater_top_W, piece_code1); //TODO: determine if this causes issues if straight === 0  //TODO: figure out why this isn't working
 
 ///////////////////////////////////////////////
@@ -985,47 +912,26 @@ no_dec_row1 = true;
 let uneven_sides;
 template_width - template_Rneedle !== template_width - template_Lneedle ? (uneven_sides = true) : (uneven_sides = false); //new //?
 ////4.SWEATER BODY: NECKLINE SECTION //TODO: make current calcs for v-neck, and then add option of scoop neck
-console.log(chalk.red(`!!!!!!!!! LEFT SIDE OF NECKLINE SECTION`)); //remove
 ////values for if neckline === V-neck
 let rightside_Rneedle = template_Rneedle;
 let rightside_Lneedle, neckline_section_bottomL, neckline_section_bottomR;
 neckline_section_bottomL = neckline_section_bottomR = (template_Rneedle - template_Lneedle) / 2;
 template_Rneedle = Math.floor(template_Rneedle - neckline_section_bottomL);
 rightside_Lneedle = Math.ceil(template_Lneedle + neckline_section_bottomR);
-// Number.isInteger(neckline_section_bottomL)
-//   ? (neckline_section_bottomR += 1)
-//   : ((neckline_section_bottomL = Math.floor(neckline_section_bottomL)), (neckline_section_bottomR = Math.ceil(neckline_section_bottomR)));
 
-// let rightside_Lneedle = Math.floor(convert.sweater_top_W / 2); //new //TODO: ALSO! make which one goes first determined by direction at that row in passes
 let neckline_section_length = convert.neckline_L;
-// let leftover_length = 0;
-// let neckline_section_bottomL = Math.floor(convert.sweater_top_W / 2);
-// let neckline_section_bottomL = convert.sweater_top_W / 2;
 let neckline_section_top = convert.sweater_shoulder_W;
 let neckline_slopes = 1;
-console.log(convert.sweater_top_W / 2); //remove
-console.log(chalk.red(`neckline_section_length = ${neckline_section_length}`)); //remove
-console.log(chalk.red(`neckline_section_top = ${neckline_section_top}`)); //remove
-console.log(chalk.red(`neckline_section_bottomL = ${neckline_section_bottomL}`));
-console.log(chalk.red(`neckline_section_bottomR = ${neckline_section_bottomR}`)); //remove
-console.log(chalk.red(`rightside_Lneedle = ${rightside_Lneedle}`)); //remove
-console.log(chalk.red(`rightside_Rneedle = ${rightside_Rneedle}`));
-console.log(chalk.red(`template_Lneedle = ${template_Lneedle}`));
-console.log(chalk.red(`template_Rneedle = ${template_Rneedle}`)); //remove
 
 ///
 if (template_neckline === 'Scoop-neck') {
   let neckline_bindoff = Math.round(convert.neckline_W * 0.4);
-  console.log(chalk.red(`neckline_bindoff = ${neckline_bindoff}`)); //remove
-  // rightside_Lneedle += Math.ceil(neckline_bindoff / 2); //TODO: determine if these should be like this or just round here
   rightside_Lneedle += Math.ceil(neckline_bindoff / 2); //TODO: determine if these should be like this or just round here
   template_Rneedle -= Math.floor(neckline_bindoff / 2);
   ///
   neckline_section_bottomL = neckline_section_bottomR -= neckline_bindoff / 2; //new //!!!!!! //come back!
-  // neckline_section_length -= Math.round(neckline_section_length * 0.9); //new
   neckline_section_top = Math.ceil(neckline_section_top * 1.1); //come back! ceil or floor //?
   neckline_section_length = Math.ceil((neckline_section_bottomL - neckline_section_top) / 3); //new ////so it is 3 dec per row
-  // neckline_section_top = neckline_section_bottomR - neckline_section_length * 2; //new //!!!!!! //come back!
   neckline_slopes = 3;
 }
 
@@ -1038,22 +944,10 @@ let shortrow_arrR = [];
 uneven_dec = true;
 let left_ratio = 0; //TODO: remove = #; when bring the thing below back
 let right_ratio = 1;
-// rows[this_row - 1].direction === '<<' ? (left_ratio = 1) && (right_ratio = 0) : (left_ratio = 0) && (right_ratio = 1); //TODO: GO BACK! make which one goes first determined by direction at that row in passes
-console.log(chalk.red(`neckline_section_length = ${neckline_section_length}`)); //remove
-console.log(chalk.red(`neckline_section_top = ${neckline_section_top}`)); //remove
-console.log(chalk.red(`neckline_section_bottomL = ${neckline_section_bottomL}`));
-console.log(chalk.red(`neckline_section_bottomR = ${neckline_section_bottomR}`)); //remove
-console.log(chalk.red(`rightside_Lneedle = ${rightside_Lneedle}`)); //remove
-console.log(chalk.red(`rightside_Rneedle = ${rightside_Rneedle}`));
-console.log(chalk.red(`template_Lneedle = ${template_Lneedle}`));
-console.log(chalk.red(`template_Rneedle = ${template_Rneedle}`)); //remove
 
 let first_length = neckline_section_length;
 let second_length = Math.ceil((convert.neckline_L - first_length) / 2);
-// let second_length = neckline_section_top - convert.sweater_shoulder_W; //another option (if want it to be dec by 1 ONLY for second slope)
 for (let i = 0; i < neckline_slopes; ++i) {
-  // let used_length = 0;
-  // let avail_length = leftover_length;
   if (i > 0) {
     no_dec_row1 = false;
     neckline_section_bottomL = neckline_section_top;
@@ -1062,18 +956,11 @@ for (let i = 0; i < neckline_slopes; ++i) {
     if (i > 1) {
       neckline_section_length = convert.neckline_L - first_length - second_length;
     }
-    // neckline_section_length = Math.round(convert.neckline_L * 0.45);
-    // if (avail_length > 0) {
-    //   used_length = Math.round(avail_length / 2);
-    //   neckline_section_length += used_length;
-    //   avail_length -= used_length;
-    // }
   }
   decRatio(left_ratio, right_ratio, neckline_section_length - 1);
   let neckline = new Remainder();
   neckline.REMAINDER_FACTORY(neckline_section_bottomL, neckline_section_top, neckline_section_length - 1);
   templateCode(neckline, neckline_section_length, neckline_section_top, shortrow_arrL);
-  // neckline_section_length -= used_length;
 }
 ////////////////////////////
 template_Rneedle = rightside_Rneedle;
@@ -1083,8 +970,6 @@ right_ratio = 0;
 no_dec_row1 = true;
 if (template_neckline === 'Scoop-neck') {
   neckline_section_top = Math.ceil(convert.sweater_shoulder_W * 1.1); ////reset
-  // uneven_sides ? (neckline_section_top = Math.floor(convert.sweater_shoulder_W * 1.1)) : (neckline_section_top = Math.ceil(convert.sweater_shoulder_W * 1.1)); ////new //?
-  // neckline_section_length = convert.neckline_L -= Math.round(convert.neckline_L * 0.9);
   neckline_section_length = first_length;
 }
 for (let i = 0; i < neckline_slopes; ++i) {
@@ -1092,22 +977,16 @@ for (let i = 0; i < neckline_slopes; ++i) {
     no_dec_row1 = false;
     neckline_section_bottomR = neckline_section_top;
     neckline_section_top = convert.sweater_shoulder_W;
-    // neckline_section_length = Math.round(convert.neckline_L * 0.45);
     neckline_section_length = second_length;
     if (i > 1) {
       neckline_section_length = convert.neckline_L - first_length - second_length;
     }
-    console.log(chalk.red(`neckline section bottom = ${neckline_section_bottomR} & neckline_section_top = ${neckline_section_top}`));
   }
-  console.log(chalk.red(`!!!!!!!!! RIGHT SIDE OF SHORTROW NECKLINE SECTION`)); //remove
   decRatio(left_ratio, right_ratio, neckline_section_length - 1);
   let shortrow_neckline = new Remainder();
   shortrow_neckline.REMAINDER_FACTORY(neckline_section_bottomR, neckline_section_top, neckline_section_length - 1);
   templateCode(shortrow_neckline, neckline_section_length, neckline_section_top, shortrow_arrR);
-  // neckline_section_length -= used_length;
 }
-
-// piece_shortrow_code1 = shortrow_arrL.map((element, index) => [element, shortrow_arrR[index]]).flat();
 
 for (let i = 0; i < shortrow_arrL.length; ++i) {
   piece_shortrow_code1.push(shortrow_arrL[i]);
@@ -1124,6 +1003,44 @@ for (let i = 0; i < shortrow_arrL.length; ++i) {
   }
   ++i;
 }
+
+//--------
+//***PANTS
+//--------
+//TODO: check over/run this
+////1. PANT LEG INSEAM
+let uneven_dec = false;
+let no_dec_row1 = true;
+let template_Lneedle = 1;
+let template_Rneedle = convert.ankle_W;
+
+let leg = new Remainder();
+leg.REMAINDER_FACTORY(convert.ankle_W, convert.hip_W, convert.inseam_L - 1);
+decRatio(1, 1, convert.inseam_L - 1);
+templateCode(leg, convert.inseam_L, convert.hip_W, piece_code1);
+
+///////////////////////////////////////////////
+////2. RISE: CROTCH SECTION
+no_dec_row1 = false;
+let crotch = new Remainder();
+crotch.REMAINDER_FACTORY(convert.hip_W, convert.waist_W, convert.crotch_L - 1);
+decRatio(8, 9, convert.crotch_L - 1); //last one (section_length) -1 //TODO: consider changing decRatio to true ratio (47:53)
+templateCode(crotch, convert.crotch_L, convert.waist_W, piece_code1);
+
+///////////////////////////////////////////////
+////3. RAISE: STRAIGHT SECTION
+straight_section_length = convert.rise_L - convert.crotch_L;
+let straight = new Remainder();
+straight.REMAINDER_FACTORY(convert.waist_W, convert.waist_W, straight_section_length - 1);
+decRatio(1, 1, straight_section_length - 1); //COME BACK! //remove //?
+templateCode(straight, straight_section_length, convert.waist_W, piece_code1);
+
+///////////////////////////////////////////////
+////4. WAIST RIB
+let waist_rib = new Remainder();
+waist_rib.REMAINDER_FACTORY(convert.waist_W, convert.waist_W, convert.waistrib_L - 1);
+// decRatio(1, 1, waistrib_L - 1); //COME BACK! //remove //?
+templateCode(waist_rib, waistrib_L, convert.waist_W, piece_code1);
 
 //-----------------------
 pieces_arr.push(piece_code1);
@@ -1148,19 +1065,16 @@ for (let i = 0; i < shortrow_arrR.length; ++i) {
 
 module.exports = {
   template,
-  //chosen_template, //GO BACK! //?
-  //convert,  //GO BACK! //?
-  // piece_code1,
   piece_obj1,
   piece_shortrow_obj1,
   piece_shortrow_objL,
   piece_shortrow_objR,
   pieces_arr, //new ////for keeping track off how many pieces there are
-  // piece_shortrow_code1,
 };
 
 // --------------------
-let piece1_file = JSON.stringify(piece_code1) //remove
+//remove, for testing purposes (all below)
+let piece1_file = JSON.stringify(piece_code1)
   .replace('"', '')
   .replace(/\[|\]]/gi, '')
   .split('],');
@@ -1171,7 +1085,7 @@ fs.writeFileSync('piece_code1.txt', piece1_file, 'utf8', (err) => {
   }
 });
 
-let shortrow_file = JSON.stringify(piece_shortrow_code1) //remove
+let shortrow_file = JSON.stringify(piece_shortrow_code1)
   .replace('"', '')
   .replace(/\[|\]]/gi, '')
   .split('],');
@@ -1182,7 +1096,7 @@ fs.writeFileSync('piece_shortrow_code1.txt', shortrow_file, 'utf8', (err) => {
   }
 });
 
-let shortrow_file_arr2 = JSON.stringify(shortrow_arrR) //remove
+let shortrow_file_arr2 = JSON.stringify(shortrow_arrR)
   .replace('"', '')
   .replace(/\[|\]]/gi, '')
   .split('],');
