@@ -220,7 +220,7 @@ imageColors
       caston.push(`releasehook ${jacquard_passes[0][0][1]}`);
       knitout.unshift(caston);
     } else if (machine.includes('kniterate')) {
-      // caston = [...pos_caston, ...neg_caston]; //? //moved
+      caston = [...pos_caston, ...neg_caston]; //? //moved //so, if not less than 20, this section is length of real section
       let waste_stitches = 20;
       // let waste_stitches;
       // if (colors_arr[0].length >= 20) {
@@ -241,13 +241,13 @@ imageColors
           x % 2 === 0 ? pos_caston.push(`knit + b${x} ${jacquard_passes[0][0][1]}`) : pos_caston.push(`knit + f${x} ${jacquard_passes[0][0][1]}`);
           x % 2 !== 0 ? neg_caston.unshift(`knit - b${x} ${jacquard_passes[0][0][1]}`) : neg_caston.unshift(`knit - f${x} ${jacquard_passes[0][0][1]}`);
         }
+        caston = [...pos_caston, ...neg_caston]; //new //moved
         // for (let x = 20; x > colors_arr[0].length; --x) {
         //   x % 2 !== 0 ? neg_caston.unshift(`knit - b${x} ${jacquard_passes[0][0][1]}`) : neg_caston.unshift(`knit - f${x} ${jacquard_passes[0][0][1]}`);
         // }
       }
       /////
       let kniterate_caston_base = [...pos_caston, ...neg_caston];
-      caston = [...pos_caston, ...neg_caston]; //new //?
       //////
       let kniterate_caston = [];
       colors: for (let i = 0; i <= color_count; ++i) {
@@ -263,20 +263,6 @@ imageColors
         // i === 0 ? kniterate_caston.push(yarn_in, carrier_caston, carrier_caston) : kniterate_caston.push(yarn_in, carrier_caston);
       }
       if (draw_thread === undefined) draw_thread = color_carriers[color_carriers.length - 1];
-      ////
-      // if (colors_arr[0].length < 20) {
-      //   //new //?
-      //   //come back! this doesn't work well, should consider xfer instead (or new tactic)
-      //   for (let i = 0; i < 2; ++i) {
-      //     for (let x = colors_arr[0].length + 1; x <= 20; ++x) {
-      //       x % 2 === 0 ? kniterate_caston.push(`drop f${x}`) : kniterate_caston.push(`drop b${x}`); //new //?
-      //     }
-      //     for (let x = 20; x > colors_arr[0].length; --x) {
-      //       x % 2 !== 0 ? kniterate_caston.push(`drop f${x}`) : kniterate_caston.push(`drop b${x}`); //new //?
-      //     }
-      //   }
-      // }
-      //////
       kniterate_caston.push(`;kniterate yarns in`);
       kniterate_caston = kniterate_caston.flat();
       let waste_yarn_section = [];
@@ -289,9 +275,8 @@ imageColors
       }
       ////
       if (colors_arr[0].length < 20) {
-        waste_yarn_section.push(`x-roller-advance 50`); //new //?
+        waste_yarn_section.push(`x-roller-advance 50`);
         //new //?
-        //come back! this doesn't work well, should consider xfer instead (or new tactic)
         for (let i = 0; i < 2; ++i) {
           for (let x = colors_arr[0].length + 1; x <= 20; ++x) {
             waste_yarn_section.push(`drop f${x}`);
@@ -300,6 +285,7 @@ imageColors
             waste_yarn_section.push(`drop b${x}`);
           }
         }
+        waste_yarn_section.push(`;dropped extra needles`); //new
       }
       /////
       waste_yarn_section.push(`x-roller-advance 100`); //new //?
@@ -362,6 +348,8 @@ imageColors
     bindoff.push(`x-stitch-number 4`); //new
     let side, double_bed;
     let count = last_needle;
+    let first6; //new //copy over! //come back!
+    let xfer_num; //new //copy over! //come back!
     knitout.some((el) => el.includes('knit') && el.includes(' b')) ? (double_bed = true) : (double_bed = false);
     last_pass_dir === '+' ? (side = 'right') : (side = 'left');
     if (side === 'right') {
@@ -379,16 +367,45 @@ imageColors
           bindoff.push(`xfer ${bed}${x} ${receive}${x}`);
         }
         if (op === 'bind') {
+          if (x === xfer_needle + 5) first6 = false; //new
+          let roll_add;
+          first6 ? (roll_add = 100) : (roll_add = 50);
+          if (x === xfer_needle) roll_add += 50;
+          ///
           if (x === xfer_needle + count - 1) {
             break pos;
           }
-          bindoff.push(`x-add-roller-advance 100`); //new
+          ////
+          bindoff.push(`x-add-roller-advance ${roll_add}`); //new
           bindoff.push(`xfer b${x} f${x}`);
           bindoff.push(`rack -1`);
-          bindoff.push(`x-add-roller-advance 200`); //new
+          ///
+          if (x === xfer_needle + 4) {
+            bindoff.push(`x-add-roller-advance 300`);
+          } else {
+            bindoff.push(`x-add-roller-advance 200`);
+          }
           bindoff.push(`xfer f${x} b${x + 1}`);
           bindoff.push(`rack 0`);
-          bindoff.push(`knit + b${x + 1} ${bindoff_carrier}`); //fixed
+          if (x === xfer_needle) bindoff.push(`x-add-roller-advance 100`); //new
+          if (x === xfer_needle + count - 2) bindoff.push(`x-stitch-number 3`, `x-roller-advance 150`); //new
+          bindoff.push(`knit + b${x + 1} ${bindoff_carrier}`);
+          ////
+          if (x === xfer_needle + 4) {
+            bindoff.push(`miss - b${x + 1} ${bindoff_carrier}`);
+            bindoff.push(`x-add-roller-advance 100`);
+            for (let x = xfer_needle + 4; x < xfer_needle + count; ++x) {
+              bindoff.push(`knit + b${x} ${bindoff_carrier}`);
+            }
+            bindoff.push(`x-stitch-number 2`); //new //FIXME: //come back! // removed for next test (less breakage/stress on needles?)
+            bindoff.push(`x-add-roller-advance 500`);
+            ////neg
+            for (let x = xfer_needle + count - 1; x >= xfer_needle + 4; --x) {
+              //new
+              bindoff.push(`knit - b${x} ${bindoff_carrier}`);
+            }
+            bindoff.push(`x-roller-advance 300`);
+          }
         }
       }
     };
@@ -404,195 +421,182 @@ imageColors
           bindoff.push(`xfer ${bed}${x} ${receive}${x}`);
         }
         if (op === 'bind') {
+          if (x === xfer_needle + count - 6) first6 = false; //new
+          let roll_add;
+          first6 ? (roll_add = 100) : (roll_add = 50);
+          if (x === xfer_needle + count - 1) roll_add += 50;
           if (x === xfer_needle) {
-            //new
             break neg;
-          } //?
-          bindoff.push(`x-add-roller-advance 100`); //new
+          }
+          // if (x === xfer_needle + count - 5) bindoff.push(`x-roller-advance 200`); //new //?
+          // bindoff.push(`x-add-roller-advance 100`);
+          bindoff.push(`x-add-roller-advance ${roll_add}`); //new
           bindoff.push(`xfer b${x} f${x}`);
           bindoff.push(`rack 1`);
-          bindoff.push(`x-add-roller-advance 200`); //new
+          if (x === xfer_needle + count - 5) {
+            bindoff.push(`x-add-roller-advance 300`);
+          } else {
+            bindoff.push(`x-add-roller-advance 200`);
+          }
           bindoff.push(`xfer f${x} b${x - 1}`);
           bindoff.push(`rack 0`);
+          if (x === xfer_needle + count - 1) bindoff.push(`x-add-roller-advance 100`); //new
+          if (x === xfer_needle + 1) bindoff.push(`x-stitch-number 3`, `x-roller-advance 150`); //new
           bindoff.push(`knit - b${x - 1} ${bindoff_carrier}`);
+          if (x === xfer_needle + count - 5) {
+            bindoff.push(`miss + b${x - 1} ${bindoff_carrier}`);
+            bindoff.push(`x-add-roller-advance 100`);
+            ////neg
+            for (let x = xfer_needle + count - 7; x >= xfer_needle; --x) {
+              //new
+              bindoff.push(`knit - b${x} ${bindoff_carrier}`);
+            }
+            ///
+            bindoff.push(`x-stitch-number 2`);  //new //FIXME: //come back! // remove for next test (less breakage/stress on needles?)
+            //TODO: maybe add another separate knit (partial other side, more bind, than rest of other side)
+            bindoff.push(`x-add-roller-advance 500`);
+            ////pos
+            for (let x = xfer_needle; x <= xfer_needle + count - 7; ++x) {
+              bindoff.push(`knit + b${x} ${bindoff_carrier}`);
+            }
+            bindoff.push(`x-roller-advance 300`);
+          }
         }
       }
     }; //if ended with pos loop dir = pos
-    // const bindoffTail = (last_needle, dir) => {
-    //   //TODO: maybe make this a tag instead ? (safer)
-    //   for (let i = 0; i < 16; ++i) {
-    //     bindoff.push(`knit ${dir} b${last_needle} ${bindoff_carrier}`);
+    // const bindoffTag = (last_needle, dir) => {
+    //   //remove
+    //   bindoff.push(`x-stitch-number 4`); //new
+    //   bindoff.push(`x-roller-advance 50`); //new
+    //   bindoff.push(`;tag`);
+    //   let odd_last = true;
+    //   if (last_needle % 2 === 0) odd_last = false;
+    //   bindoff.push(`miss ${dir} b${last_needle - 1} ${bindoff_carrier}`);
+    //   let tag_limL = last_needle - 1;
+    //   // let tag_limR = last_needle + 5;
+    //   let tag_limR = last_needle + 7;
+    //   ///////
+    //   const negTag = (r) => {
+    //     for (let n = tag_limR; n >= tag_limL; --n) {
+    //       if (odd_last) {
+    //         if (n % 2 !== 0) bindoff.push(`knit - b${n} ${bindoff_carrier}`); //moved (was with if(odd_last) {) //check!
+    //         if (tag_limL % 2 === 0 && n === tag_limL) bindoff.push(`miss - b${n} ${bindoff_carrier}`);
+    //       } else if (!odd_last) {
+    //         if (n % 2 === 0) bindoff.push(`knit - b${n} ${bindoff_carrier}`);
+    //         if (tag_limL % 2 !== 0 && n === tag_limL) bindoff.push(`miss - b${n} ${bindoff_carrier}`);
+    //       }
+    //     }
+    //     ////
+    //     if (r === tag_rows - 1) {
+    //       for (let n = tag_limL; n <= tag_limR; ++n) {
+    //         bindoff.push(`drop b${n}`);
+    //       }
+    //     }
+    //     ///
+    //     // if (tag_limR < 7) tag_limR += 2; //new if
+    //   };
+    //   //////
+    //   const posTag = (r) => {
+    //     for (let n = tag_limL; n <= tag_limR; ++n) {
+    //       if (odd_last) {
+    //         if (n % 2 === 0) bindoff.push(`knit + b${n} ${bindoff_carrier}`);
+    //         if (tag_limR % 2 !== 0 && n === tag_limR) bindoff.push(`miss + b${n} ${bindoff_carrier}`);
+    //       } else if (!odd_last) {
+    //         if (n % 2 !== 0) bindoff.push(`knit + b${n} ${bindoff_carrier}`);
+    //         if (tag_limR % 2 === 0 && n === tag_limR) bindoff.push(`miss + b${n} ${bindoff_carrier}`);
+    //       }
+    //     }
+    //     /////
+    //     if (r === tag_rows - 1) {
+    //       bindoff.push(`x-stitch-number 5`); //new //?
+    //       for (let n = tag_limL; n <= tag_limR; ++n) {
+    //         bindoff.push(`drop b${n}`);
+    //       }
+    //     }
+    //   };
+    //   /////
+    //   let tag_rows;
+    //   odd_last ? (tag_rows = 8) : (tag_rows = 9); //new //?
+    //   for (let r = 0; r < tag_rows; ++r) {
+    //     if (dir === '+') {
+    //       r % 2 === 0 ? negTag(r) : posTag(r);
+    //     } else {
+    //       r % 2 === 0 ? posTag(r) : negTag(r);
+    //     }
     //   }
-    //   bindoff.push(`drop b${last_needle}`);
     // };
-    const bindoffTag = (last_needle, dir) => {
-      bindoff.push(`x-stitch-number 4`); //new
-      bindoff.push(`x-roller-advance 50`); //new
-      bindoff.push(`;tag`);
-      // let other_dir;
-      // dir === '+' ? (other_dir = '-') : (other_dir = '+');
-      let odd_last = true;
-      if (last_needle % 2 === 0) odd_last = false;
-      // bindoff.push(`miss ${dir} b${last_needle - 3} ${bindoff_carrier}`);
-      bindoff.push(`miss ${dir} b${last_needle - 1} ${bindoff_carrier}`);
-      let tag_limL = last_needle - 1;
-      let tag_limR = last_needle + 5;
-      ///////
-      const negTag = (r) => {
-        for (let n = tag_limR; n >= tag_limL; --n) {
-          if (odd_last) {
-            if (n % 2 !== 0) bindoff.push(`knit - b${n} ${bindoff_carrier}`); //moved (was with if(odd_last) {) //check!
-            if (tag_limL % 2 === 0 && n === tag_limL) bindoff.push(`miss - b${n} ${bindoff_carrier}`);
-          } else if (!odd_last) {
-            if (n % 2 === 0) bindoff.push(`knit - b${n} ${bindoff_carrier}`);
-            if (tag_limL % 2 !== 0 && n === tag_limL) bindoff.push(`miss - b${n} ${bindoff_carrier}`);
-          }
-          // if (r % 2 === 0) {
-          //   if (odd_last) {
-          //     if (n % 2 !== 0) bindoff.push(`knit ${other_dir} b${n} ${bindoff_carrier}`); //moved (was with if(odd_last) {) //check!
-          //     if (tag_limL % 2 === 0 && n === tag_limL) bindoff.push(`miss ${other_dir} b${n} ${bindoff_carrier}`);
-          //   } else if (!odd_last) {
-          //     if (n % 2 === 0) bindoff.push(`knit ${other_dir} b${n} ${bindoff_carrier}`);
-          //     if (tag_limL % 2 !== 0 && n === tag_limL) bindoff.push(`miss ${other_dir} b${n} ${bindoff_carrier}`);
-          //   }
-          // } else {
-          //   if (odd_last) {
-          //     if (n % 2 === 0) bindoff.push(`knit ${dir} b${n} ${bindoff_carrier}`);
-          //     if (tag_limL % 2 !== 0 && n === tag_limL) bindoff.push(`miss ${dir} b${n} ${bindoff_carrier}`);
-          //   } else if (!odd_last) {
-          //     if (n % 2 !== 0) bindoff.push(`knit ${dir} b${n} ${bindoff_carrier}`);
-          //     if (tag_limL % 2 === 0 && n === tag_limL) bindoff.push(`miss ${dir} b${n} ${bindoff_carrier}`);
-          //   }
-          // }
-        }
-        ////
-        if (r === tag_rows - 1) {
-          for (let n = tag_limL; n <= tag_limR; ++n) {
-            bindoff.push(`drop b${n}`);
-          }
-          // for (let n = tag_limR; n >= tag_limL; --n) {
-          //   //new //again to make sure they drop
-          //   bindoff.push(`drop b${n}`);
-          // }
-          // for (let n = tag_limL; n <= tag_limR; ++n) {
-          //   //new
-          //   bindoff.push(`drop b${n}`);
-          // }
-          // for (let n = tag_limR; n >= tag_limL; --n) {
-          //   //new
-          //   //again to make sure they drop
-          //   bindoff.push(`drop b${n}`);
-          // }
-        }
-        ///
-        if (tag_limR < 7) tag_limR += 2; //new if
-      };
-      //////
-      const posTag = (r) => {
-        for (let n = tag_limL; n <= tag_limR; ++n) {
-          if (odd_last) {
-            if (n % 2 === 0) bindoff.push(`knit + b${n} ${bindoff_carrier}`);
-            if (tag_limR % 2 !== 0 && n === tag_limR) bindoff.push(`miss + b${n} ${bindoff_carrier}`);
-          } else if (!odd_last) {
-            if (n % 2 !== 0) bindoff.push(`knit + b${n} ${bindoff_carrier}`);
-            if (tag_limR % 2 === 0 && n === tag_limR) bindoff.push(`miss + b${n} ${bindoff_carrier}`);
-          }
-          // if (r % 2 === 0) {
-          //   if (odd_last) {
-          //     if (n % 2 !== 0) bindoff.push(`knit ${other_dir} b${n} ${bindoff_carrier}`);
-          //     if (tag_limR % 2 === 0 && n === tag_limR) bindoff.push(`miss ${other_dir} b${n} ${bindoff_carrier}`);
-          //   } else if (!odd_last) {
-          //     if (n % 2 === 0) bindoff.push(`knit ${other_dir} b${n} ${bindoff_carrier}`);
-          //     if (tag_limR % 2 !== 0 && n === tag_limR) bindoff.push(`miss ${other_dir} b${n} ${bindoff_carrier}`);
-          //   }
-          // } else {
-          //   if (odd_last) {
-          //     if (n % 2 === 0) bindoff.push(`knit ${dir} b${n} ${bindoff_carrier}`);
-          //     if (tag_limR % 2 !== 0 && n === tag_limR) bindoff.push(`miss ${dir} b${n} ${bindoff_carrier}`);
-          //   } else if (!odd_last) {
-          //     if (n % 2 !== 0) bindoff.push(`knit ${dir} b${n} ${bindoff_carrier}`);
-          //     if (tag_limR % 2 === 0 && n === tag_limR) bindoff.push(`miss ${dir} b${n} ${bindoff_carrier}`);
-          //   }
-          // }
-        }
-        /////
-        if (r === tag_rows - 1) {
-          bindoff.push(`x-stitch-number 5`); //new //?
-          for (let n = tag_limL; n <= tag_limR; ++n) {
-            bindoff.push(`drop b${n}`);
-          }
-          // for (let n = tag_limR; n >= tag_limL; --n) {
-          //   //new //again to make sure they drop
-          //   bindoff.push(`drop b${n}`);
-          // }
-          // for (let n = tag_limL; n <= tag_limR; ++n) {
-          //   //new
-          //   bindoff.push(`drop b${n}`);
-          // }
-          // for (let n = tag_limR; n >= tag_limL; --n) {
-          //   //new
-          //   //again to make sure they drop
-          //   bindoff.push(`drop b${n}`);
-          // }
-        }
-        ////
-        // tag_limL -= 2;
-      };
-      /////
-      let tag_rows;
-      // odd_last ? (tag_rows = 4) : (tag_rows = 5);
-      odd_last ? (tag_rows = 8) : (tag_rows = 9); //new //?
-      for (let r = 0; r < tag_rows; ++r) {
-        if (dir === '+') {
-          // r % 2 === 0 ? posTag(r) : negTag(r);
-          r % 2 === 0 ? negTag(r) : posTag(r);
-        } else {
-          // r % 2 === 0 ? negTag(r) : posTag(r);
-          r % 2 === 0 ? posTag(r) : negTag(r);
-        }
+    ///
+    const bindoffTail = (last_needle, dir) => {
+      let otherT_dir, miss1, miss2;
+      dir === '+' ? ((otherT_dir = '-'), (miss1 = last_needle + 1), (miss2 = last_needle - 1)) : ((otherT_dir = '+'), (miss1 = last_needle - 1), (miss2 = last_needle + 1));
+      bindoff.push(`x-roller-advance 200`); //TODO: add `x-roller-advance 150` for before last knit (aka for b1 knit)
+      bindoff.push(`miss ${dir} b${miss1} ${bindoff_carrier}`);
+      for (let i = 0; i < 6; ++i) {
+        bindoff.push(`knit ${otherT_dir} b${last_needle} ${bindoff_carrier}`);
+        bindoff.push(`miss ${otherT_dir} b${miss2} ${bindoff_carrier}`);
+        bindoff.push(`knit ${dir} b${last_needle} ${bindoff_carrier}`);
+        bindoff.push(`miss ${dir} b${miss1} ${bindoff_carrier}`);
+        if (i === 0) bindoff.push(`x-stitch-number 4`);
       }
+      bindoff.push(`x-add-roller-advance 200`);
+      bindoff.push(`drop b${last_needle}`);
     };
     ///////////////
-    // for (let i = 0; i < 16; ++i) {
-    //   bindoff.push(`knit ${dir} b${last_needle} ${bindoff_carrier}`);
-    // }
-    // bindoff.push(`drop b${last_needle}`);
     if (side === 'left') {
       posLoop('knit', 'f');
-      // bindoff.push(`x-add-roller-advance 100`); //new
-      // if (double_bed) negLoop('knit', 'f');
-      if (double_bed) negLoop('knit', 'b');
       bindoff.push(`x-add-roller-advance 100`); //new
+      if (double_bed) negLoop('knit', 'b');
+      // bindoff.push(`x-add-roller-advance 100`);
       negLoop('xfer', 'f');
       posLoop('knit', 'b');
       bindoff.push(`x-stitch-number 3`); //new
-      bindoff.push(`x-add-roller-advance 400`); //new
+      // bindoff.push(`x-add-roller-advance 400`); //new
       negLoop('knit', 'b');
-      bindoff.push(`x-stitch-number 2`); //new
-      // bindoff.push(`x-roller-advance 250`); //new
-      bindoff.push(`knit + b${xfer_needle} ${bindoff_carrier}`); //new (knit once with small stitch size)
+      first6 = true; //new //TODO: make this whole thing only for if # of needles < 8
+      bindoff.push(`x-add-roller-advance 200`); //new
+      ////
+      for (let x = xfer_needle; x <= xfer_needle + 5; ++x) {
+        //new
+        bindoff.push(`knit + b${x} ${bindoff_carrier}`);
+      }
+      bindoff.push(`x-add-roller-advance 600`); //new
+      for (let x = xfer_needle + 5; x >= xfer_needle; --x) {
+        //new
+        bindoff.push(`knit - b${x} ${bindoff_carrier}`);
+      }
       bindoff.push(`x-roller-advance 200`); //new
-      // bindoff.push(`x-roller-advance 200`); //new
+      //
+      // bindoff.push(`x-stitch-number 2`);
+      // bindoff.push(`knit + b${xfer_needle} ${bindoff_carrier}`); // (knit once with small stitch size)
+      // bindoff.push(`x-roller-advance 250`);
       posLoop('bind', null);
-      // bindoffTail(xfer_needle + count - 1, '+');
-      bindoffTag(xfer_needle + count - 1, '+'); //new
+      // bindoffTag(xfer_needle + count - 1, '+');
+      bindoffTail(xfer_needle + count - 1, '+'); //new
     } else if (side === 'right') {
       negLoop('knit', 'f');
+      
       bindoff.push(`x-add-roller-advance 100`); //new
       if (double_bed) posLoop('knit', 'b');
       negLoop('xfer', 'f');
       negLoop('knit', 'b');
-      // if (double_bed) negLoop('knit', 'f');
-      bindoff.push(`x-stitch-number 3`); //new
-      bindoff.push(`x-add-roller-advance 400`); //new
+      bindoff.push(`x-stitch-number 3`);
       posLoop('knit', 'b');
-      bindoff.push(`x-stitch-number 2`); //new
-      // bindoff.push(`x-roller-advance 250`); //new
-      bindoff.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`); //new (knit once with small stitch size)
+      first6 = true; //new //TODO: make this whole thing only for if # of needles < 8
+      bindoff.push(`x-add-roller-advance 200`); //new
+      for (let x = xfer_needle + count - 1; x >= xfer_needle + count - 6; --x) {
+        //new
+        bindoff.push(`knit - b${x} ${bindoff_carrier}`);
+      }
+      bindoff.push(`x-add-roller-advance 600`); //new
+      for (let x = xfer_needle + count - 6; x < xfer_needle + count; ++x) {
+        bindoff.push(`knit + b${x} ${bindoff_carrier}`);
+      }
       bindoff.push(`x-roller-advance 200`); //new
+      // bindoff.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`); //new (knit once with small stitch size)
+      // bindoff.push(`x-roller-advance 250`);
       negLoop('bind', null);
-      // bindoffTail(xfer_needle, '-');
-      bindoffTag(xfer_needle, '-'); //new
+      // bindoffTag(xfer_needle, '-'); //new
+      bindoffTail(xfer_needle, '-'); //new
     }
     //TODO: add feature to pause & ask "all stitches dropped?" then miss pass with add-roller-advance 1000 or something (calculate how much is necessary based on how many rows)
     //TODO: add knitout extension to pause , along with message for
@@ -609,14 +613,9 @@ imageColors
         } else {
           let out_spot = Number(knitout[last].split(' ')[2].slice(1)) + 6; //?
           knitout.splice(last + 1, 0, `miss + f${out_spot} ${color_carriers[i]}`); //new
-          // knitout.splice(last + 1, 0, `miss + f${needle_bed - 1} ${color_carriers[i]}`); //new
           knitout.push(`${yarn_out} ${color_carriers[i]}`); ////at the end
         }
       }
-
-      // if (last !== -1) {
-      //   knitout.splice(last + 1, 0, `${yarn_out} ${color_carriers[i]}`);
-      // }
     }
   })
   //////
