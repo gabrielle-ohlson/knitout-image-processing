@@ -97,9 +97,12 @@ function getData() {
         background = background.reduce((a, b, i, arr) => (arr.filter((v) => v === a).length >= arr.filter((v) => v === b).length ? a : b), null); ////find the most common edge color
         //// check to see edge color is at least 10% of the colors (if not, make background the palette color with most occurrences (palette = ordered from highest->lowest occurrences))
         if (!(pal_hist[background] > 0.1 * pal_hist.reduce((a, b) => a + b, 0))) {
-          background = palette[0];
+          background = 1; ////most common color according to sorting, +1 (so not strarting from 0)
+          // background = palette[0];
+        } else {
+          background += 1;
         }
-        background += 1; ////(so not strarting from 0)
+        // background += 1; ////(so not strarting from 0)
         colors_arr.push(palette, machine, background, colors_data);
         img.write(motif_path);
         resolve(colors_arr);

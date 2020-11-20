@@ -12,6 +12,9 @@
 test-kcode.js
 .d.ts
 COLORS_DATA.json
+knitify-copy-less.js
+knitify-birdseye-visualizer.js
+knitify-copy.js
 
 #exlude .txt
 *.txt

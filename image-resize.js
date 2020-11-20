@@ -35,9 +35,9 @@ let row_count = 0;
   row_count === -1 ? console.log(chalk.green(`-- Row count: AUTO`)) : console.log(chalk.green(`-- Row count: ${row_count}`));
 // }
 
-if (row_count !== -1) { //TODO: check whether this is actually doing something I want it to do
-  row_count += 1;
-}
+// if (row_count !== -1) { //TODO: check whether this is actually doing something I want it to do
+//   row_count += 1;
+// } //come back!
 
   if (row_count === -1) {
     row_count = Jimp.AUTO;

@@ -2,6 +2,7 @@ const Jimp = require('jimp');
 const fs = require('fs');
 const chalk = require('chalk');
 
+//TODO: deal with situations where only shaping is short rowing (like sweater_front.jpg)
 //////////////////////////////////////////////////////
 
 let brightness, max, last_row, first_short_row, last_short_row, shape_error, shape_err_row;
@@ -59,6 +60,7 @@ if (fs.existsSync('INPUT_DATA.json')) {
       console.log(chalk.red('!!too short!!')); //remove
     }
   }
+  // console.log(shape_code); //remove
   ////////////////////////////////////////////////////////
   ////make sure there aren't any floating white dots in the middle
   let splice_arr = [];
@@ -202,6 +204,9 @@ if (fs.existsSync('INPUT_DATA.json')) {
   shape_code_reverse = shape_code_reverse.reverse();
   first_short_row = shape_code_reverse.length - 1 - splice_arr[splice_arr.length - 1];
   last_short_row = shape_code_reverse.length - 1 - splice_arr[0];
+  // console.log(shape_code_reverse); //remove
+  // console.log(first_short_row); //remove
+  // console.log(last_short_row); //remove
   ///////
   let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],');
   txt_file = txt_file.join('\n').replace(/\]|,/g, '');

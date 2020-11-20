@@ -17,17 +17,12 @@ const DIMENSIONS = ({ WAIST, HIPS, INSEAM, CHEST, SHOULDER, TORSO, ARM_CIRC, WRI
   HEAD_CIRC,
 });
 
-let template;
-let dimensions;
-//
-// let fit;
-// let sleeve_style;
+let template, dimensions;
 //
 let pieces_arr = [];
-let piece1;
-let template_neckline;
-let template_width;
-let template_height;
+let piece1, template_neckline, template_width, template_height;
+
+// let
 
 ///////////////////////////
 class Sweater {
@@ -140,7 +135,7 @@ class TankTop {}
 let chosen_template;
 
 if (shape_code === null) {
-  if (readlineSync.keyInYNStrict(chalk.blue.bold('\nWould you like to use a pre-made shape template?'))) {
+  // if (readlineSync.keyInYNStrict(chalk.blue.bold('\nWould you like to use a pre-made shape template?'))) {
     let templates = ['Sweater', 'Skirt', 'Dress', 'Pants', 'Tank-Top', 'Hat'],
       shape = readlineSync.keyInSelect(templates, chalk.blue.bold('^Which template would you like to use?'));
     console.log(chalk.green('-- Knitting: ' + templates[shape]));
@@ -592,7 +587,7 @@ if (shape_code === null) {
     }
     //TODO: add option of decreasing/increase at custom rate
     //TODO: add saving dimensions option
-  }
+  // }
 }
 
 //-----------------------
@@ -604,9 +599,7 @@ const NEW_SWATCH = ({ TITLE, HEIGHT, WIDTH, NOTES }) => ({
   NOTES,
 });
 
-let swatch_data;
-// let load_swatch = false;
-let swatch;
+let swatch_data, swatch;
 if (
   // readlineSync.keyInYNStrict(
   // chalk.blue.bold(`Would you like to load dimensions from a stored swatch in the 'swatch_data.json' file? (input 'n' to create a new swatch instead)`)
@@ -781,8 +774,7 @@ class Remainder {
 }
 
 ///////////////////////////
-let left_int;
-let right_int;
+let left_int, right_int;
 const decRatio = (left_ratio, right_ratio, section_length) => {
   let total_ratio = left_ratio + right_ratio;
   left_int = (left_ratio / total_ratio) * section_length;
@@ -801,14 +793,14 @@ const decRatio = (left_ratio, right_ratio, section_length) => {
   console.log(`right_int = ${right_int}`); //remove
 };
 
-const templateCode = (section, section_length, section_top, template_code) => {
+const templateCode = (section, section_length, section_top, template_code, stitch_pattern) => {
   console.log(`template_width = ${template_width}`); //remove
-  console.log(`template_height = ${template_height}`);
+  console.log(`template_height = ${template_height}`); //remove
   let shape_row = [];
-  let big_int; //new
-  let small_int; //new
+  let big_int, small_int; //new
   let uneven_int = 0; //new
   let dec_left = true;
+  if (stitch_pattern !== undefined) template_code.push(stitch_pattern);
   left_int > right_int ? (big_int = left_int) && (small_int = right_int) : (big_int = right_int) && (small_int = left_int);
   for (let y = 0; y < section_length; ++y) {
     let dec_count = section.dec_per_row[y];
@@ -909,7 +901,7 @@ templateCode(straight, straight_section_length, convert.sweater_top_W, piece_cod
 
 ///////////////////////////////////////////////
 no_dec_row1 = true;
-let uneven_sides;
+// let uneven_sides;
 template_width - template_Rneedle !== template_width - template_Lneedle ? (uneven_sides = true) : (uneven_sides = false); //new //?
 ////4.SWEATER BODY: NECKLINE SECTION //TODO: make current calcs for v-neck, and then add option of scoop neck
 ////values for if neckline === V-neck
@@ -1009,10 +1001,10 @@ for (let i = 0; i < shortrow_arrL.length; ++i) {
 //--------
 //TODO: check over/run this
 ////1. PANT LEG INSEAM
-let uneven_dec = false;
-let no_dec_row1 = true;
-let template_Lneedle = 1;
-let template_Rneedle = convert.ankle_W;
+uneven_dec = false;
+no_dec_row1 = true;
+template_Lneedle = 1;
+template_Rneedle = convert.ankle_W;
 
 let leg = new Remainder();
 leg.REMAINDER_FACTORY(convert.ankle_W, convert.hip_W, convert.inseam_L - 1);
@@ -1021,6 +1013,8 @@ templateCode(leg, convert.inseam_L, convert.hip_W, piece_code1);
 
 ///////////////////////////////////////////////
 ////2. RISE: CROTCH SECTION
+//TODO: maybe don't have it automatically figure out this, but tell it the slope / amount of dec per section (also tell it always dec every 2 rows ?)
+uneven_dec = true; //? //come back! and //check this
 no_dec_row1 = false;
 let crotch = new Remainder();
 crotch.REMAINDER_FACTORY(convert.hip_W, convert.waist_W, convert.crotch_L - 1);
@@ -1030,17 +1024,18 @@ templateCode(crotch, convert.crotch_L, convert.waist_W, piece_code1);
 ///////////////////////////////////////////////
 ////3. RAISE: STRAIGHT SECTION
 straight_section_length = convert.rise_L - convert.crotch_L;
-let straight = new Remainder();
+straight = new Remainder();
 straight.REMAINDER_FACTORY(convert.waist_W, convert.waist_W, straight_section_length - 1);
 decRatio(1, 1, straight_section_length - 1); //COME BACK! //remove //?
 templateCode(straight, straight_section_length, convert.waist_W, piece_code1);
 
 ///////////////////////////////////////////////
 ////4. WAIST RIB
+//TODO: add feature for indicating that this rib/tension changes or something
 let waist_rib = new Remainder();
 waist_rib.REMAINDER_FACTORY(convert.waist_W, convert.waist_W, convert.waistrib_L - 1);
 // decRatio(1, 1, waistrib_L - 1); //COME BACK! //remove //?
-templateCode(waist_rib, waistrib_L, convert.waist_W, piece_code1);
+templateCode(waist_rib, waistrib_L, convert.waist_W, piece_code1, 'Pattern: 1x1rib');
 
 //-----------------------
 pieces_arr.push(piece_code1);
