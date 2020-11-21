@@ -252,7 +252,8 @@ imageColors
       let kniterate_caston = [];
       colors: for (let i = 0; i <= color_count; ++i) {
         //// <= because add extra one for draw thread
-        if (draw_thread !== undefined && i === color_count) { //new (seems good!)
+        if (draw_thread !== undefined && i === color_count) {
+          //new (seems good!)
           break colors;
         }
         if (i === 6) {
@@ -348,11 +349,9 @@ imageColors
   .then(() => {
     ////bindoff
     bindoff.push(`;bindoff section`);
-    bindoff.push(`x-stitch-number 4`); //new
+    bindoff.push(`x-stitch-number 4`); //TODO: make these based on stitch number
     let side, double_bed;
     let count = last_needle;
-    // let first6; //new //copy over! //come back!
-    let xfer_num; //new //copy over! //come back!
     knitout.some((el) => el.includes('knit') && el.includes(' b')) ? (double_bed = true) : (double_bed = false);
     last_pass_dir === '+' ? (side = 'right') : (side = 'left');
     if (side === 'right') {
@@ -366,51 +365,22 @@ imageColors
         if (op === 'xfer') {
           let receive;
           bed === 'f' ? (receive = 'b') : (receive = 'f');
-          if (x === xfer_needle) bindoff.push(`x-add-roller-advance 200`);
           bindoff.push(`xfer ${bed}${x} ${receive}${x}`);
         }
         if (op === 'bind') {
-          let roll_add;
-          x <= xfer_needle + 2 ? (roll_add = 80) : (roll_add = 50); //new (for 1, should be last 80 abover xfer b3->f3)
-          if (x === xfer_needle) roll_add += 70;
-          ///
           if (x === xfer_needle + count - 1) {
             break pos;
           }
-          ////
-          bindoff.push(`x-add-roller-advance ${roll_add}`);
+          bindoff.push(`x-add-roller-advance 200`); //new
           bindoff.push(`xfer b${x} f${x}`);
           bindoff.push(`rack -1`);
           ///
-          // if (x === xfer_needle + 4) {
-          if (x === xfer_needle) {
-            bindoff.push(`x-add-roller-advance 350`);
-          } else {
-            bindoff.push(`x-add-roller-advance 200`);
-          }
+          bindoff.push(`x-add-roller-advance 100`); //new
           bindoff.push(`xfer f${x} b${x + 1}`);
           bindoff.push(`rack 0`);
-          if (x === xfer_needle) bindoff.push(`x-add-roller-advance 400`); //new
-          if (x === xfer_needle + 1) bindoff.push(`x-add-roller-advance 100`); //new
-          if (x === xfer_needle + 7 || (x % 5 === 0 && x > xfer_needle + 7 && xfer_needle - x >= 5)) bindoff.push(`x-add-roller-advance -400`, `miss + b${x} ${bindoff_carrier}`); //new //should be after xfer f9 b8
-          if (x === xfer_needle + count - 2) bindoff.push(`x-stitch-number 3`, `x-roller-advance 150`);
+          // if (x === xfer_needle + 7 || (x % 5 === 0 && x > xfer_needle + 7 && xfer_needle - x >= 5)) bindoff.push(`x-add-roller-advance -400`, `miss + b${x} ${bindoff_carrier}`); //should be after xfer f9 b8
+          // if (x === xfer_needle + count - 2) bindoff.push(`x-stitch-number 3`, `x-roller-advance 150`); //TODO: bring back if change st# to 2
           bindoff.push(`knit + b${x + 1} ${bindoff_carrier}`);
-          ////
-          // if (x === xfer_needle + 4) {
-          //   bindoff.push(`miss - b${x + 1} ${bindoff_carrier}`);
-          //   bindoff.push(`x-add-roller-advance 100`);
-          //   for (let x = xfer_needle + 4; x < xfer_needle + count; ++x) {
-          //     bindoff.push(`knit + b${x} ${bindoff_carrier}`);
-          //   }
-          //   bindoff.push(`x-stitch-number 2`); //new //FIXME: //come back! // removed for next test (less breakage/stress on needles?)
-          //   bindoff.push(`x-add-roller-advance 500`);
-          //   ////neg
-          //   for (let x = xfer_needle + count - 1; x >= xfer_needle + 4; --x) {
-          //     //new
-          //     bindoff.push(`knit - b${x} ${bindoff_carrier}`);
-          //   }
-          //   bindoff.push(`x-roller-advance 300`);
-          // }
         }
       }
     };
@@ -422,39 +392,24 @@ imageColors
         if (op === 'xfer') {
           let receive;
           bed === 'f' ? (receive = 'b') : (receive = 'f');
-          if (x === xfer_needle + count - 1) bindoff.push(`x-add-roller-advance 200`);
           bindoff.push(`xfer ${bed}${x} ${receive}${x}`);
         }
         if (op === 'bind') {
-          // if (x === xfer_needle + count - 6) first6 = false;
-          let roll_add;
-          x >= xfer_needle + count - 3 ? (roll_add = 80) : (roll_add = 50); //new (for 16, should be last 80 abover xfer b14->f14)
-          // first6 ? (roll_add = 80) : (roll_add = 50); //actually, first 4
-          if (x === xfer_needle + count - 1) roll_add += 70;
           if (x === xfer_needle) {
             break neg;
           }
-          bindoff.push(`x-add-roller-advance ${roll_add}`);
+          bindoff.push(`x-add-roller-advance 200`);
           bindoff.push(`xfer b${x} f${x}`);
           bindoff.push(`rack 1`);
-          // if (x === xfer_needle + count - 5) {
-          if (x === xfer_needle + count - 1) {
-            //new
-            bindoff.push(`x-add-roller-advance 350`);
-          } else {
-            bindoff.push(`x-add-roller-advance 200`);
-          }
+          bindoff.push(`x-add-roller-advance 100`);
           bindoff.push(`xfer f${x} b${x - 1}`);
           bindoff.push(`rack 0`);
-          if (x === xfer_needle + count - 1) bindoff.push(`x-add-roller-advance 400`); //new
-          if (x === xfer_needle + count - 2) bindoff.push(`x-add-roller-advance 100`); //new
-          if (x === xfer_needle + count - 8 || (x % 5 === 0 && x < xfer_needle + count - 8 && x >= 5)) bindoff.push(`x-add-roller-advance -400`, `miss + b${x} ${bindoff_carrier}`); //new //should be after xfer f9 b8
-          if (x === xfer_needle + 1) bindoff.push(`x-stitch-number 3`, `x-roller-advance 150`);
+          // if (x === xfer_needle + count - 8 || (x % 5 === 0 && x < xfer_needle + count - 8 && x >= 5)) bindoff.push(`x-add-roller-advance -400`, `miss + b${x} ${bindoff_carrier}`); //new //should be after xfer f9 b8
+          // if (x === xfer_needle + 1) bindoff.push(`x-stitch-number 3`, `x-roller-advance 150`); //TODO: bring back if change st# to 2
           bindoff.push(`knit - b${x - 1} ${bindoff_carrier}`);
         }
       }
     }; //if ended with pos loop dir = pos
-    ///
     const bindoffTail = (last_needle, dir) => {
       let otherT_dir, miss1, miss2;
       dir === '+' ? ((otherT_dir = '-'), (miss1 = last_needle + 1), (miss2 = last_needle - 1)) : ((otherT_dir = '+'), (miss1 = last_needle - 1), (miss2 = last_needle + 1));
@@ -473,38 +428,24 @@ imageColors
     ///////////////
     //TODO: check left side out
     if (side === 'left') {
+      bindoff.push(`x-stitch-number 4`); //new
       posLoop('knit', 'f');
-      bindoff.push(`x-add-roller-advance 100`);
       if (double_bed) negLoop('knit', 'b');
       negLoop('xfer', 'f');
       if (double_bed) posLoop('knit', 'b');
-      bindoff.push(`x-stitch-number 3`);
-      bindoff.push(`x-add-roller-advance 600`); //new
       negLoop('knit', 'b');
-      bindoff.push(`x-stitch-number 2`); //new
-      // first6 = true; //new //TODO: make this whole thing only for if # of needles < 8
-      bindoff.push(`x-roller-advance 300`); //new
-      bindoff.push(`x-add-roller-advance 400`); //new
-      bindoff.push(`knit + b${xfer_needle} ${bindoff_carrier}`); //new (knit once with small stitch size)
-      //
+      bindoff.push(`x-stitch-number 3`); //new
       posLoop('bind', null);
-      bindoffTail(xfer_needle + count - 1, '+'); //new
+      bindoffTail(xfer_needle + count - 1, '+');
       /////////////////////////////
     } else if (side === 'right') {
+      bindoff.push(`x-stitch-number 4`); //new
       negLoop('knit', 'f');
-      bindoff.push(`x-add-roller-advance 100`);
       if (double_bed) posLoop('knit', 'b');
       negLoop('xfer', 'f');
       if (double_bed) negLoop('knit', 'b');
-      bindoff.push(`x-stitch-number 3`);
-      bindoff.push(`x-add-roller-advance 600`); //new
       posLoop('knit', 'b');
-      bindoff.push(`x-stitch-number 2`); //new
-      // first6 = true; //TODO: make this 'first8' (aka if 16, insert neg roll after xfer f9 to b8)//TODO: make this whole thing only for if # of needles < 8
-      bindoff.push(`x-roller-advance 300`); //new
-      bindoff.push(`x-add-roller-advance 400`); //new
-      bindoff.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`); //new (knit once with small stitch size)
-      //left off here
+      bindoff.push(`x-stitch-number 3`); //new
       negLoop('bind', null);
       bindoffTail(xfer_needle, '-');
     }
