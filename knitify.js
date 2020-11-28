@@ -36,11 +36,15 @@ let stitch_number = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press 
 });
 stitch_number === '-1' ? console.log(chalk.green(`-- Stitch number: UNSPECIFIED`)) : console.log(chalk.green(`-- Stitch number: ${stitch_number}`));
 let speed_number = readlineSync.question(
-  chalk`{blue.italic \n(OPTIONAL: press enter to skip this step)} {blue.bold What would you like to set the carriage speed number as?} {blue.italic (valid speeds are 0-15) }`,
+  chalk`{blue.italic \n(OPTIONAL: press enter to skip this step)} {blue.bold What would you like to set the carriage speed number as?} {blue.italic (valid speeds are between <0-600>) }`,
   {
     defaultInput: -1,
-    limit: [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-    limitMessage: chalk.red('-- $<lastInput> is not within the accepted range: <0-15>.'),
+    limit: function (input) {
+      return (Number(input) >= 0 && Number(input) <= 600) || Number(input) === -1;
+    },
+    limitMessage: chalk.red('-- $<lastInput> is not within the accepted range: <0-600>.'),
+    // limit: [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    // limitMessage: chalk.red('-- $<lastInput> is not within the accepted range: <0-15>.'),
   }
 );
 speed_number === '-1' ? console.log(chalk.green(`-- Speed number: UNSPECIFIED`)) : console.log(chalk.green(`-- Speed number: ${speed_number}`));
@@ -88,7 +92,12 @@ imageColors
       if (back_style === 'Birdseye') {
         rows.push(carrier_passes); //?
       } else {
-        rows.push(carrier_passes.map((it) => it.filter((_) => true)).filter((sub) => sub.length)); ////?keep empty passes ?
+        carrier_passes = carrier_passes.map((it) => it.filter((_) => true)).filter((sub) => sub.length); ////?keep empty passes ?
+        if (carrier_passes.length === 1) {
+          carrier_passes.push([[]]);
+        }
+        rows.push(carrier_passes); //new
+        // rows.push(carrier_passes.map((it) => it.filter((_) => true)).filter((sub) => sub.length)); ////?keep empty passes ?
       }
       row = [];
       carrier_passes = [];
@@ -122,7 +131,15 @@ imageColors
         back_needles = [];
       }
       i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
-      carrier = jacquard_passes[i][0][1];
+      if (jacquard_passes[i][0].length > 0) {
+        // console.log(`jacquard_passes[i][0] = ${jacquard_passes[i][0]}`); //remove
+        carrier = jacquard_passes[i][0][1];
+      } else {
+        carrier = jacquard_passes[i - 1][0][1]; //new
+        if (carrier === undefined) carrier = jacquard_passes[i - 2][0][1]; //TODO: make this work for birds eye too
+        // if (carrier === undefined) carrier = carrier_track[carrier_track.length - 1].CARRIER;
+      }
+      // carrier = jacquard_passes[i][0][1];
       if (!carrier_track.some((el) => el.CARRIER === carrier)) {
         carrier_track.push(
           FINDMYCARRIER({
@@ -220,6 +237,10 @@ imageColors
       caston.push(`releasehook ${jacquard_passes[0][0][1]}`);
       knitout.unshift(caston);
     } else if (machine.includes('kniterate')) {
+      ////
+      for (let n = 1; n <= colors_arr[0].length; ++n) {}
+
+      ///
       caston = [...pos_caston, ...neg_caston]; //? //moved //so, if not less than 20, this section is length of real section
       let waste_stitches = 20;
       // let waste_stitches;
@@ -262,9 +283,19 @@ imageColors
         carrier = carriers_arr[i];
         color_carriers.push(carrier);
         let yarn_in = `in ${carrier}`;
-        let carrier_caston = kniterate_caston_base.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${carrier}`));
-        kniterate_caston.push(yarn_in, carrier_caston, carrier_caston); //new //? //twice so extra safe
-        // i === 0 ? kniterate_caston.push(yarn_in, carrier_caston, carrier_caston) : kniterate_caston.push(yarn_in, carrier_caston);
+        let pos_carrier_caston = [];
+        let neg_carrier_caston = [];
+        let b = 'f';
+        for (let n = Number(carrier); n <= colors_arr[0].length; n += carriers_arr.length) {
+          //TODO: check whether carriers_arr is the one we want (maybe wait for color_carriers?)
+          pos_carrier_caston.push(`knit + ${b}${n} ${carrier}`);
+          b === 'f' ? (b = 'b') : (b = 'f');
+          neg_carrier_caston.unshift(`knit - ${b}${n} ${carrier}`);
+        }
+        if (Number(carrier) !== 1) neg_carrier_caston.push(`miss - f1 ${carrier}`);
+        // let carrier_caston = kniterate_caston_base.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${carrier}`));
+        kniterate_caston.push(yarn_in, pos_carrier_caston, neg_carrier_caston, pos_carrier_caston, neg_carrier_caston, pos_carrier_caston, neg_carrier_caston); //new //? //3 times so extra safe
+        // kniterate_caston.push(yarn_in, carrier_caston, carrier_caston); //new //? //twice so extra safe
       }
       if (draw_thread === undefined) draw_thread = color_carriers[color_carriers.length - 1];
       kniterate_caston.push(`;kniterate yarns in`);
@@ -349,7 +380,7 @@ imageColors
   .then(() => {
     ////bindoff
     bindoff.push(`;bindoff section`);
-    bindoff.push(`x-stitch-number 4`); //TODO: make these based on stitch number
+    // bindoff.push(`x-stitch-number 4`); //TODO: make these based on stitch number //go back! //?
     let side, double_bed;
     let count = last_needle;
     knitout.some((el) => el.includes('knit') && el.includes(' b')) ? (double_bed = true) : (double_bed = false);
@@ -371,16 +402,20 @@ imageColors
           if (x === xfer_needle + count - 1) {
             break pos;
           }
-          bindoff.push(`x-add-roller-advance 200`); //new
+          // bindoff.push(`x-add-roller-advance 200`);
           bindoff.push(`xfer b${x} f${x}`);
           bindoff.push(`rack -1`);
           ///
-          bindoff.push(`x-add-roller-advance 100`); //new
+          // bindoff.push(`x-add-roller-advance 100`);
           bindoff.push(`xfer f${x} b${x + 1}`);
           bindoff.push(`rack 0`);
-          // if (x === xfer_needle + 7 || (x % 5 === 0 && x > xfer_needle + 7 && xfer_needle - x >= 5)) bindoff.push(`x-add-roller-advance -400`, `miss + b${x} ${bindoff_carrier}`); //should be after xfer f9 b8
-          // if (x === xfer_needle + count - 2) bindoff.push(`x-stitch-number 3`, `x-roller-advance 150`); //TODO: bring back if change st# to 2
+          if (x !== xfer_needle) {
+            bindoff.push(`x-add-roller-advance -50`); //new
+            bindoff.push(`drop b${x - 1}`); //newest
+          }
           bindoff.push(`knit + b${x + 1} ${bindoff_carrier}`);
+          if (x < xfer_needle + count - 2) bindoff.push(`tuck - b${x} ${bindoff_carrier}`); //new
+          if (x === xfer_needle) bindoff.push(`drop b${xfer_needle - 1}`); //new need to //check
         }
       }
     };
@@ -398,19 +433,23 @@ imageColors
           if (x === xfer_needle) {
             break neg;
           }
-          bindoff.push(`x-add-roller-advance 200`);
           bindoff.push(`xfer b${x} f${x}`);
           bindoff.push(`rack 1`);
-          bindoff.push(`x-add-roller-advance 100`);
           bindoff.push(`xfer f${x} b${x - 1}`);
           bindoff.push(`rack 0`);
-          // if (x === xfer_needle + count - 8 || (x % 5 === 0 && x < xfer_needle + count - 8 && x >= 5)) bindoff.push(`x-add-roller-advance -400`, `miss + b${x} ${bindoff_carrier}`); //new //should be after xfer f9 b8
-          // if (x === xfer_needle + 1) bindoff.push(`x-stitch-number 3`, `x-roller-advance 150`); //TODO: bring back if change st# to 2
+          if (x !== xfer_needle + count - 1) {
+            bindoff.push(`x-add-roller-advance -50`); //new
+            bindoff.push(`drop b${x + 1}`); //newest
+          }
           bindoff.push(`knit - b${x - 1} ${bindoff_carrier}`);
+          if (x > xfer_needle + 1) bindoff.push(`tuck + b${x} ${bindoff_carrier}`); //new
+          if (x === xfer_needle + count - 1) bindoff.push(`drop b${xfer_needle + count}`); //new need to //check
         }
       }
-    }; //if ended with pos loop dir = pos
+    };
+    // }; //if ended with pos loop dir = pos
     const bindoffTail = (last_needle, dir) => {
+      bindoff.push(`;tail`); //new
       let otherT_dir, miss1, miss2;
       dir === '+' ? ((otherT_dir = '-'), (miss1 = last_needle + 1), (miss2 = last_needle - 1)) : ((otherT_dir = '+'), (miss1 = last_needle - 1), (miss2 = last_needle + 1));
       bindoff.push(`x-roller-advance 200`);
@@ -420,51 +459,59 @@ imageColors
         bindoff.push(`miss ${otherT_dir} b${miss2} ${bindoff_carrier}`);
         bindoff.push(`knit ${dir} b${last_needle} ${bindoff_carrier}`);
         bindoff.push(`miss ${dir} b${miss1} ${bindoff_carrier}`);
-        if (i === 0) bindoff.push(`x-stitch-number 4`);
+        // if (i === 0) bindoff.push(`x-stitch-number 4`); //go back! //?
       }
       bindoff.push(`x-add-roller-advance 200`);
       bindoff.push(`drop b${last_needle}`);
     };
     ///////////////
-    //TODO: check left side out
     if (side === 'left') {
-      bindoff.push(`x-stitch-number 4`); //new
       posLoop('knit', 'f');
-      if (double_bed) negLoop('knit', 'b');
-      negLoop('xfer', 'f');
-      if (double_bed) posLoop('knit', 'b');
-      negLoop('knit', 'b');
-      bindoff.push(`x-stitch-number 3`); //new
+      if (double_bed) negLoop('knit', 'b'); //new
+      negLoop('xfer', 'f'); //new
+      bindoff.push(`x-roller-advance 50`); //new
+      bindoff.push(`x-add-roller-advance -50`); //remove //?
+      bindoff.push(`tuck - b${xfer_needle - 1} ${bindoff_carrier}`); //new //check //TODO: maybe make this tuck if miss doesn't work well
+      bindoff.push(`knit + b${xfer_needle} ${bindoff_carrier}`); //new
       posLoop('bind', null);
       bindoffTail(xfer_needle + count - 1, '+');
       /////////////////////////////
     } else if (side === 'right') {
-      bindoff.push(`x-stitch-number 4`); //new
       negLoop('knit', 'f');
-      if (double_bed) posLoop('knit', 'b');
-      negLoop('xfer', 'f');
-      if (double_bed) negLoop('knit', 'b');
-      posLoop('knit', 'b');
-      bindoff.push(`x-stitch-number 3`); //new
+      if (double_bed) posLoop('knit', 'b'); //new
+      posLoop('xfer', 'f'); //new
+      bindoff.push(`x-roller-advance 50`); //new
+      bindoff.push(`x-add-roller-advance -50`); //new
+      bindoff.push(`tuck + b${xfer_needle + count} ${bindoff_carrier}`); //new //check //TODO: maybe make this tuck if miss doesn't work well
+      bindoff.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`); //new
       negLoop('bind', null);
       bindoffTail(xfer_needle, '-');
     }
+    /////
     //TODO: add feature to pause & ask "all stitches dropped?" then miss pass with add-roller-advance 1000 or something (calculate how much is necessary based on how many rows)
     //TODO: add knitout extension to pause , along with message for
     knitout.push(bindoff);
     knitout = knitout.flat();
     let yarn_out;
-    machine.includes('kniterate') ? (yarn_out = 'out') : ((yarn_out = 'outhook'), color_carriers.push(jacquard_passes[0][0][1])); //last part = //new //?
+    machine.includes('kniterate') ? (yarn_out = 'out') : ((yarn_out = 'outhook'), color_carriers.push(jacquard_passes[0][0][1]));
+    let end_splice = knitout.indexOf(`;tail`); //new //TODO: actually, take them out before knitting tail so less juggling
     for (let i = 0; i <= color_carriers.length; ++i) {
       let carrier_search = knitout.map((el) => el.includes(` ${color_carriers[i]}`) && (el.includes(`knit`) || el.includes(`miss`)));
       let last = carrier_search.lastIndexOf(true);
       if (last !== -1) {
-        if (knitout[last].includes('-')) {
+        if (knitout[last].includes(' - ')) {
           knitout.splice(last + 1, 0, `${yarn_out} ${color_carriers[i]}`);
+          if (last + 1 < end_splice) ++end_splice; //new
         } else {
-          let out_spot = Number(knitout[last].split(' ')[2].slice(1)) + 6; //?
+          let out_spot = Number(knitout[last].split(' ')[2].slice(1)) + 6;
           knitout.splice(last + 1, 0, `miss + f${out_spot} ${color_carriers[i]}`); //new
-          knitout.push(`${yarn_out} ${color_carriers[i]}`); ////at the end
+          if (last + 1 < end_splice) ++end_splice; //new
+          if (color_carriers[i] !== bindoff_carrier) {
+            //new
+            knitout.splice(end_splice, 0, `${yarn_out} ${color_carriers[i]}`); //new
+          } else {
+            knitout.push(`${yarn_out} ${color_carriers[i]}`); ////at the end
+          }
         }
       }
     }

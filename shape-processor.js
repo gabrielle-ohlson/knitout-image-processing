@@ -210,10 +210,39 @@ if (fs.existsSync('INPUT_DATA.json')) {
   ///////
   let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],');
   txt_file = txt_file.join('\n').replace(/\]|,/g, '');
-  fs.writeFile('SHAPE-CODE.txt', txt_file, function (err) {
-    if (err) return console.log(err);
-    console.log(`WRITING 'SHAPE-CODE.txt' FILE IN WORKING DIRECTORY`);
-  });
+  if (!fs.existsSync('SHAPE-CODE.txt')) { //new
+    fs.writeFileSync('SHAPE-CODE.txt', txt_file, function (err) {
+      //new
+      // fs.writeFile('SHAPE-CODE.txt', txt_file, function (err) {
+      if (err) return console.log(err);
+      // console.log(`WRITING 'SHAPE-CODE.txt' FILE IN WORKING DIRECTORY`);
+    });
+  }
+  /////
+  let new_code = [];
+  let shape_code_txt = fs.readFileSync('./SHAPE-CODE.txt').toString().split('\n');
+  for (let y = 0; y < shape_code_txt.length; ++y) {
+    shape_code_txt[y] = shape_code_txt[y].split('');
+    let shape_row = [];
+    for (let x = 0; x < shape_code_txt[y].length; ++x) {
+      shape_row.push(Number(shape_code_txt[y][x]));
+    }
+    new_code.push(shape_row);
+    shape_row = [];
+  }
+  function arraysEqual(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; ++i) {
+      for (let x = 0; x < a[i].length; ++x) {
+        if (a[i][x] !== b[i][x]) return false;
+      }
+    }
+    return true;
+  }
+  if (!arraysEqual(new_code, shape_code)) {
+    shape_code = [...new_code];
+    shape_code_reverse = shape_code.reverse();
+  }
 } else {
   shape_code = null;
   short_row_section = null;
