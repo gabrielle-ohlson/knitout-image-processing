@@ -5,7 +5,7 @@ const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
 const imageColors = require('./image-color-quantize.js');
-let background, machine, palette, color_count, init_dir, other_dir;
+let background, machine, palette, color_count, init_dir, other_dir, draw_thread;
 let colors_arr = [];
 let knitout = [];
 let row = [];
@@ -113,7 +113,7 @@ imageColors
     let row_count = 1;
     knitout.push(`;row: ${row_count}`);
     let prev_row = 0;
-    let taken, inhook, neg_carrier, draw_thread, end_needle, dir_caston;
+    let taken, inhook, neg_carrier, end_needle, dir_caston;
     let back_needles = [];
     /////
     const ODD_CASTON = (x, dir, dir_caston) => {
@@ -123,7 +123,9 @@ imageColors
       x % 2 === 0 ? dir_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : dir_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
     };
     //////
+    // let single_color;
     for (let i = 0; i < jacquard_passes.length; ++i) {
+      let single_color = false;
       if (i === prev_row + passes_per_row[row_count - 1]) {
         row_count += 1;
         knitout.push(`;row: ${row_count}`);
@@ -132,9 +134,11 @@ imageColors
       }
       i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
       if (jacquard_passes[i][0].length > 0) {
+        // single_color = false;
         // console.log(`jacquard_passes[i][0] = ${jacquard_passes[i][0]}`); //remove
         carrier = jacquard_passes[i][0][1];
       } else {
+        single_color = true;
         carrier = jacquard_passes[i - 1][0][1]; //new
         if (carrier === undefined) carrier = jacquard_passes[i - 2][0][1]; //TODO: make this work for birds eye too
         // if (carrier === undefined) carrier = carrier_track[carrier_track.length - 1].CARRIER;
@@ -170,30 +174,35 @@ imageColors
         } else {
           taken = false;
         }
-        if (i % 2 === 0 && !taken) {
-          if (x % 2 !== 0) {
-            knitout.push(`knit ${dir} b${x} ${carrier}`);
-            back_needles.push(x);
-          } else {
-            let missing_needles = even_bird.filter((x) => back_needles.indexOf(x) === -1);
-            if (missing_needles.length > 0 && i === prev_row + passes_per_row[row_count - 1] - 1) {
+        if (single_color) {
+          knitout.push(`knit ${dir} b${x} ${carrier}`);
+          back_needles.push(x); //check //remove //? or keep?
+        } else {
+          if (i % 2 === 0 && !taken) {
+            if (x % 2 !== 0) {
               knitout.push(`knit ${dir} b${x} ${carrier}`);
-            }
-          } //?
-        }
-        if (i % 2 !== 0 && !taken) {
-          if (x % 2 === 0) {
-            knitout.push(`knit ${dir} b${x} ${carrier}`);
-            back_needles.push(x);
-          } else {
-            let missing_needles = odd_bird.filter((x) => back_needles.indexOf(x) === -1);
-            if (missing_needles.length > 0 && i === prev_row + passes_per_row[row_count - 1] - 1) {
+              back_needles.push(x);
+            } else {
+              let missing_needles = even_bird.filter((x) => back_needles.indexOf(x) === -1);
+              if (missing_needles.length > 0 && i === prev_row + passes_per_row[row_count - 1] - 1) {
+                knitout.push(`knit ${dir} b${x} ${carrier}`);
+              }
+            } //?
+          }
+          if (i % 2 !== 0 && !taken) {
+            if (x % 2 === 0) {
               knitout.push(`knit ${dir} b${x} ${carrier}`);
+              back_needles.push(x);
+            } else {
+              let missing_needles = odd_bird.filter((x) => back_needles.indexOf(x) === -1);
+              if (missing_needles.length > 0 && i === prev_row + passes_per_row[row_count - 1] - 1) {
+                knitout.push(`knit ${dir} b${x} ${carrier}`);
+              }
             }
           }
-        }
-        if (x === end_needle && !taken && !knitout[knitout.length - 1].includes(`b${end_needle}`)) {
-          knitout.push(`miss ${dir} f${x} ${carrier}`);
+          if (x === end_needle && !taken && !knitout[knitout.length - 1].includes(`b${end_needle}`)) {
+            knitout.push(`miss ${dir} f${x} ${carrier}`);
+          }
         }
         if (inhook && x === last) {
           knitout.push(`releasehook ${carrier}`);
@@ -268,7 +277,7 @@ imageColors
         // }
       }
       /////
-      let kniterate_caston_base = [...pos_caston, ...neg_caston];
+      // let kniterate_caston_base = [...pos_caston, ...neg_caston];
       //////
       let kniterate_caston = [];
       colors: for (let i = 0; i <= color_count; ++i) {
@@ -294,8 +303,13 @@ imageColors
         }
         if (Number(carrier) !== 1) neg_carrier_caston.push(`miss - f1 ${carrier}`);
         // let carrier_caston = kniterate_caston_base.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${carrier}`));
-        kniterate_caston.push(yarn_in, pos_carrier_caston, neg_carrier_caston, pos_carrier_caston, neg_carrier_caston, pos_carrier_caston, neg_carrier_caston); //new //? //3 times so extra safe
-        // kniterate_caston.push(yarn_in, carrier_caston, carrier_caston); //new //? //twice so extra safe
+        let caston_count;
+        colors_arr[0].length < 40 ? (caston_count = 3) : (caston_count = 2); //new //check
+        kniterate_caston.push(yarn_in);
+        for (let p = 0; p < caston_count; ++p) {
+          kniterate_caston.push(pos_carrier_caston, neg_carrier_caston);
+        } //new //check
+        // kniterate_caston.push(yarn_in, pos_carrier_caston, neg_carrier_caston, pos_carrier_caston, neg_carrier_caston, pos_carrier_caston, neg_carrier_caston); //go back! //?
       }
       if (draw_thread === undefined) draw_thread = color_carriers[color_carriers.length - 1];
       kniterate_caston.push(`;kniterate yarns in`);
@@ -506,7 +520,7 @@ imageColors
           let out_spot = Number(knitout[last].split(' ')[2].slice(1)) + 6;
           knitout.splice(last + 1, 0, `miss + f${out_spot} ${color_carriers[i]}`); //new
           if (last + 1 < end_splice) ++end_splice; //new
-          if (color_carriers[i] !== bindoff_carrier) {
+          if (color_carriers[i] != bindoff_carrier) {
             //new
             knitout.splice(end_splice, 0, `${yarn_out} ${color_carriers[i]}`); //new
           } else {
@@ -515,6 +529,7 @@ imageColors
         }
       }
     }
+    if (!color_carriers.includes(draw_thread)) knitout.splice(end_splice, 0, `${yarn_out} ${draw_thread}`); //new //TODO: maybe add something to check whether it is the bindoff carrier? add what the direction is?
   })
   //////
   .finally(() => {

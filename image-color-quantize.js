@@ -34,12 +34,26 @@ let max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would 
 });
 max_colors = Number(max_colors);
 console.log(chalk.green(`-- Knitting with ${max_colors} colors.`));
+//QUESTIONS:
+//minHueColors: Are there low-occuring colors you'd like to preserve? (Y: max_colors; N: 0)
+//dithKern: Would you like to use dithering? (Y: ?; N: null)
+let dithering = readlineSync.keyInYNStrict(
+  chalk`{blue.bold \nWould you like to use dithering?} {blue.italic (dithering is recommended for detailed/naturalistic images, but not for graphics/digital artwork.)}`
+);
+dithering === true ? (dithering = 'Stucki') : (dithering = null);
 
 let opts = {
   colors: max_colors,
   method: 2,
+  // method: 1,
   //TODO: method: 1, //2 seems overall better, but could be good to test on more images
-  minHueCols: 0, //TODO: test this more too
+  // minHueCols: 0, //TODO: test this more too
+  minHueCols: max_colors, //TODO: test this more too
+  // dithKern: null, //new
+  // dithKern: 'Stucki', //new
+  dithKern: dithering, //new
+  //FloydSteinberg(-/+), Stucki(++), Atkinson(-), Jarvis(+?), null
+  // dithDelta: 1, //new
 };
 
 function getData() {
@@ -65,11 +79,6 @@ function getData() {
       for (let h = 1; h <= colors_data.length; ++h) {
         colors_data[h - 1] = `x-vis-color #${colors_data[h - 1]} ${h}`;
       }
-      // let colors_data_str = JSON.stringify(colors_data)
-      //   .replace(/\[|\]|"/gi, '')
-      //   .split(',')
-      //   .join('\n');
-      // fs.writeFileSync('COLORS_DATA.txt', colors_data_str);
       /////
       reduced = q.reduce(data, 2); ////indexed array
       let motif_path = `./out-colorwork-images/knit_motif.png`;

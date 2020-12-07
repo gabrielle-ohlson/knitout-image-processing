@@ -205,7 +205,8 @@ if (fs.existsSync('INPUT_DATA.json')) {
   first_short_row = shape_code_reverse.length - 1 - splice_arr[splice_arr.length - 1];
   last_short_row = shape_code_reverse.length - 1 - splice_arr[0];
   // console.log(shape_code_reverse); //remove
-  // console.log(first_short_row); //remove
+  // console.log(splice_arr); //remove
+  // console.log(`first_short_row = ${first_short_row}`); //remove
   // console.log(last_short_row); //remove
   ///////
   let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],');
