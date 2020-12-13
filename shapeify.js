@@ -48,7 +48,6 @@ const PATTERN = ({ IDX, PATTERN }) => ({
 let increasing = false; //new
 // let pieces_arr;
 if (shape_code === null) {
-  console.log(null); //remove
   Template = require('./shape-templates');
   piece_code1 = Object.values(Template.piece_obj1);
   piece_shortrow_codeL = Object.values(Template.piece_shortrow_objL);
@@ -234,7 +233,6 @@ function shapingDetection(i, left_px1, shape_left_dec, shape_left_inc, shape_kni
 if (shape_code_reverse !== null) {
   shapeInfo(shape_code_reverse, shaping_arr); //main body
   if (shaping_arr.length === 0) {
-    console.log(`no shaping in main body, just short rowing`); //new //remove //?
     shaping_arr.push(
       //new
       SHAPING({
@@ -270,7 +268,7 @@ if (shape_code_reverse !== null) {
 // console.log(left_shortrow_arr); //remove
 // console.log(right_shortrow_arr); //remove
 // console.log(shortrow_bindoff); //remove
-console.log(`first short row: ${first_short_row}`); //remove
+// console.log(`first short row: ${first_short_row}`); //remove
 // console.log(`last short row: ${last_short_row}`); //remove
 // console.log(shaping_arr[shaping_arr.length - 1].ROW); //remove
 
@@ -430,7 +428,7 @@ if (short_row_carriers.length < 3 && short_row_section && !sinkers) {
   );
   errors = true;
 }
-console.log(short_row_carriers, carriers); //FIXME: //remove
+// console.log(short_row_carriers, carriers); //FIXME: //remove
 
 //-------------------------------------------------------------------------------------
 //***SHIFT CAST-ON SECTION OVER IF NECESSARY/ADD IN SHORTROW YARN CARRIERS IF NECESSARY
@@ -1405,6 +1403,7 @@ function insertXferPasses(left, right, xtype) {
   side === 'both' ? (side1 = 'left') : (side1 = side);
   if (double_bed) {
     if (xtype === 'dec') {
+      // if (!insertRl8r && !insertLl8r) xfer_section.push(`;dec ${stitches1} on ${side1}`);
       xfer_section.push(`;dec ${stitches1} on ${side1}`);
       if (stitches1 === 1) {
         dec1DoubleBed(xfer_needle1, side1);
@@ -1413,12 +1412,16 @@ function insertXferPasses(left, right, xtype) {
       } else {
         side === 'right' ? (bindoff_carrier = right_bindC) : (bindoff_carrier = left_bindC);
         if ((side === 'right' && insertRl8r) || (side !== 'right' && insertLl8r)) {
+          insertl8r_arr.push(`x-speed-number ${xfer_speed_number}`); //new
+          insertl8r_arr.push(xfer_section.pop()); //new
           BINDOFF(xfer_needle1, stitches1, side1, true, insertl8r_arr);
+          insertl8r_arr.push(`x-speed-number ${speed_number}`); //new
         } else {
           BINDOFF(xfer_needle1, stitches1, side1, true, xfer_section);
         }
       }
       if (side === 'both') {
+        // if (!insertRl8r) xfer_section.push(`;dec ${stitches2} on right`);
         xfer_section.push(`;dec ${stitches2} on right`);
         if (stitches2 === 1) {
           dec1DoubleBed(xfer_needle2, 'right');
@@ -1427,7 +1430,10 @@ function insertXferPasses(left, right, xtype) {
         } else {
           bindoff_carrier = right_bindC;
           if (insertRl8r) {
+            insertl8r_arr.push(`x-speed-number ${xfer_speed_number}`); //new
+            insertl8r_arr.push(xfer_section.pop()); //new
             BINDOFF(xfer_needle2, stitches2, 'right', true, insertl8r_arr);
+            insertl8r_arr.push(`x-speed-number ${speed_number}`); //new
           } else {
             BINDOFF(xfer_needle2, stitches2, 'right', true, xfer_section);
           }
@@ -1703,7 +1709,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
                 rows[i][p][0].charAt(rows[i][p][0].length - 1) === short_row_carriers[new_carriers.indexOf(back_passLpos[c][1])])
             ) {
               shaped_rows.push(`;back pass`); //remove
-              console.log(`;back pass!`); //remove
+              // console.log(`;back pass!`); //remove
               let mod = 4;
               if (back_passLpos[c][2] === 1) mod = 5;
               if (back_passLpos[c][2] === 2) mod = 3;
@@ -1814,13 +1820,13 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
         //////
         // shaped_rows.push(cookie);
         if (p === 0 && insertl8r_arr.length > 0) {
-          console.log(insertl8r_arr); //remove
+          // console.log(insertl8r_arr); //remove
           if (insertLl8r) {
             cookieCutter(Xleft_needle - left_xfer_count, Xright_needle, new_carriers, p);
-            console.log(cookie); //remove
+            // console.log(cookie); //remove
           } else if (insertRl8r) {
             cookieCutter(Xleft_needle, Xright_needle + right_xfer_count, new_carriers, p);
-            console.log(cookie); //remove
+            // console.log(cookie); //remove
           }
           //new
           shaped_rows.push(cookie, insertl8r_arr);
@@ -1884,7 +1890,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
                 rows[i][p][0].charAt(rows[i][p][0].length - 1) === new_carriers[short_row_carriers.indexOf(back_passRneg[c][1])])
             ) {
               insert_arr.push(`;back pass`); //remove
-              console.log(`;back pass!`); //remove
+              // console.log(`;back pass!`); //remove
               let mod = 3;
               if (back_passRneg[c][2] === 1) mod = 5;
               if (back_passRneg[c][2] === 2) mod = 4;
@@ -1992,10 +1998,10 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
         // insert_arr.push(cookie);
         if (p === 0 && insertl8r_arr.length > 0) {
           if (insertLl8r) {
-            console.log(cookie); //remove
+            // console.log(cookie); //remove
             cookieCutter(short_Xleft_needle - left_xfer_count, short_Xright_needle, short_row_carriers, p);
           } else if (insertRl8r) {
-            console.log(cookie); //remove
+            // console.log(cookie); //remove
             cookieCutter(short_Xleft_needle, short_Xright_needle + right_xfer_count, short_row_carriers, p);
           }
           //new
@@ -2033,7 +2039,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       }
       let bindoff_pass;
       let bind_chosen = false; //new
-      console.log(final_carrier_pos); //FIXME: //remove
+      // console.log(final_carrier_pos); //FIXME: //remove
       bindoffC: for (let p = rows[first_short_row - 1].length - 1; p >= 0; --p) {
         // if (rows[first_short_row - 1][p].some((el) => el.includes(` - `))
         if (rows[first_short_row - 1][p].some((el) => el.includes(` - `)) && !bind_chosen) {
@@ -2055,7 +2061,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
           //   'right'; //new //go back! //?
         }
       }
-      console.log(final_carrier_pos); //FIXME: //remove
+      // console.log(final_carrier_pos); //FIXME: //remove
       // for (let p = 0; p < rows[first_short_row - 1].length; ++p) {
       //   // if (rows[first_short_row - 1][p].some((el) => el.includes(` - `))
       //   if (rows[first_short_row - 1][p].some((el) => el.includes(` - `))) {
@@ -2118,7 +2124,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
         // } else {
         //   xtra_carriers.push(draw_thread); //new
       }
-      console.log('carriers are:', new_carriers, short_row_carriers); //FIXME: //remove
+      // console.log('carriers are:', new_carriers, short_row_carriers); //FIXME: //remove
       // if (!carriers.includes(draw_thread) && !new_carriers.includes(draw_thread)) {
       //   // if (!new_carriers.includes(draw_thread)) {
       //   //go back! //?
@@ -2155,14 +2161,14 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
         short_row_carriers = short_row_carriers.flat();
       }
       /////new
-      console.log(`new_carriers: ${new_carriers}, short_row_carriers: ${short_row_carriers}`); //FIXME: //remove
+      // console.log(`new_carriers: ${new_carriers}, short_row_carriers: ${short_row_carriers}`); //FIXME: //remove
       if (short_row_carriers.length > 3) {
         //new //come back!
         let splice_start = 6 - short_row_carriers.length;
         short_row_carriers.splice(splice_start, short_row_carriers.length - splice_start);
         new_carriers.splice(splice_start, new_carriers.length - splice_start);
       }
-      console.log(`new_carriers: ${new_carriers}, short_row_carriers: ${short_row_carriers}`); //FIXME: //remove
+      // console.log(`new_carriers: ${new_carriers}, short_row_carriers: ${short_row_carriers}`); //FIXME: //remove
       //////
       // let all_carriers = [...short_row_carriers, ...new_carriers];
       // console.log(all_carriers); //remove
@@ -2180,7 +2186,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
           xtra_yarn.push(short_row_carriers[c]); //here
         }
       }
-      console.log(`xtra_yarn: ${xtra_yarn}`); //FIXME: //remove
+      // console.log(`xtra_yarn: ${xtra_yarn}`); //FIXME: //remove
       /////////moved
       // let bp_count = 3; //new
       // let bp_carriers = [];
@@ -2226,7 +2232,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       let bp_count = 3; //new
       for (let c = 0; c < final_carrier_pos.length; ++c) {
         if (new_carriers.includes(final_carrier_pos[c].CARRIER) && final_carrier_pos[c].SIDE === 'right') {
-          console.log(`bp! new carriers`); //FIXME: //remove
+          // console.log(`bp! new carriers`); //FIXME: //remove
           shaped_rows.push(`;backpass`); //new
           for (let n = Xright_needle; n >= Xleft_needle; --n) {
             if (n === Xright_needle || n === Xleft_needle) {
@@ -2237,7 +2243,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
           }
           ++bp_count;
         } else if (short_row_carriers.includes(final_carrier_pos[c].CARRIER) && final_carrier_pos[c].SIDE === 'left') {
-          console.log(`bp! short row carriers`); //FIXME: //remove
+          // console.log(`bp! short row carriers`); //FIXME: //remove
           shaped_rows.push(`;backpass`); //new
           for (let n = Xleft_needle; n <= Xright_needle; ++n) {
             if (n === Xleft_needle || n === Xright_needle) {
@@ -2258,8 +2264,10 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       cookieCutter(short_Xleft_needle, short_Xright_needle, carriers);
       shaped_rows.push(cookie);
       bindoff_carrier = cookie[cookie.length - 1].charAt(cookie[cookie.length - 1].length - 1);
+      xfer_section.push(`x-speed-number ${xfer_speed_number}`); //new
       xfer_section.push(`x-roller-advance 50`);
       BINDOFF(short_Xleft_needle - 1, short_Xleft_needle - Xright_needle - 1, 'right', double_bed, xfer_section);
+      xfer_section.push(`x-speed-number ${speed_number}`);
       shaped_rows.push(xfer_section);
       xfer_section = [];
       cookie = rows[first_short_row - 1][bindoff_pass];
@@ -2346,9 +2354,9 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       //     }
       //   }
       // }
-      console.log(`left_carriers = ${left_carriers}`); //FIXME: //remove
-      console.log(`right_carriers = ${right_carriers}`); //FIXME: //remove
-      console.log(back_passRneg); //remove
+      // console.log(`left_carriers = ${left_carriers}`); //FIXME: //remove
+      // console.log(`right_carriers = ${right_carriers}`); //FIXME: //remove
+      // console.log(back_passRneg); //remove
       // console.log(back_passLpos); //remove
       //////////////////////
       // left_carriers = [...new Set(left_carriers)];
@@ -2411,7 +2419,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
           redefine_carriers.push([short_row_carriers[c], new_carriers[c]]);
         }
       }
-      console.log(redefine_carriers); //remove
+      // console.log(redefine_carriers); //remove
       ///////
       /////
       if (rows[first_short_row - 1][rows[first_short_row - 1].length - 1] !== rows[first_short_row - 1][bindoff_pass]) {
@@ -2527,7 +2535,7 @@ if (short_row_section && short_row_carriers.includes(bindoff_carrier)) {
 }
 bindoff_time = true;
 xfer_section.push(`;bindoff section`);
-xfer_section.push(`x-speed-number 100`);
+xfer_section.push(`x-speed-number 100`, `x-roller-advance 100`); //new x=roller-advance
 // xfer_section.push(`x-speed-number ${xfer_speed_number}`); //new //temporary //remove
 BINDOFF(Bxfer_needle, bindoff_count, bindoff_side, double_bed, xfer_section);
 bindoff.push(xfer_section);
@@ -2584,7 +2592,7 @@ let curr_carrier, spot, spot_dir, carrier_idx, end_needle, end_dir;
 // let spot, right;
 // let trackN = false;
 if (increasing) {
-  //remove
+  //remove //TODO: finish this!!!!
   inc_miss: for (let i = shaped_rows.indexOf(';bindoff section'); i >= 0; --i) {
     // inc_miss: for (let i = shaped_rows.length - 1; i >= 0; --i) {
     let op_arr = shaped_rows[i].split(' ');
@@ -2615,7 +2623,7 @@ if (increasing) {
     // } else {
     if (prev_op_arr === undefined) {
       prev_op_arr = [...op_arr]; //new
-      console.log(`prev_op_arr = ${prev_op_arr}`); //remove
+      // console.log(`prev_op_arr = ${prev_op_arr}`); //remove
     }
     find_next: for (let o = i - 1; o >= 0; --o) {
       if (o < 0) break inc_miss; //new
@@ -2651,7 +2659,7 @@ if (increasing) {
           }
           if (temp_next === undefined) break inc_miss; //new
           // }
-          console.log(`temp_curr = ${temp_curr}, ${shaped_rows[o]}`); //remove
+          // console.log(`temp_curr = ${temp_curr}, ${shaped_rows[o]}`); //remove
           if (temp_curr[1] === temp_next[1]) {
             spotDirLine = temp_curr; //remove
             spot_dir = temp_curr[1]; //new //fixed
@@ -3060,10 +3068,10 @@ if (!errors && !shape_error) {
     );
   } else {
     console.log(chalk.red.bgWhite.bold(`\nErrors found--unable to write file. Please refer to console log for details.`));
-    fs.writeFile(`./knit-out-files/${new_file}`, final_file, function (err) {
-      //remove
-      if (err) return console.log(err);
-      console.log(chalk.green(`\nThe knitout file has successfully been altered and saved. The path to the new file is: ${new_file}`));
-    }); //remove
+    // fs.writeFile(`./knit-out-files/${new_file}`, final_file, function (err) {
+    //   //remove
+    //   if (err) return console.log(err);
+    //   console.log(chalk.green(`\nThe knitout file has successfully been altered and saved. The path to the new file is: ${new_file}`));
+    // }); //remove
   }
 }

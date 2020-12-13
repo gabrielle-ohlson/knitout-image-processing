@@ -39,6 +39,12 @@ const OP = ({ TYPE, DIR, NEEDLE, CARRIER }) => ({
   NEEDLE,
   CARRIER,
 });
+
+let header = [];//new
+for (let i = 0; i < in_file.findIndex(el => el.includes('x-vis-color')); ++i) { //new
+  header.push(in_file.shift());
+}
+
 pass_loop: for (let i = 0; i < in_file.length; ++i) {
   if (in_file[i].includes('x-vis-color') && !carriers.includes(in_file[i].charAt(in_file[i].length - 1))) {
     carriers.push(in_file[i].charAt(in_file[i].length - 1));
@@ -139,7 +145,7 @@ pass_loop: for (let i = 0; i < in_file.length; ++i) {
         if (in_file[i + 1] === ';tail') tail = true;
       }
       if (dec_bind) {
-        console.log(pass);
+        // console.log(pass);
         dec_bind = bindoff = tuck_time = false; //new
       }
     }
@@ -197,7 +203,7 @@ pass_loop: for (let i = 0; i < in_file.length; ++i) {
     }
   }
 }
-console.log(`carriers = ${carriers}`);
+console.log(`carriers = ${carriers}`); //remove
 
 let carrier_track = [];
 const FINDMYCARRIER = ({ PASS, CARRIER, DIR }) => ({
@@ -232,7 +238,7 @@ check: for (let i = 0; i < passes.length; ++i) {
       let carrier_idx = carrier_track.findIndex((el) => el.CARRIER === carriers[c]);
       let dir = op_arr[1];
       if (carrier_idx === -1) {
-        console.log(passes[i][0].split(' ')[1]); //remove
+        // console.log(passes[i][0].split(' ')[1]); //remove
         carrier_track.push(
           FINDMYCARRIER({
             PASS: passes[i][0].split(' ')[1],
@@ -286,6 +292,7 @@ check: for (let i = 0; i < passes.length; ++i) {
   }
 }
 
+passes.unshift(header); //new
 let out_file = passes.flat();
 
 out_file = JSON.stringify(out_file).replace(/"/gi, '').replace(/\[|\]/gi, '').split(',');

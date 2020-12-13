@@ -42,6 +42,28 @@ let dithering = readlineSync.keyInYNStrict(
 );
 dithering === true ? (dithering = 'Stucki') : (dithering = null);
 
+/////
+const hexToRGB = (hex) => {
+  let alpha = false,
+    h = hex.slice(hex.startsWith('#') ? 1 : 0);
+  if (h.length === 3) h = [...h].map((x) => x + x).join('');
+  else if (h.length === 8) alpha = true;
+  h = parseInt(h, 16);
+  return [
+    Number((alpha ? a : '') + (h >>> (alpha ? 24 : 16))),
+    Number((h & (alpha ? 0x00ff0000 : 0x00ff00)) >>> (alpha ? 16 : 8)),
+    Number(((h & (alpha ? 0x0000ff00 : 0x0000ff)) >>> (alpha ? 8 : 0)) + (alpha ? h & 0x000000ff : '')),
+  ];
+};
+let palette_opt = []; //new
+if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use a predefined palette?}`)) {
+  for (let i = 1; i <= max_colors; ++i) {
+    let hex = readlineSync.question(chalk.blue.bold(`\nEnter hex-code for color #${i}: `));
+    palette_opt.push(hexToRGB(hex));
+  }
+}
+console.log(palette_opt); //remove
+
 let opts = {
   colors: max_colors,
   method: 2,
@@ -54,7 +76,21 @@ let opts = {
   dithKern: dithering, //new
   //FloydSteinberg(-/+), Stucki(++), Atkinson(-), Jarvis(+?), null
   // dithDelta: 1, //new
+  // palette: [
+  //   [0, 0, 0],
+  //   [254, 210, 8],
+  //   [123, 51, 28],
+  //   [182, 172, 212],
+  //   [52, 54, 149],
+  //   [123, 28, 45],
+  // ], //remove
 };
+
+if (palette_opt.length > 0) {
+  opts.palette = palette_opt;
+}
+
+console.log(opts); //remove
 
 function getData() {
   const processImage = new Promise((resolve) => {
