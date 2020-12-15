@@ -25,7 +25,8 @@ let bindoff = [];
 let last_pass_dir, xfer_needle, last_needle, bindoff_carrier;
 let colors_data = [];
 
-let carrier_track = [];
+let carrier_track = [],
+  initial_carriers = [];
 const FINDMYCARRIER = ({ CARRIER, DIR }) => ({
   CARRIER,
   DIR,
@@ -51,14 +52,19 @@ let speed_number = readlineSync.question(
 );
 speed_number === '-1' ? console.log(chalk.green(`-- Speed number: UNSPECIFIED`)) : console.log(chalk.green(`-- Speed number: ${speed_number}`));
 
-let back_style = ['Default', 'Birdseye', 'Ladderback', 'New'],
-  style = readlineSync.keyInSelect(back_style, chalk.blue.bold(`^What style back would you like to use?`));
+// let back_style = ['Default', 'Birdseye', 'Ladderback', 'New'],
+let back_style = ['Default', 'Birdseye', 'Minimal'],
+  style = readlineSync.keyInSelect(
+    back_style,
+    chalk`{blue.bold ^What style back would you like to use?} {blue.italic \n('}{blue.bold Birdseye}{blue.italic ' is not recommended for pieces that use more than 3 colors due to the build up of extra rows the method creates on the back bed.\nAlternatively, '}{blue.bold Minimal}{blue.italic ' creates a reasonably even ratio of front to back rows, resulting in the least amount of build up on the back.\n'}{blue.bold Default}{blue.italic ' is an in-between option that is similar to Birdseye, but more suitable for pieces containing up to 5 colors.)}`
+  );
 console.log(chalk.green('-- Back style: ' + back_style[style]));
 back_style = back_style[style];
-//TODO: add option for REAL birdseye (aka half rack etc) as well as ladderback birdseye
-//TODO: clean this up
 
-let reverse = readlineSync.keyInYNStrict('Would you like to reverse?'); //temporary //TODO: remove this or clean it up
+let reverse;
+back_style === 'Minimal' ? (reverse = false) : (reverse = true);
+// let reverse = readlineSync.keyInYNStrict('Would you like to reverse?'); //temporary
+
 imageColors
   .getData()
   .then((result) => {
@@ -125,7 +131,8 @@ imageColors
     ////new
     if (passes_per_row[row_count - 1] >= 5) {
       //// -1 since starting from 1 not 0 for row count
-      knitout.push(`x-roller-advance 80`); //new
+      knitout.push(`x-roller-advance 0`); //new
+      // knitout.push(`x-roller-advance 80`); //new
       // passes_per_row[row_count - 1] === 5 ? knitout.push(`x-roller-advance 80`) : knitout.push(`x-roller-advance 50`); //new
     }
     ///
@@ -140,7 +147,6 @@ imageColors
       x % 2 === 0 ? dir_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : dir_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
     };
     //////
-    // let single_color;
     for (let i = 0; i < jacquard_passes.length; ++i) {
       let single_color = false;
       if (i === prev_row + passes_per_row[row_count - 1]) {
@@ -199,6 +205,33 @@ imageColors
             DIR: dir,
           })
         );
+        ////new
+        initial_carriers.push(
+          FINDMYCARRIER({
+            CARRIER: carrier,
+            DIR: dir,
+          })
+        );
+        // if (dir === '-' && carrier !== draw_thread && carrier !== jacquard_passes[0][0][1]) {
+        //   //check
+        //   let last_knit;
+        //   let pos_pass = []; //new
+        //   let stop = false;
+        //   xtra: for (let z = knitout.indexOf(`in ${carrier}`) + 1; z < knitout.indexOf(`;kniterate yarns in`); ++z) {
+        //     if (!stop && knitout[z].includes(` + `)) {
+        //       //new
+        //       pos_pass.push(knitout[z]);
+        //     } else {
+        //       stop = true;
+        //     }
+        //     if (knitout[z].charAt(knitout[z].length - 1) === `${carrier}`) {
+        //       last_knit = z;
+        //     } else {
+        //       break xtra;
+        //     }
+        //   }
+        //   knitout.splice(last_knit + 1, 0, pos_pass).flat(); //new
+        // }
       } else {
         let previous = carrier_track.find((obj) => obj.CARRIER === carrier);
         let prev_idx = carrier_track.findIndex((obj) => obj.CARRIER === carrier);
@@ -271,7 +304,7 @@ imageColors
                 }
               }
             }
-          } else if (back_style === 'New') {
+          } else if (back_style === 'Minimal') {
             //new (obviously lmao)
             // if (x === 1) leftovers = []; //new
             if ((dir === '+' && x === 1) || (dir === '-' && x === colors_arr[0].length)) {
@@ -369,8 +402,14 @@ imageColors
               ? ((neg_carrier = carrier), EVEN_CASTON(x, dir, neg_caston))
               : ODD_CASTON(x, dir, neg_caston);
           }
-          if (machine.includes('kniterate') && carrier !== neg_carrier && draw_thread === undefined && !knitout.some((el) => el.includes(`knit`) && el.includes(` ${carrier}`))) {
-            draw_thread = carrier;
+          if (draw_thread === undefined) {
+            if (
+              machine.includes('kniterate') &&
+              carrier !== neg_carrier &&
+              !knitout.some((el) => el.includes(`knit`) && el.includes(` ${carrier}`)) //go back! //?
+            ) {
+              draw_thread = carrier;
+            }
           }
         }
       }
@@ -390,20 +429,9 @@ imageColors
       caston.push(`releasehook ${jacquard_passes[0][0][1]}`);
       knitout.unshift(caston);
     } else if (machine.includes('kniterate')) {
-      ////
-      for (let n = 1; n <= colors_arr[0].length; ++n) {}
-
       ///
       caston = [...pos_caston, ...neg_caston]; //? //moved //so, if not less than 20, this section is length of real section
       let waste_stitches = 20;
-      // let waste_stitches;
-      // if (colors_arr[0].length >= 20) {
-      //   waste_stitches = 20;
-      // } else {
-      //   waste_stitches = colors_arr[0].length; //new //?
-      //   // waste_stitches = Math.ceil(0.6 * colors_arr[0].length);
-      //   // if (waste_stitches < 5) waste_stitches = colors_arr[0].length;
-      // }
       for (let w = colors_arr[0].length; w > waste_stitches; --w) {
         pos_caston = pos_caston.filter((el) => !el.includes(`f${w}`) && !el.includes(`b${w}`));
         neg_caston = neg_caston.filter((el) => !el.includes(`f${w}`) && !el.includes(`b${w}`));
@@ -421,8 +449,26 @@ imageColors
         // }
       }
       /////
-      // let kniterate_caston_base = [...pos_caston, ...neg_caston];
-      //////
+      // if (dir === '-' && carrier !== draw_thread && carrier !== jacquard_passes[0][0][1]) {
+      //   //check
+      //   let last_knit;
+      //   let pos_pass = []; //new
+      //   let stop = false;
+      //   xtra: for (let z = knitout.indexOf(`in ${carrier}`) + 1; z < knitout.indexOf(`;kniterate yarns in`); ++z) {
+      //     if (!stop && knitout[z].includes(` + `)) {
+      //       //new
+      //       pos_pass.push(knitout[z]);
+      //     } else {
+      //       stop = true;
+      //     }
+      //     if (knitout[z].charAt(knitout[z].length - 1) === `${carrier}`) {
+      //       last_knit = z;
+      //     } else {
+      //       break xtra;
+      //     }
+      //   }
+      //   knitout.splice(last_knit + 1, 0, pos_pass).flat(); //new
+      // }
       let kniterate_caston = [];
       colors: for (let i = 0; i <= color_count; ++i) {
         //// <= because add extra one for draw thread
@@ -431,6 +477,7 @@ imageColors
           break colors;
         }
         if (i === 6) {
+          ////bc if all carriers in use, definitely don't have extra carrier for drawthread
           break colors;
         }
         carrier = carriers_arr[i];
@@ -440,22 +487,36 @@ imageColors
         let neg_carrier_caston = [];
         let b = 'f';
         for (let n = Number(carrier); n <= colors_arr[0].length; n += carriers_arr.length) {
-          //TODO: check whether carriers_arr is the one we want (maybe wait for color_carriers?)
           pos_carrier_caston.push(`knit + ${b}${n} ${carrier}`);
           b === 'f' ? (b = 'b') : (b = 'f');
           neg_carrier_caston.unshift(`knit - ${b}${n} ${carrier}`);
         }
         if (Number(carrier) !== 1) neg_carrier_caston.push(`miss - f1 ${carrier}`);
-        // let carrier_caston = kniterate_caston_base.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${carrier}`));
+        ////
         let caston_count;
         colors_arr[0].length < 40 ? (caston_count = 3) : (caston_count = 2); //new //check
         kniterate_caston.push(yarn_in); //TODO: add extra pos pass for carriers that start in neg direction, so don't need to worry about back pass (make sure this doesn't impact waste yarn & draw thread carriers tho)
         for (let p = 0; p < caston_count; ++p) {
           kniterate_caston.push(pos_carrier_caston, neg_carrier_caston);
         } //new //check
-        // kniterate_caston.push(yarn_in, pos_carrier_caston, neg_carrier_caston, pos_carrier_caston, neg_carrier_caston, pos_carrier_caston, neg_carrier_caston); //go back! //?
+        /////new
+        if (
+          i < color_count &&
+          carrier !== jacquard_passes[0][0][1] &&
+          carrier !== draw_thread &&
+          initial_carriers[initial_carriers.findIndex((el) => el.CARRIER === carrier)].DIR === '-'
+          // ((draw_thread !== undefined && carrier !== draw_thread) || (draw_thread === undefined && carrier !== draw_thread))
+        ) {
+          if (!pos_carrier_caston[pos_carrier_caston.length - 1].includes(colors_arr[0].length)) pos_carrier_caston.push(`miss + f${colors_arr[0].length} ${carrier}`);
+          kniterate_caston.push(pos_carrier_caston);
+        }
       }
-      if (draw_thread === undefined) draw_thread = color_carriers[color_carriers.length - 1];
+      let backpass_draw = false; //new
+      let backpass = [];
+      if (draw_thread === undefined) {
+        draw_thread = color_carriers[color_carriers.length - 1];
+        backpass_draw = true; //new
+      }
       kniterate_caston.push(`;kniterate yarns in`);
       kniterate_caston = kniterate_caston.flat();
       let waste_yarn_section = [];
@@ -506,6 +567,10 @@ imageColors
         } else {
           for (let x = colors_arr[0].length; x > 0; --x) {
             waste_yarn_section.push(`knit - b${x} ${carrier}`);
+            if (backpass_draw && i === 12 && x % 2 !== 0) {
+              //new
+              backpass.push(`knit - b${x} ${draw_thread}`);
+            }
           }
         }
       }
@@ -519,6 +584,7 @@ imageColors
       }
       waste_yarn_section.push(`rack 0`);
       waste_yarn_section = waste_yarn_section.flat();
+      if (backpass_draw) knitout.unshift(backpass);
       knitout.unshift(waste_yarn_section);
       knitout.unshift(kniterate_caston);
     }
