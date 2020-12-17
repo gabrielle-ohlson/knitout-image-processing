@@ -6,7 +6,7 @@ const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
 const imageColors = require('./image-color-quantize.js');
-let background, machine, palette, color_count, init_dir, other_dir, draw_thread;
+let background, machine, palette, color_count, init_dir, other_dir, draw_thread, double_bed;
 let colors_arr = [];
 let knitout = [];
 let row = [];
@@ -24,6 +24,9 @@ let neg_caston = [];
 let bindoff = [];
 let last_pass_dir, xfer_needle, last_needle, bindoff_carrier;
 let colors_data = [];
+
+let kniterate_caston = [],
+  waste_yarn_section = [];
 
 let carrier_track = [],
   initial_carriers = [];
@@ -50,20 +53,31 @@ let speed_number = readlineSync.question(
     // limitMessage: chalk.red('-- $<lastInput> is not within the accepted range: <0-15>.'),
   }
 );
-speed_number === '-1' ? console.log(chalk.green(`-- Speed number: UNSPECIFIED`)) : console.log(chalk.green(`-- Speed number: ${speed_number}`));
+speed_number === '-1'
+  ? (console.log(chalk.green(`-- Speed number: UNSPECIFIED, will assign default value [100]`)), (speed_number = 100))
+  : console.log(chalk.green(`-- Speed number: ${speed_number}`));
+// speed_number === '-1' ? console.log(chalk.green(`-- Speed number: UNSPECIFIED`)) : console.log(chalk.green(`-- Speed number: ${speed_number}`));
 
 // let back_style = ['Default', 'Birdseye', 'Ladderback', 'New'],
 let back_style = ['Default', 'Birdseye', 'Minimal'],
   style = readlineSync.keyInSelect(
     back_style,
-    chalk`{blue.bold ^What style back would you like to use?} {blue.italic \n('}{blue.bold Birdseye}{blue.italic ' is not recommended for pieces that use more than 3 colors due to the build up of extra rows the method creates on the back bed.\nAlternatively, '}{blue.bold Minimal}{blue.italic ' creates a reasonably even ratio of front to back rows, resulting in the least amount of build up on the back.\n'}{blue.bold Default}{blue.italic ' is an in-between option that is similar to Birdseye, but more suitable for pieces containing up to 5 colors.)}`
+    chalk`{blue.bold ^What style back would you like to use?} {blue.italic \n=> '}{blue.bold Birdseye}{blue.italic ' is not recommended for pieces that use more than 3 colors due to the build up of extra rows the method creates on the back bed.\n=> Alternatively, '}{blue.bold Minimal}{blue.italic ' creates a reasonably even ratio of front to back rows, resulting in the least amount of build up on the back.\n=> '}{blue.bold Default}{blue.italic ' is an in-between option that is similar to Birdseye, but more suitable for pieces containing up to 5 colors.}`
   );
 console.log(chalk.green('-- Back style: ' + back_style[style]));
 back_style = back_style[style];
 
 let reverse;
 back_style === 'Minimal' ? (reverse = false) : (reverse = true);
-// let reverse = readlineSync.keyInYNStrict('Would you like to reverse?'); //temporary
+// let reverse = readlineSync.keyInYNStrict('Would you like to reverse?'); ////temporary
+
+let rib = false, //new
+  rib_arr = [],
+  rib_bottom = [],
+  ribB_rows,
+  rib_top = [],
+  ribT_rows,
+  bot_dir_switch = false;
 
 imageColors
   .getData()
@@ -81,6 +95,42 @@ imageColors
     init_dir = '-';
     other_dir = '+';
     machine.includes('kniterate') ? (needle_bed = 253) : (needle_bed = 541); ////one extra so not counting from 0
+    /////
+    if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to add rib?}`)) {
+      rib = true;
+      for (let r = 0; r < color_count; ++r) {
+        let data = colors_data[r].split(' ');
+        rib_bottom.push(data[1]);
+      }
+      rib_top = [...rib_bottom];
+      if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to add ribbing to the bottom of the piece?}`)) {
+        rib_bottom,
+          (rib_carrier = readlineSync.keyInSelect(
+            rib_bottom,
+            chalk`{blue.bold ^Which carrier would you like to use for the bottom rib?} {blue.italic (the corresponding hex code is listed next to each carrier number)}`
+          ));
+        rib_bottom = rib_carrier + 1; //check
+        ribB_rows = readlineSync.questionInt(chalk`{blue.bold \nHow many rows? }`);
+      } else {
+        rib_bottom = null;
+      }
+      /////
+      if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to add ribbing to the top of the piece?}`)) {
+        rib_top,
+          (rib_carrier = readlineSync.keyInSelect(
+            rib_top,
+            chalk`{blue.bold ^Which carrier would you like to use for the top rib?} {blue.italic (the corresponding hex code is listed next to each carrier number)}`
+          ));
+        rib_top = rib_carrier + 1; //check
+        ribT_rows = readlineSync.questionInt(chalk`{blue.bold \nHow many rows? }`);
+        // rib_top = [rib_carrier, rib_top[rib_carrier]];
+      } else {
+        rib_top = null;
+      }
+    } else {
+      rib_bottom = null;
+      rib_top = null;
+    }
   })
   .then((dir, needle, carrier) => {
     for (let x = 1; x <= colors_arr[0].length; ++x) {
@@ -107,7 +157,6 @@ imageColors
           carrier_passes.push([[]]);
         }
         rows.push(carrier_passes); //new
-        // rows.push(carrier_passes.map((it) => it.filter((_) => true)).filter((sub) => sub.length)); ////?keep empty passes ?
       }
       row = [];
       carrier_passes = [];
@@ -115,25 +164,19 @@ imageColors
     let passes_per_row = [];
     for (let i = 0; i < rows.length; ++i) {
       if (i % 2 !== 0 && reverse) {
-        //new //remove //?
-        // if (i % 2 !== 0) { //go back! //?
         rows[i].reverse();
       }
       passes_per_row.push(rows[i].length);
     }
     jacquard_passes = rows.flat();
     let row_count = 1;
-    let pass_count = 0; //new
+    let pass_count = 0;
     let leftovers = [],
-      leftovers2 = []; //new
-    // let back = []; //new //remove
+      leftovers2 = [];
     knitout.push(`;row: ${row_count}`);
-    ////new
     if (passes_per_row[row_count - 1] >= 5) {
-      //// -1 since starting from 1 not 0 for row count
-      knitout.push(`x-roller-advance 0`); //new
-      // knitout.push(`x-roller-advance 80`); //new
-      // passes_per_row[row_count - 1] === 5 ? knitout.push(`x-roller-advance 80`) : knitout.push(`x-roller-advance 50`); //new
+      //// - 1 since starting from 1 not 0 for row count
+      knitout.push(`x-roller-advance 0`);
     }
     ///
     let prev_row = 0;
@@ -150,54 +193,30 @@ imageColors
     for (let i = 0; i < jacquard_passes.length; ++i) {
       let single_color = false;
       if (i === prev_row + passes_per_row[row_count - 1]) {
-        // if (colors_arr[0].length - back.length > 4 && back.length !== 0) {
-        //   //remove
-        //   console.log(`!!!!!!!!!!!`);
-        //   console.log(
-        //     row_count,
-        //     back.length,
-        //     all_needles.filter((x) => back.indexOf(x) === -1)
-        //   );
-        // }
-        // back = []; //remove
         pass_count = 0;
         row_count += 1;
         knitout.push(`;row: ${row_count}`);
-        ////new //TODO: edit this
         if (passes_per_row[row_count - 1] >= 5) {
-          // if (passes_per_row[row_count - 1] >= 5 && passes_per_row[row_count - 2] < 5) {
-          //// -1 since starting from 1 not 0 for row count
-          knitout.push(`x-roller-advance 0`); //new
-          // knitout.push(`x-roller-advance 80`); //new
-          // passes_per_row[row_count - 1] === 5 ? knitout.push(`x-roller-advance 80`) : knitout.push(`x-roller-advance 50`); //new
+          //// - 1 since starting from 1 not 0 for row count
+          knitout.push(`x-roller-advance 0`);
         } else if (passes_per_row[row_count - 1] < 5 && passes_per_row[row_count - 2] >= 5) {
-          knitout.push(`x-roller-advance 100`); //new
+          knitout.push(`x-roller-advance 100`);
         }
-        // if (passes_per_row[row_count - 1] >= 5 && passes_per_row[row_count - 1] !== passes_per_row[row_count - 2]) {
-        // passes_per_row[row_count - 1] === 5 ? knitout.push(`x-roller-advance 80`) : knitout.push(`x-roller-advance 50`); //new
-        // }
         //
         prev_row = i;
         back_needles = [];
-        // }
       }
       if ((passes_per_row[row_count - 1] === 6 && pass_count === 5) || (passes_per_row[row_count - 1] === 5 && pass_count === 4)) {
-        //new
-        // if (passes_per_row[row_count - 1] === 6 && pass_count === 5) { //new
-        knitout.push(`x-roller-advance 450`); //new
+        knitout.push(`x-roller-advance 450`);
       }
       i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
       if (jacquard_passes[i][0].length > 0) {
-        // single_color = false;
-        // console.log(`jacquard_passes[i][0] = ${jacquard_passes[i][0]}`); //remove
         carrier = jacquard_passes[i][0][1];
       } else {
         single_color = true;
-        carrier = jacquard_passes[i - 1][0][1]; //new
-        if (carrier === undefined) carrier = jacquard_passes[i - 2][0][1]; //TODO: make this work for birds eye too
-        // if (carrier === undefined) carrier = carrier_track[carrier_track.length - 1].CARRIER;
+        carrier = jacquard_passes[i - 1][0][1];
+        if (carrier === undefined) carrier = jacquard_passes[i - 2][0][1]; //TODO: make this work for birdseye too
       }
-      // carrier = jacquard_passes[i][0][1];
       if (!carrier_track.some((el) => el.CARRIER === carrier)) {
         carrier_track.push(
           FINDMYCARRIER({
@@ -205,33 +224,12 @@ imageColors
             DIR: dir,
           })
         );
-        ////new
         initial_carriers.push(
           FINDMYCARRIER({
             CARRIER: carrier,
             DIR: dir,
           })
         );
-        // if (dir === '-' && carrier !== draw_thread && carrier !== jacquard_passes[0][0][1]) {
-        //   //check
-        //   let last_knit;
-        //   let pos_pass = []; //new
-        //   let stop = false;
-        //   xtra: for (let z = knitout.indexOf(`in ${carrier}`) + 1; z < knitout.indexOf(`;kniterate yarns in`); ++z) {
-        //     if (!stop && knitout[z].includes(` + `)) {
-        //       //new
-        //       pos_pass.push(knitout[z]);
-        //     } else {
-        //       stop = true;
-        //     }
-        //     if (knitout[z].charAt(knitout[z].length - 1) === `${carrier}`) {
-        //       last_knit = z;
-        //     } else {
-        //       break xtra;
-        //     }
-        //   }
-        //   knitout.splice(last_knit + 1, 0, pos_pass).flat(); //new
-        // }
       } else {
         let previous = carrier_track.find((obj) => obj.CARRIER === carrier);
         let prev_idx = carrier_track.findIndex((obj) => obj.CARRIER === carrier);
@@ -260,7 +258,6 @@ imageColors
           back_needles.push(x); //check //remove //? or keep?
         } else {
           if (back_style === 'Ladderback') {
-            //new
             if (!taken) {
               let missing_needles = [];
               if (i === prev_row + passes_per_row[row_count - 1] - 1) missing_needles = all_needles.filter((x) => back_needles.indexOf(x) === -1);
@@ -305,49 +302,25 @@ imageColors
               }
             }
           } else if (back_style === 'Minimal') {
-            //new (obviously lmao)
-            // if (x === 1) leftovers = []; //new
             if ((dir === '+' && x === 1) || (dir === '-' && x === colors_arr[0].length)) {
-              // if (x === colors_arr[0].length) {
-              // console.log(leftovers);
-              // if (row_count === 3 || row_count === 4) console.log(colors_arr[0].length, leftovers2.length, row_count, pass_count, leftovers2);
               leftovers2 = [...new Set([...leftovers2, ...leftovers])];
-              // leftovers2 = [...leftovers];
-              leftovers = []; //new
+              leftovers = [];
             }
             if (x % passes_per_row[row_count - 1] === pass_count) {
               if (!taken) {
                 knitout.push(`knit ${dir} b${x} ${carrier}`);
-                // back.push(x); //new //remove
                 if (leftovers2.includes(x)) {
-                  leftovers2.splice(leftovers2.indexOf(x), 1); //new
-                  // if (row_count === 3 || row_count === 4) console.log(xtra); //remove
+                  leftovers2.splice(leftovers2.indexOf(x), 1);
                 }
-                // if (leftovers2.includes(x)) leftovers2.splice(leftovers2.indexOf(x), 1); //new
               } else {
                 leftovers.push(x);
-                // leftovers.push(x);
               }
             } else if (leftovers2.includes(x)) {
               if (!taken) {
                 knitout.push(`knit ${dir} b${x} ${carrier}`);
-                // back.push(x); //new //remove
-                leftovers2.splice(leftovers2.indexOf(x), 1); //go back! //?
-                // } else {
-                //   knitout.push(`;${x} is taken`); //remove
+                leftovers2.splice(leftovers2.indexOf(x), 1);
               }
             }
-            // } else if (leftovers2.includes(x) && !taken) {
-            //   knitout.push(`knit ${dir} b${x} ${carrier}`);
-            //   leftovers2.splice(leftovers2.indexOf(x), 1); //go back! //?
-            // }
-            // for (let m = 0; m < passes_per_row[row_count - 1]; ++m) {
-            //   if (pass_count % passes_per_row[row_count - 1] === m) {
-
-            //   }
-            // }
-            // if (pass_count % passes_per_row[row_count - 1] === )
-            // if (passes_per_row[row_count - 1]
           } else {
             if (i % 2 === 0 && !taken) {
               if (x % 2 !== 0) {
@@ -360,7 +333,7 @@ imageColors
                   // if (missing_needles.length > 0 && i === prev_row + passes_per_row[row_count - 1] - 1) {
                   knitout.push(`knit ${dir} b${x} ${carrier}`);
                 }
-              } //?
+              }
             }
             if (i % 2 !== 0 && !taken) {
               if (x % 2 === 0) {
@@ -369,7 +342,6 @@ imageColors
               } else {
                 let missing_needles = odd_bird.filter((x) => back_needles.indexOf(x) === -1);
                 if (missing_needles.includes(x) && i === prev_row + passes_per_row[row_count - 1] - 1) {
-                  //new
                   // if (missing_needles.length > 0 && i === prev_row + passes_per_row[row_count - 1] - 1) {
                   knitout.push(`knit ${dir} b${x} ${carrier}`);
                 }
@@ -403,19 +375,18 @@ imageColors
               : ODD_CASTON(x, dir, neg_caston);
           }
           if (draw_thread === undefined) {
-            if (
-              machine.includes('kniterate') &&
-              carrier !== neg_carrier &&
-              !knitout.some((el) => el.includes(`knit`) && el.includes(` ${carrier}`)) //go back! //?
-            ) {
-              draw_thread = carrier;
+            if (machine.includes('kniterate') && carrier !== neg_carrier && !knitout.some((el) => el.includes(`knit`) && el.includes(` ${carrier}`))) {
+              ////last bit bc saying 'only if this carrier hasn't appeared yet, aka the FIRST pass is negative'
+              if (rib_bottom != carrier) draw_thread = carrier; //new
             }
           }
         }
       }
-      ++pass_count; //new
+      ++pass_count;
     }
     ////////
+    knitout.some((el) => el.includes('knit') && el.includes(' b')) ? (double_bed = true) : (double_bed = false); //TODO: make this not fake (maybe add option for single bed?)
+    ///
     let carriers_str = '';
     let max_carriers;
     machine.includes('kniterate') ? (max_carriers = 6) : (max_carriers = 10); //TODO: add more options for this, or maybe take it from command-line input (i.e. stoll machines have anywhere from 8 - 16 carriers [maybe even > || < for some])
@@ -430,7 +401,7 @@ imageColors
       knitout.unshift(caston);
     } else if (machine.includes('kniterate')) {
       ///
-      caston = [...pos_caston, ...neg_caston]; //? //moved //so, if not less than 20, this section is length of real section
+      caston = [...pos_caston, ...neg_caston]; ////so, if not less than 20, this section is length of real section
       let waste_stitches = 20;
       for (let w = colors_arr[0].length; w > waste_stitches; --w) {
         pos_caston = pos_caston.filter((el) => !el.includes(`f${w}`) && !el.includes(`b${w}`));
@@ -438,42 +409,17 @@ imageColors
       }
       ////
       if (colors_arr[0].length < 20) {
-        //new //?
         for (let x = colors_arr[0].length + 1; x <= 20; ++x) {
           x % 2 === 0 ? pos_caston.push(`knit + b${x} ${jacquard_passes[0][0][1]}`) : pos_caston.push(`knit + f${x} ${jacquard_passes[0][0][1]}`);
           x % 2 !== 0 ? neg_caston.unshift(`knit - b${x} ${jacquard_passes[0][0][1]}`) : neg_caston.unshift(`knit - f${x} ${jacquard_passes[0][0][1]}`);
         }
-        caston = [...pos_caston, ...neg_caston]; //new //moved
-        // for (let x = 20; x > colors_arr[0].length; --x) {
-        //   x % 2 !== 0 ? neg_caston.unshift(`knit - b${x} ${jacquard_passes[0][0][1]}`) : neg_caston.unshift(`knit - f${x} ${jacquard_passes[0][0][1]}`);
-        // }
+        caston = [...pos_caston, ...neg_caston];
       }
-      /////
-      // if (dir === '-' && carrier !== draw_thread && carrier !== jacquard_passes[0][0][1]) {
-      //   //check
-      //   let last_knit;
-      //   let pos_pass = []; //new
-      //   let stop = false;
-      //   xtra: for (let z = knitout.indexOf(`in ${carrier}`) + 1; z < knitout.indexOf(`;kniterate yarns in`); ++z) {
-      //     if (!stop && knitout[z].includes(` + `)) {
-      //       //new
-      //       pos_pass.push(knitout[z]);
-      //     } else {
-      //       stop = true;
-      //     }
-      //     if (knitout[z].charAt(knitout[z].length - 1) === `${carrier}`) {
-      //       last_knit = z;
-      //     } else {
-      //       break xtra;
-      //     }
-      //   }
-      //   knitout.splice(last_knit + 1, 0, pos_pass).flat(); //new
-      // }
-      let kniterate_caston = [];
+      // let kniterate_caston = [];
+      ////
       colors: for (let i = 0; i <= color_count; ++i) {
         //// <= because add extra one for draw thread
         if (draw_thread !== undefined && i === color_count) {
-          //new (seems good!)
           break colors;
         }
         if (i === 6) {
@@ -486,12 +432,22 @@ imageColors
         let pos_carrier_caston = [];
         let neg_carrier_caston = [];
         let b = 'f';
-        for (let n = Number(carrier); n <= colors_arr[0].length; n += carriers_arr.length) {
-          pos_carrier_caston.push(`knit + ${b}${n} ${carrier}`);
-          b === 'f' ? (b = 'b') : (b = 'f');
-          neg_carrier_caston.unshift(`knit - ${b}${n} ${carrier}`);
+        if (colors_arr[0].length >= 20) {
+          for (let n = Number(carrier); n <= colors_arr[0].length; n += carriers_arr.length) {
+            pos_carrier_caston.push(`knit + ${b}${n} ${carrier}`);
+            b === 'f' ? (b = 'b') : (b = 'f');
+            neg_carrier_caston.unshift(`knit - ${b}${n} ${carrier}`);
+          }
+          if (Number(carrier) !== 1) neg_carrier_caston.push(`miss - f1 ${carrier}`);
+        } else {
+          if (colors_arr[0].length < 20) {
+            for (let n = 1; n <= colors_arr[0].length; ++n) {
+              pos_carrier_caston.push(`knit + ${b}${n} ${carrier}`);
+              b === 'f' ? (b = 'b') : (b = 'f');
+              neg_carrier_caston.unshift(`knit - ${b}${n} ${carrier}`);
+            }
+          }
         }
-        if (Number(carrier) !== 1) neg_carrier_caston.push(`miss - f1 ${carrier}`);
         ////
         let caston_count;
         colors_arr[0].length < 40 ? (caston_count = 3) : (caston_count = 2); //new //check
@@ -504,6 +460,7 @@ imageColors
           i < color_count &&
           carrier !== jacquard_passes[0][0][1] &&
           carrier !== draw_thread &&
+          carrier !== rib_bottom && //new
           initial_carriers[initial_carriers.findIndex((el) => el.CARRIER === carrier)].DIR === '-'
           // ((draw_thread !== undefined && carrier !== draw_thread) || (draw_thread === undefined && carrier !== draw_thread))
         ) {
@@ -514,15 +471,16 @@ imageColors
       let backpass_draw = false; //new
       let backpass = [];
       if (draw_thread === undefined) {
+        //come back!
         draw_thread = color_carriers[color_carriers.length - 1];
-        backpass_draw = true; //new
+        if (color_carriers.length === color_count) backpass_draw = true; //new ////so only if draw_thread is used in piece
       }
       kniterate_caston.push(`;kniterate yarns in`);
       kniterate_caston = kniterate_caston.flat();
-      let waste_yarn_section = [];
+      // let waste_yarn_section = [];
       carrier = jacquard_passes[0][0][1];
       let waste_yarn = caston.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${carrier}`));
-      waste_yarn_section.push(`x-roller-advance 150`); //new //?
+      waste_yarn_section.push(`x-roller-advance 150`);
       for (let i = 0; i < 35; ++i) {
         ////70 total passes
         waste_yarn_section.push(waste_yarn);
@@ -530,7 +488,6 @@ imageColors
       ////
       if (colors_arr[0].length < 20) {
         waste_yarn_section.push(`x-roller-advance 50`);
-        //new //?
         for (let i = 0; i < 2; ++i) {
           for (let x = colors_arr[0].length + 1; x <= 20; ++x) {
             waste_yarn_section.push(`drop f${x}`);
@@ -566,7 +523,7 @@ imageColors
           }
         } else {
           for (let x = colors_arr[0].length; x > 0; --x) {
-            waste_yarn_section.push(`knit - b${x} ${carrier}`);
+            if (i < 11 || rib_bottom === null || carrier === rib_bottom) waste_yarn_section.push(`knit - b${x} ${carrier}`); //new //check
             if (backpass_draw && i === 12 && x % 2 !== 0) {
               //new
               backpass.push(`knit - b${x} ${draw_thread}`);
@@ -575,19 +532,87 @@ imageColors
         }
       }
       ////
-      // waste_yarn_section.push(`x-roller-advance 100`); //new //?
-      // waste_yarn_section.push(`rack 0.5`); //(TODO: determine if this is something we're changing for kniterate backend)
       waste_yarn_section.push(`rack 0.25`); ////aka rack 0.5 for kniterate
+      if (rib_bottom !== null && carrier !== rib_bottom) carrier = rib_bottom;
       for (let x = 1; x <= colors_arr[0].length; ++x) {
         waste_yarn_section.push(`knit + f${x} ${carrier}`);
         waste_yarn_section.push(`knit + b${x} ${carrier}`);
       }
       waste_yarn_section.push(`rack 0`);
+      ////
+      if (backpass_draw) waste_yarn_section.push(backpass); //new
       waste_yarn_section = waste_yarn_section.flat();
-      if (backpass_draw) knitout.unshift(backpass);
+      // if (backpass_draw) knitout.unshift(backpass);
+      // knitout.unshift(waste_yarn_section);
+      // knitout.unshift(kniterate_caston);
+    }
+    const RIB = (arr, carrier, dir1, dir2, rib_rows) => {
+      arr.push(`;begin rib`);
+      for (let r = 0; r < 2; ++r) {
+        for (let n = colors_arr[0].length; n >= 1; --n) {
+          arr.push(`knit ${dir1} b${n} ${carrier}`);
+        }
+        for (let n = 1; n <= colors_arr[0].length; ++n) {
+          arr.push(`knit ${dir2} f${n} ${carrier}`);
+        }
+      }
+      arr.push(`x-speed-number 100`);
+      for (let n = colors_arr[0].length; n >= 1; --n) {
+        if (n % 2 === 0) arr.push(`xfer b${n} f${n}`);
+      }
+      for (let n = 1; n <= colors_arr[0].length; ++n) {
+        if (n % 2 !== 0) arr.push(`xfer f${n} b${n}`);
+      }
+      arr.push(`x-speed-number ${speed_number}`, `x-stitch-number ${Math.ceil(Number(stitch_number) / 2)}`); //TODO: calculate rib stitch number based on actual stitch number - i'm think Math.ceil(stitch_number/2)
+      rib_loop: for (let r = 0; r < rib_rows / 2; ++r) {
+        for (let n = colors_arr[0].length; n >= 1; --n) {
+          if (n % 2 !== 0) {
+            arr.push(`knit ${dir1} b${n} ${carrier}`);
+          } else {
+            arr.push(`knit ${dir1} f${n} ${carrier}`);
+          }
+        }
+        if (r === rib_rows / 2 - 2 && bot_dir_switch) {
+          [dir1, dir2] = [dir2, dir1];
+          break rib_loop;
+        }
+        for (let n = 1; n <= colors_arr[0].length; ++n) {
+          if (n % 2 !== 0) {
+            arr.push(`knit ${dir2} b${n} ${carrier}`);
+          } else {
+            arr.push(`knit ${dir2} f${n} ${carrier}`);
+          }
+        }
+      }
+      arr.push(`x-stitch-number ${stitch_number}`);
+      for (let r = 0; r < 4; ++r) {
+        for (let n = colors_arr[0].length; n >= 1; --n) {
+          arr.push(`knit ${dir1} b${n} ${carrier}`);
+        }
+        for (let n = 1; n <= colors_arr[0].length; ++n) {
+          arr.push(`knit ${dir2} f${n} ${carrier}`);
+        }
+      }
+      if (!double_bed) {
+        arr.push(`x-speed-number 100`);
+        for (let n = colors_arr[0].length; n >= 1; --n) {
+          arr.push(`xfer b${n} f${n}`);
+          // arr.push(`xfer f${n} b${n}`);
+        }
+      }
+      arr.push(`x-speed-number ${speed_number}`, `;end rib`);
+    };
+    /////
+    if (rib_bottom !== null) {
+      if (initial_carriers[initial_carriers.findIndex((el) => el.CARRIER == rib_bottom)].DIR === '+') bot_dir_switch = true;
+      RIB(rib_arr, rib_bottom, '-', '+', ribB_rows);
+      knitout.unshift(rib_arr);
+    }
+    if (machine.includes('kniterate')) {
       knitout.unshift(waste_yarn_section);
       knitout.unshift(kniterate_caston);
     }
+    ////
     knitout.unshift(`;background color: ${background}`);
     /////
     for (let d = colors_data.length - 1; d >= 0; --d) {
@@ -597,18 +622,29 @@ imageColors
     if (speed_number !== '-1') knitout.unshift(`x-speed-number ${speed_number}`);
     if (stitch_number !== '-1') knitout.unshift(`x-stitch-number ${stitch_number}`);
     knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`);
-    bindoff_carrier = knitout[knitout.length - 1].charAt(knitout[knitout.length - 1].length - 1);
+    // bindoff_carrier = knitout[knitout.length - 1].charAt(knitout[knitout.length - 1].length - 1);
+    // last_needle = colors_arr[0].length;
+    // knitout[knitout.length - 1].includes('+') ? ((last_pass_dir = '+'), (xfer_needle = last_needle)) : ((last_pass_dir = '-'), (xfer_needle = 1));
     last_needle = colors_arr[0].length;
-    knitout[knitout.length - 1].includes('+') ? ((last_pass_dir = '+'), (xfer_needle = last_needle)) : ((last_pass_dir = '-'), (xfer_needle = 1));
+    if (rib_top !== null) {
+      bindoff_carrier = rib_top;
+      bot_dir_switch = false;
+      let rib1_dir;
+      carrier_track[carrier_track.findIndex((el) => el.CARRIER == rib_top)].DIR === '+'
+        ? ((rib1_dir = '-'), (last_pass_dir = '+'), (xfer_needle = last_needle))
+        : ((rib1_dir = '+'), (last_pass_dir = '-'), (xfer_needle = 1));
+      RIB(knitout, rib_top, rib1_dir, last_pass_dir, ribT_rows);
+    } else {
+      bindoff_carrier = knitout[knitout.length - 1].charAt(knitout[knitout.length - 1].length - 1);
+      knitout[knitout.length - 1].includes('+') ? ((last_pass_dir = '+'), (xfer_needle = last_needle)) : ((last_pass_dir = '-'), (xfer_needle = 1));
+    }
   })
   .then(() => {
     ////bindoff
     bindoff.push(`;bindoff section`, `x-speed-number 100`, `x-roller-advance 100`); //speed-number & roller-advance is //new
-    // bindoff.push(`;bindoff section`, `x-speed-number ${speed_number}`); //speed_number is new
-    // bindoff.push(`x-stitch-number 4`); //TODO: make these based on stitch number //go back! //?
-    let side, double_bed;
+    let side;
     let count = last_needle;
-    knitout.some((el) => el.includes('knit') && el.includes(' b')) ? (double_bed = true) : (double_bed = false);
+    // knitout.some((el) => el.includes('knit') && el.includes(' b')) ? (double_bed = true) : (double_bed = false);
     last_pass_dir === '+' ? (side = 'right') : (side = 'left');
     if (side === 'right') {
       xfer_needle = xfer_needle - count + 1;
@@ -627,11 +663,9 @@ imageColors
           if (x === xfer_needle + count - 1) {
             break pos;
           }
-          // bindoff.push(`x-add-roller-advance 200`);
           bindoff.push(`xfer b${x} f${x}`);
           bindoff.push(`rack -1`);
           ///
-          // bindoff.push(`x-add-roller-advance 100`);
           bindoff.push(`xfer f${x} b${x + 1}`);
           bindoff.push(`rack 0`);
           if (x !== xfer_needle) {
@@ -663,12 +697,12 @@ imageColors
           bindoff.push(`xfer f${x} b${x - 1}`);
           bindoff.push(`rack 0`);
           if (x !== xfer_needle + count - 1) {
-            bindoff.push(`x-add-roller-advance -50`); //new
-            bindoff.push(`drop b${x + 1}`); //newest
+            bindoff.push(`x-add-roller-advance -50`);
+            bindoff.push(`drop b${x + 1}`);
           }
           bindoff.push(`knit - b${x - 1} ${bindoff_carrier}`);
-          if (x > xfer_needle + 1) bindoff.push(`tuck + b${x} ${bindoff_carrier}`); //new
-          if (x === xfer_needle + count - 1) bindoff.push(`drop b${xfer_needle + count}`); //new need to //check
+          if (x > xfer_needle + 1) bindoff.push(`tuck + b${x} ${bindoff_carrier}`);
+          if (x === xfer_needle + count - 1) bindoff.push(`drop b${xfer_needle + count}`);
         }
       }
     };
@@ -684,31 +718,42 @@ imageColors
         bindoff.push(`miss ${otherT_dir} b${miss2} ${bindoff_carrier}`);
         bindoff.push(`knit ${dir} b${last_needle} ${bindoff_carrier}`);
         bindoff.push(`miss ${dir} b${miss1} ${bindoff_carrier}`);
-        // if (i === 0) bindoff.push(`x-stitch-number 4`); //go back! //?
       }
       bindoff.push(`x-add-roller-advance 200`);
       bindoff.push(`drop b${last_needle}`);
     };
     ///////////////
     if (side === 'left') {
-      posLoop('knit', 'f');
-      if (double_bed) negLoop('knit', 'b'); //new
-      negLoop('xfer', 'f'); //new
+      if (!rib_top) posLoop('knit', 'f');
+      // posLoop('knit', 'f');
+      if (double_bed) {
+        if (!rib_top) negLoop('knit', 'b'); //new
+        negLoop('xfer', 'f'); //new
+      } else {
+        if (!rib_top) negLoop('knit', 'f'); //new
+      }
+      // negLoop('xfer', 'f'); //new
       bindoff.push(`x-roller-advance 50`); //new
-      bindoff.push(`x-add-roller-advance -50`); //remove //?
-      bindoff.push(`tuck - b${xfer_needle - 1} ${bindoff_carrier}`); //new //check //TODO: maybe make this tuck if miss doesn't work well
+      bindoff.push(`x-add-roller-advance -50`);
+      bindoff.push(`tuck - b${xfer_needle - 1} ${bindoff_carrier}`);
       bindoff.push(`knit + b${xfer_needle} ${bindoff_carrier}`); //new
       posLoop('bind', null);
       bindoffTail(xfer_needle + count - 1, '+');
       /////////////////////////////
     } else if (side === 'right') {
       negLoop('knit', 'f');
-      if (double_bed) posLoop('knit', 'b'); //new
-      posLoop('xfer', 'f'); //new
+      // if (double_bed) posLoop('knit', 'b'); //new
+      if (double_bed) {
+        posLoop('knit', 'b');
+        posLoop('xfer', 'f');
+      } else {
+        posLoop('knit', 'f'); //new
+      }
+      // posLoop('xfer', 'f'); //new
       bindoff.push(`x-roller-advance 50`); //new
       bindoff.push(`x-add-roller-advance -50`); //new
-      bindoff.push(`tuck + b${xfer_needle + count} ${bindoff_carrier}`); //new //check //TODO: maybe make this tuck if miss doesn't work well
-      bindoff.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`); //new
+      bindoff.push(`tuck + b${xfer_needle + count} ${bindoff_carrier}`);
+      bindoff.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`);
       negLoop('bind', null);
       bindoffTail(xfer_needle, '-');
     }
@@ -726,21 +771,21 @@ imageColors
       if (last !== -1) {
         if (knitout[last].includes(' - ')) {
           knitout.splice(last + 1, 0, `${yarn_out} ${color_carriers[i]}`);
-          if (last + 1 < end_splice) ++end_splice; //new
+          if (last + 1 < end_splice) ++end_splice;
         } else {
           let out_spot = Number(knitout[last].split(' ')[2].slice(1)) + 6;
-          knitout.splice(last + 1, 0, `miss + f${out_spot} ${color_carriers[i]}`); //new
-          if (last + 1 < end_splice) ++end_splice; //new
+          knitout.splice(last + 1, 0, `miss + f${out_spot} ${color_carriers[i]}`);
+          if (last + 1 < end_splice) ++end_splice;
           if (color_carriers[i] != bindoff_carrier) {
             //new
-            knitout.splice(end_splice, 0, `${yarn_out} ${color_carriers[i]}`); //new
+            knitout.splice(end_splice, 0, `${yarn_out} ${color_carriers[i]}`);
           } else {
             knitout.push(`${yarn_out} ${color_carriers[i]}`); ////at the end
           }
         }
       }
     }
-    if (!color_carriers.includes(draw_thread)) knitout.splice(end_splice, 0, `${yarn_out} ${draw_thread}`); //new //TODO: maybe add something to check whether it is the bindoff carrier? add what the direction is?
+    if (!color_carriers.includes(draw_thread)) knitout.splice(end_splice, 0, `${yarn_out} ${draw_thread}`); //new //TODO: maybe add something to check whether it is the bindoff carrier? and what the direction is?
   })
   //////
   .finally(() => {
@@ -767,7 +812,7 @@ imageColors
     fs.writeFile(`./knit-out-files/${new_file}`, knitout_str, function (err) {
       if (err) return console.log(err);
       console.log(
-        chalk`{green \nThe knitout file has successfully been written and can be found in the 'knit-out-files' folder.\nOpen 'knit_motif.png'} {green.italic (located in the 'out-colorwork-images' folder)} {green to see a visual depiction of the knitting instructions.} {green.italic This folder also contains: 'colorwork.png', which depicts the resized image. Please note that, if applicable, the program has renamed files in that folder from earlier sessions, by appending a number to the end.)} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'npm run shapeify'}`
+        chalk`{green \nThe knitout file has successfully been written and can be found in the 'knit-out-files' folder.\nOpen 'knit_motif.png'} {green.italic (located in the 'out-colorwork-images' folder)} {green to see a visual depiction of the knitting instructions.} {green.italic (This folder also contains: 'colorwork.png', which depicts the resized image. Please note that, if applicable, the program has renamed files in that folder from earlier sessions, by appending a number to the end.)} {bold.bgGray.underline \n*** If you would like to add shaping to the file next, type 'npm run shapeify'}`
       );
     });
   });

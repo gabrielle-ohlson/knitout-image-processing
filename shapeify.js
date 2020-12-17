@@ -325,6 +325,10 @@ readlineSync.promptLoop(function (input) {
 console.log(chalk.green(`-- Saving new file as: ${new_file}`));
 readlineSync.setDefaultOptions({ prompt: '' });
 
+let sinkers = readlineSync.keyInYNStrict(
+  chalk`{blue.bold \nDoes the machine you are using have sinkers?} {blue.italic (If you are using a kniterate machine, the answer is no [enter 'n']. Otherwise, the answer is likely yes [enter 'y'], but you should double-check to ensure no damage is done to your machine during short-rowing.)}`
+);
+
 let in_file = fs
   .readFileSync(source_dir + source_file)
   .toString()
@@ -333,9 +337,13 @@ for (let i = 0; i < in_file.length; ++i) {
   in_file[i] = in_file[i].split('\n');
   in_file[i] = in_file[i].filter((el) => !el.includes('ow:'));
 }
+
+let yarn_out, yarn_in;
+sinkers ? ((yarn_out = 'outhook'), (yarn_in = 'inhook')) : ((yarn_out = 'out'), (yarn_in = 'in'));
 let caston_section = in_file.shift();
 if (short_row_section) {
-  caston_section = caston_section.filter((el) => !el.includes('out ')); //// remove yarn-outs so can add them back in @ correct positions
+  caston_section = caston_section.filter((el) => !el.includes(`${yarn_out} `)); //// remove yarn-outs so can add them back in @ correct positions
+  // caston_section = caston_section.filter((el) => !el.includes('out ')); //// remove yarn-outs so can add them back in @ correct positions
 }
 
 let stitch_number = 5; //default
@@ -352,7 +360,16 @@ bg_color = bg_color.charAt(bg_color.length - 1);
 let draw_thread = caston_section.find((line) => line.includes(`;draw thread:`)); ////for shortrowcarriers, know that first one ends up on the right (because draw thread) and rest are on left
 draw_thread = draw_thread.charAt(draw_thread.length - 1);
 
-let bindoff_section = in_file[in_file.length - 1].splice(in_file[in_file.length - 1].indexOf(`;bindoff section`));
+let rib_top, bindoff_section;
+
+let rib_start = in_file[in_file.length - 1].findIndex((el) => el === ';begin rib');
+if (rib_start !== -1) {
+  rib_top = in_file[in_file.length - 1].splice(rib_start);
+  bindoff_section = rib_top.splice(rib_top.indexOf(`;bindoff section`));
+} else {
+  bindoff_section = in_file[in_file.length - 1].splice(in_file[in_file.length - 1].indexOf(`;bindoff section`));
+}
+// let bindoff_section = in_file[in_file.length - 1].splice(in_file[in_file.length - 1].indexOf(`;bindoff section`));
 
 //--------------------------------------------
 //***CREATE ARRAY OF CARRIERS USED IN THE FILE
@@ -394,10 +411,6 @@ let xfer_speed_number = readlineSync.question(
 );
 xfer_speed_number = Number(xfer_speed_number); //new
 
-let sinkers = readlineSync.keyInYNStrict(
-  chalk`{blue.bold \nDoes the machine you are using have sinkers?} {blue.italic (If you are using a kniterate machine, the answer is no [enter 'n']. Otherwise, the answer is likely yes [enter 'y'], but you should double-check to ensure no damage is done to your machine during short-rowing.)}`
-);
-
 console.log(chalk.green(`\nPlease wait...`)); //new
 
 //-------------------------------------------------------------------------------------------------------
@@ -435,22 +448,36 @@ if (short_row_carriers.length < 3 && short_row_section && !sinkers) {
 //***SHIFT CAST-ON SECTION OVER IF NECESSARY/ADD IN SHORTROW YARN CARRIERS IF NECESSARY
 //-------------------------------------------------------------------------------------
 //TODO: add this for shima caston
-let header = [];
-let yarns_in = [];
+let header = [],
+  yarns_in = [],
+  rib_bottom = [];
 // let dropped_idx;
 if ((row1_small || xtra_carriers.length > 0) && caston_section[1].includes(`kniterate`)) {
   header = caston_section;
   yarns_in = header.splice(header.findIndex((el) => el.includes(`;background color:`)) + 1);
   caston_section = yarns_in.splice(yarns_in.findIndex((el) => el.includes(`;kniterate yarns in`)));
+  rib_start = caston_section.findIndex((el) => el === ';begin rib');
+  if (rib_start !== -1) {
+    // caston_section = caston_section.split(';begin rib');
+    // rib_bottom = caston_section[1];
+    rib_bottom = caston_section.splice(rib_start);
+  }
   let dropped_idx = caston_section.indexOf(`;dropped extra needles`); //new
   let left_diff = row1_Lneedle - L_NEEDLE;
   let kniterate_caston = [];
-  // let need_to_drop = []; //new
-  ////
-  kniterate_caston.flat(); //?
   ////
   yarnsin: for (let i = 0; i < yarns_in.length; ++i) {
     let line = yarns_in[i].split(' ');
+    let yarn_in_dir;
+    if ((i === yarns_in.length - 1 || yarns_in[i + 1].includes(yarn_in)) && line[1] === '+') {
+      //new //check
+      kniterate_caston.splice(
+        kniterate_caston.findIndex((el) => el.includes(`;pass: yarn in ;-;${line[3]}`)),
+        1,
+        `;pass: yarn in ;+;${line[3]};${row1_Lneedle};${row1_Rneedle}`
+      );
+    }
+    if (line[0] === yarn_in) kniterate_caston.push(`;pass: yarn in ;-;${line[1]};${row1_Rneedle};${row1_Lneedle}`); //new //check //// - because will end negative
     // if (line[0] === 'knit' || line[0] === 'miss' || line[0] === 'drop') {
     if (line[0] === 'knit' || line[0] === 'miss') {
       // let n;
@@ -480,7 +507,7 @@ if ((row1_small || xtra_carriers.length > 0) && caston_section[1].includes(`knit
   if (xtra_carriers.length > 0) {
     let base = [...kniterate_caston];
     base.reverse();
-    base.splice(base.findIndex((el) => el.includes('in '))); //TODO: maybe filter out x-stitch-number, etc. for base?
+    base.splice(base.findIndex((el) => el.includes(`${yarn_in} `))); //TODO: maybe filter out x-stitch-number, etc. for base?
     base.reverse();
     for (let i = 0; i < xtra_carriers.length; ++i) {
       let xcarrier = xtra_carriers[i];
@@ -534,6 +561,22 @@ if ((row1_small || xtra_carriers.length > 0) && caston_section[1].includes(`knit
       // } else if (line[0] !== 'drop') {
       kniterate_caston.push(caston_section[i]); //check if this gets x-roller-advance, etc.
     }
+  }
+  ////
+  if (rib_bottom.length > 0) {
+    if (row1_small) {
+      if (row1_Lneedle !== L_NEEDLE) {
+        for (let cc = L_NEEDLE; cc < row1_Lneedle; ++cc) {
+          rib_bottom = rib_bottom.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
+        }
+      }
+      if (row1_Rneedle !== R_NEEDLE) {
+        for (let cc = R_NEEDLE; cc > row1_Rneedle; --cc) {
+          rib_bottom = rib_bottom.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
+        }
+      }
+    }
+    kniterate_caston.push(rib_bottom);
   }
   caston_section = kniterate_caston.flat();
 }
@@ -938,11 +981,10 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
       if (double_bed) posLoop('knit', 'b');
     }
     negLoop('xfer', 'f');
-    xfer_section.push(`x-roller-advance 50`); //new
-    xfer_section.push(`x-add-roller-advance -50`); //new //check
-    if (bindoff_time) xfer_section.push(`tuck + b${xfer_needle + count} ${bindoff_carrier}`); //new good!!!!!!
-    xfer_section.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`); //new
-    // xfer_section.push(`miss + b${xfer_needle + count - 1} ${bindoff_carrier}`); //new //TODO: maybe make this tuck if miss doesn't work well
+    xfer_section.push(`x-roller-advance 50`);
+    xfer_section.push(`x-add-roller-advance -50`);
+    if (bindoff_time) xfer_section.push(`tuck + b${xfer_needle + count} ${bindoff_carrier}`);
+    xfer_section.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`);
     negLoop('bind', null);
     if (bindoff_time) {
       if (short_row_section) {
@@ -952,7 +994,6 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
       }
     }
   }
-  // if (!bindoff_time) xfer_section.push(`x-roller-advance 100`); //new need to //check //come back! //go back! //?
 };
 
 //----------------------
@@ -1037,16 +1078,13 @@ const inc1DoubleBed = (Xside_needle, side) => {
       xfer_section.push(`rack -1`);
       xfer_section.push(`xfer b${Xside_needle} f${Xside_needle - 1}`);
       xfer_section.push(`rack 0`);
-      xfer_section.push(`x-add-roller-advance -100`); //new
-      xfer_section.push(`miss + f${Xside_needle} ${left_bindC}`); //TODO: check to see if this ensures the order
-      xfer_section.push(`xfer f${Xside_needle} b${Xside_needle}`); //new order
-      // xfer_section.push(`rack 0`); //TODO: check to see if this ensures the order
+      xfer_section.push(`x-add-roller-advance -100`);
+      xfer_section.push(`miss + f${Xside_needle} ${left_bindC}`); ////ensures order of xfers that is least likely to drop stitches
+      xfer_section.push(`xfer f${Xside_needle} b${Xside_needle}`);
       xfer_section.push(`xfer f${Xside_needle - 1} b${Xside_needle - 1}`);
-      // xfer_section.push(`xfer f${Xside_needle - 1} b${Xside_needle - 1}`);
-      // xfer_section.push(`xfer f${Xside_needle} b${Xside_needle}`);
       xfer_section.push(`rack -1`);
       xfer_section.push(`xfer b${Xside_needle} f${Xside_needle - 1}`);
-      twist = 1; //new
+      twist = 1;
     } else {
       twist = 0;
     }
@@ -1058,10 +1096,9 @@ const inc1DoubleBed = (Xside_needle, side) => {
       xfer_section.push(`rack 1`);
       xfer_section.push(`xfer b${Xside_needle} f${Xside_needle + 1}`);
       xfer_section.push(`rack 0`);
-      xfer_section.push(`x-add-roller-advance -100`); //new
-      xfer_section.push(`miss - f${Xside_needle} ${right_bindC}`); //TODO: check to see if this ensures the order
-      xfer_section.push(`xfer f${Xside_needle} b${Xside_needle}`); //new order
-      // xfer_section.push(`rack 0`); //TODO: check to see if this ensures the order
+      xfer_section.push(`x-add-roller-advance -100`);
+      xfer_section.push(`miss - f${Xside_needle} ${right_bindC}`); ////ensures order of xfers that is least likely to drop stitches
+      xfer_section.push(`xfer f${Xside_needle} b${Xside_needle}`);
       xfer_section.push(`xfer f${Xside_needle + 1} b${Xside_needle + 1}`);
       // xfer_section.push(`xfer f${Xside_needle + 1} b${Xside_needle + 1}`);
       // xfer_section.push(`xfer f${Xside_needle} b${Xside_needle}`);
@@ -1633,7 +1670,9 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       }
     }
     if (XrightN !== R_NEEDLE) {
-      for (let cc = R_NEEDLE; cc > XrightN; --cc) {
+      for (let cc = R_NEEDLE + 6; cc > XrightN; --cc) {
+        //+6 b/c of out spot in knitify
+        // for (let cc = R_NEEDLE; cc > XrightN; --cc) {
         cookie = cookie.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
       }
     }
@@ -2162,7 +2201,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
             let last_op = rows[y][i][rows[y][i].length - 1];
             if (!left_carriers.includes(last_op.charAt(last_op.length - 1)) && !right_carriers.includes(last_op.charAt(last_op.length - 1))) {
               if (short_row_carriers.includes(last_op.charAt(last_op.length - 1))) {
-                back_passRneg.push([y, last_op.charAt(last_op.length - 1), back_passRneg.length]); //here
+                back_passRneg.push([y, last_op.charAt(last_op.length - 1), back_passRneg.length]);
               } else {
                 back_passRneg.push([y, short_row_carriers[new_carriers.indexOf(last_op.charAt(last_op.length - 1))], back_passRneg.length]);
               }
@@ -2235,7 +2274,6 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
             }
           }
           cookie = rows[first_short_row - 1][p];
-          // cookie = rows[first_short_row - 1][rows[first_short_row - 1].length - 1];
           cookieCutter(short_Xleft_needle, short_Xright_needle, short_row_carriers);
           insert_arr.push(cookie);
         }
@@ -2273,6 +2311,14 @@ last_carrier: for (let i = shaped_rows.length - 1; i > 0; --i) {
     bindCs.push(bindoff_carrier);
     shaped_rows[i].includes('+') ? (bindoff_side = 'right') : (bindoff_side = 'left');
     break last_carrier;
+  }
+}
+if (rib_top !== undefined) {
+  //new
+  if (!short_row_section) {
+    bindoff_carrier = rib_top[1].charAt(rib_top[1].length - 1);
+    rib_top[1].includes('+') ? (bindoff_side = 'right') : (bindoff_side = 'left');
+    bindCs[0] = bindoff_carrier;
   }
 }
 if (short_row_section && short_row_carriers.includes(bindoff_carrier)) {
@@ -2317,13 +2363,69 @@ if (short_row_section) {
   xfer_section = [];
   bindoff.push(short_tail);
 }
+////
+if (rib_top !== undefined) {
+  if (!short_row_section) {
+    if (Xleft_needle !== L_NEEDLE) {
+      for (let cc = L_NEEDLE; cc < Xleft_needle; ++cc) {
+        rib_top = rib_top.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
+      }
+    }
+    if (Xright_needle !== R_NEEDLE) {
+      for (let cc = R_NEEDLE; cc > Xright_needle; --cc) {
+        rib_top = rib_top.filter((el) => !el.includes(`f${cc} `) && !el.includes(`b${cc} `));
+      }
+    }
+    bindoff.unshift(rib_top);
+  } else {
+    console.log(
+      chalk`{black.bgYellow \n! WARNING:} {bold This program does not currently support ribbing at the top of pieces with short rowing, so the top rib section will be removed.}`
+    );
+  }
+}
+////
 bindoff = bindoff.flat();
 shaped_rows.push(bindoff);
 shaped_rows = shaped_rows.flat();
 
-//----------------
-//***ADD IN MISSES
-//----------------
+//--------------------------------------------------------------------------------------
+//***ADD EXTRA POS PASSES TO YARN IN SECTION FOR CARRIERS THAN START WITH NEG DIR PASSES
+//--------------------------------------------------------------------------------------
+
+//0: '' ; 1: pass... ; 2:dir ; 3:carrier ; 4:start_needle ; 5:end_needle (length === 6)
+if (xtra_yarn.length > 0) {
+  //new
+  for (let y = 0; y < xtra_yarn.length; ++y) {
+    let last_knit;
+    let pos_pass = [];
+    let stop = false;
+    xtra: for (let x = shaped_rows.indexOf(`in ${xtra_yarn[y]}`) + 1; x < shaped_rows.indexOf(`;kniterate yarns in`); ++x) {
+      //TODO: adapt for shima
+      if (!stop && shaped_rows[x].includes(` + `)) {
+        //new
+        pos_pass.push(shaped_rows[x]);
+      } else {
+        stop = true;
+      }
+      if (shaped_rows[x].charAt(shaped_rows[x].length - 1) === `${xtra_yarn[y]}`) {
+        last_knit = x;
+      } else {
+        break xtra;
+      }
+    }
+    // if (Number(pos_pass[pos_pass.length - 1].split(' ')[2].slice(1)) !== row1_Rneedle) {
+    //   console.log(Number(pos_pass[poss_pass.length - 1].split(' ')[2].slice(1))); //remove
+    //   pos_pass.push(`miss + f${row1_Rneedle} ${xtra_yarn[y]}`); //check
+    // }
+    pos_pass.unshift(`;pass: yarn in ;+;${xtra_yarn[y]};${pos_pass[0].split(' ')[2].slice(1)};${pos_pass[pos_pass.length - 1].split(' ')[2].slice(1)}`);
+    //TODO: ^ add miss for bringing in drawthread, and miss for xtra yarn... actually move this up above so it gets included w inc miss ^
+    shaped_rows.splice(last_knit + 1, 0, pos_pass);
+  }
+}
+
+//-----------------------------------------------------------------------------
+//***ADD MISSES TO BUMP CARRIERS OUT OF WAY FOR INCREASING & INSERT BACK-PASSES
+//-----------------------------------------------------------------------------
 let last_carrier_spot = [];
 const LastSPOT = ({ CARRIER, StartN, DIR }) => ({
   CARRIER,
@@ -2331,15 +2433,15 @@ const LastSPOT = ({ CARRIER, StartN, DIR }) => ({
   DIR, //new
 });
 
-// if (increasing) {
 let start_pt;
 short_row_section ? (start_pt = shaped_rows.indexOf(';short row section')) : (start_pt = shaped_rows.indexOf(';bindoff section'));
 
+// if (increasing) {
 inc_miss: for (let i = start_pt; i >= 0; --i) {
   if (shaped_rows[i].includes(`;pass:`)) {
     let info = shaped_rows[i].split(';');
     // ;pass: 2173 ;+;3
-    //0: '' ; 1: pass... ; 2:dir ; 3:carrier ; 4:start_needle ; 5:end_needle
+    //0: '' ; 1: pass... ; 2:dir ; 3:carrier ; 4:start_needle ; 5:end_needle (length === 6)
     let carrier_idx = last_carrier_spot.findIndex((el) => el.CARRIER == info[3]);
     // let start_needle;
     // if (info.length > 3) {
@@ -2427,7 +2529,7 @@ inc_miss: for (let i = start_pt; i >= 0; --i) {
   }
 }
 // }
-shaped_rows = shaped_rows.flat(); //new
+shaped_rows = shaped_rows.flat();
 
 let short_miss = false;
 miss: for (let i = 0; i < shaped_rows.length; ++i) {
@@ -2438,9 +2540,8 @@ miss: for (let i = 0; i < shaped_rows.length; ++i) {
     short_miss = true;
   }
   /////
-  let next = i + 1; //new
+  let next = i + 1;
   if (shaped_rows[i].includes('knit')) {
-    //new
     next_knit: for (let p = i + 1; p < shaped_rows.length; ++p) {
       if (
         short_miss &&
@@ -2475,38 +2576,43 @@ miss: for (let i = 0; i < shaped_rows.length; ++i) {
   }
 }
 
+// //--------------------------------------------------------------------------------------
+// //***ADD EXTRA POS PASSES TO YARN IN SECTION FOR CARRIERS THAN START WITH NEG DIR PASSES
+// //-------------------------------------------------------------------------------------
+// if (xtra_yarn.length > 0) {
+//   //new
+//   for (let y = 0; y < xtra_yarn.length; ++y) {
+//     let last_knit;
+//     let pos_pass = [];
+//     let stop = false;
+//     xtra: for (let x = shaped_rows.indexOf(`in ${xtra_yarn[y]}`) + 1; x < shaped_rows.indexOf(`;kniterate yarns in`); ++x) {
+//       if (!stop && shaped_rows[x].includes(` + `)) {
+//         //new
+//         pos_pass.push(shaped_rows[x]);
+//       } else {
+//         stop = true;
+//       }
+//       if (shaped_rows[x].charAt(shaped_rows[x].length - 1) === `${xtra_yarn[y]}`) {
+//         last_knit = x;
+//       } else {
+//         break xtra;
+//       }
+//     }
+//     if (Number(pos_pass[pos_pass.length - 1].split(' ')[2].slice(1)) !== row1_Rneedle) {
+//       console.log(Number(pos_pass[poss_pass.length - 1].split(' ')[2].slice(1))); //remove
+//       pos_pass.push(`miss + f${row1_Rneedle} ${xtra_yarn[y]}`); //check
+//     }
+//     //TODO: ^ add miss for bringing in drawthread, and miss for xtra yarn... actually move this up above so it gets included w inc miss ^
+//     shaped_rows.splice(last_knit + 1, 0, pos_pass);
+//   }
+// }
+
 //----------------------------
 //***ADD OUT / OUTHOOK BACK IN
 //----------------------------
-if (xtra_yarn.length > 0) {
-  //new
-  for (let y = 0; y < xtra_yarn.length; ++y) {
-    let last_knit;
-    let pos_pass = []; //new
-    let stop = false; //new
-    xtra: for (let x = shaped_rows.indexOf(`in ${xtra_yarn[y]}`) + 1; x < shaped_rows.indexOf(`;kniterate yarns in`); ++x) {
-      if (!stop && shaped_rows[x].includes(` + `)) {
-        //new
-        pos_pass.push(shaped_rows[x]);
-      } else {
-        stop = true;
-      }
-      if (shaped_rows[x].charAt(shaped_rows[x].length - 1) === `${xtra_yarn[y]}`) {
-        last_knit = x;
-      } else {
-        break xtra;
-      }
-    }
-    //TODO: add miss for bringing in drawthread, and miss for xtra yarn
-    // let shift = 0;
-    // let b;
-    shaped_rows.splice(last_knit + 1, 0, pos_pass);
-    // shaped_rows = shaped_rows.flat(); //new
-  }
-}
 //TODO: do this for inhook & releasehook for shima
-let yarn_out;
-sinkers ? (yarn_out = 'outhook') : (yarn_out = 'out');
+// let yarn_out;
+// sinkers ? (yarn_out = 'outhook') : (yarn_out = 'out');
 
 ((carriers_arr) => {
   short_row_section && !sinkers ? (carriers_arr = [...new_carriers, ...short_row_carriers]) : (carriers_arr = carriers);
@@ -2516,26 +2622,42 @@ sinkers ? (yarn_out = 'outhook') : (yarn_out = 'out');
     // let carrier_search = shaped_rows.map((el) => el.includes(` ${carriers_arr[i]}`) && el.includes(`knit`));
     let last = carrier_search.lastIndexOf(true);
     if (last !== -1) {
-      // if ((short_row_section && short_row_carriers.includes(carriers_arr[i])) || shaped_rows[last].includes(' - ')) { //new &&
-      if ((short_row_section && short_row_carriers.includes(carriers_arr[i])) || shaped_rows[last].includes(' + ')) {
-        //new &&
-        //new ||
-        //TODO: check this over
-        //new
+      // if ((short_row_section && short_row_carriers.includes(carriers_arr[i])) || shaped_rows[last].includes(' + ')) {
+      ////
+      if (!bindCs.includes(carriers_arr[i]) && (shaped_rows[last].includes(' + ') || (short_row_section && short_row_carriers.includes(carriers_arr[i])))) {
+        // if (!bindCs.includes(carriers_arr[i]) && shaped_rows[last].includes(' + ') && ((short_row_section && short_row_carriers.includes(carriers_arr[i])) || !short_row_section)) {
+        //////
+        // if (
+        //   (short_row_section && (short_row_carriers.includes(carriers_arr[i]) || (new_carriers.includes(carriers_arr[i]) && shaped_rows[last].includes(' + ')))) ||
+        //   (!short_row_section && shaped_rows[last].includes(' + '))
+        // ) {
         let dir;
-        let out_spot = Number(shaped_rows[last].split(' ')[2].slice(1)); //?
-        shaped_rows[last].includes(' + ') ? ((dir = '+'), (out_spot += 6)) : ((dir = '-'), (out_spot -= 2));
-        shaped_rows.splice(last + 1, 0, `miss ${dir} f${out_spot} ${carriers_arr[i]}`); //new
-        // ++end_splice; //new
-        if (last + 1 < end_splice) ++end_splice; //new
-        if (!bindCs.includes(carriers_arr[i])) {
-          //new
-          shaped_rows.splice(end_splice, 0, `${yarn_out} ${carriers_arr[i]}`); //new
+        let out_spot = Number(shaped_rows[last].split(' ')[2].slice(1));
+        // shaped_rows[last].includes(' + ') ? ((dir = '+'), (out_spot += 6)) : ((dir = '-'), (out_spot -= 2)); //TODO: deal with out spot += 6 for short rowing
+        if (shaped_rows[last].includes(' + ')) {
+          dir = '+';
+          if (!short_row_section || short_row_carriers.includes(carriers_arr[i])) {
+            out_spot += 6;
+          } else {
+            out_spot += 1;
+          }
         } else {
-          shaped_rows.push(`${yarn_out} ${carriers_arr[i]}`); ////at the end
+          dir = '-';
+          out_spot -= 1;
         }
+        // shaped_rows[last].includes(' + ') && (!short_row_section || short_row_carriers.includes(carriers_arr[i])) ? ((dir = '+'), (out_spot += 6)) : ((dir = '-'), (out_spot -= 1)); //TODO: deal with out spot += 6 for short rowing
+        // if (!short_row_section || (short_row_section && short_row_carriers.includes(carriers_arr[i]))) out_spot += 6;
+        ///
+        // shaped_rows.splice(last + 1, 0, `miss + f${out_spot} ${carriers_arr[i]}`);
+        shaped_rows.splice(last + 1, 0, `miss ${dir} f${out_spot} ${carriers_arr[i]}`);
+        if (last + 1 < end_splice) ++end_splice;
+        // if (!bindCs.includes(carriers_arr[i])) {
+        shaped_rows.splice(end_splice, 0, `${yarn_out} ${carriers_arr[i]}`);
+        // } else {
+        //   shaped_rows.push(`${yarn_out} ${carriers_arr[i]}`); ////at the end //TODO: make this before drop?
+        // }
       } else {
-        shaped_rows.splice(last + 1, 0, `${yarn_out} ${carriers_arr[i]}`);
+        shaped_rows.splice(last + 1, 0, `${yarn_out} ${carriers_arr[i]}`); ////include bindCs here so takes the carrier out before drop
         if (last + 1 < end_splice) ++end_splice; //new
       }
     }
@@ -2598,10 +2720,10 @@ if (!errors && !shape_error) {
     );
   } else {
     console.log(chalk.red.bgWhite.bold(`\nErrors found--unable to write file. Please refer to console log for details.`));
-    // fs.writeFile(`./knit-out-files/${new_file}`, final_file, function (err) {
-    //   //remove
-    //   if (err) return console.log(err);
-    //   console.log(chalk.green(`\nThe knitout file has successfully been altered and saved. The path to the new file is: ${new_file}`));
-    // }); //remove
+    fs.writeFile(`./knit-out-files/${new_file}`, final_file, function (err) {
+      //remove ////for debugging purposes
+      if (err) return console.log(err);
+      console.log(chalk.green(`\nThe knitout file has successfully been altered and saved. The path to the new file is: ${new_file}`));
+    }); //remove
   }
 }

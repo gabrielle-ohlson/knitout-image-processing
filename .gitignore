@@ -13,8 +13,14 @@ test-kcode.js
 .d.ts
 COLORS_DATA.json
 knitify-copy-less.js
-knitify-birdseye-visualizer.js
+birdseye-visualizer.js
+back-comp.js
 knitify-copy.js
+fixify.js
 
-#exlude .txt
+#exclude test directories
+xtra-files/
+.vscode/
+
+#exlude .txt files
 *.txt

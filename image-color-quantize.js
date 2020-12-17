@@ -62,7 +62,6 @@ if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use a predef
     palette_opt.push(hexToRGB(hex));
   }
 }
-console.log(palette_opt); //remove
 
 let opts = {
   colors: max_colors,
