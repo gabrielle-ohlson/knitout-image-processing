@@ -65,7 +65,7 @@ if (choice === 'Template') {
       limitMessage: chalk.red('-- $<lastInput> is not a number.'),
     });
     row_count === '-1' ? console.log(chalk.green(`-- Row count: AUTO`)) : console.log(chalk.green(`-- Row count: ${row_count}`));
-  } else {
+  } else { //needle_count serving as temporary substitute for input file
     if (needle_count.includes('.')) needle_count = needle_count.slice(0, needle_count.indexOf('.'));
     needle_count = `${needle_count}.k`;
     console.log(chalk.green(`-- Reading from: ${needle_count}\n\nPlease wait...`));
@@ -84,7 +84,7 @@ if (choice === 'Template') {
     // let needle_count_arr = source_file.splice(source_file.findIndex((el) => el.includes(`;background color:`)));
     // needle_count_arr = needle_count_arr.filter((el) => !el.includes(';'));
     // let needle_count_arr = source_file.filter((el) => !el.includes(';') && !el.includes('x-') && !el.includes('miss'));
-    let needle_count_arr = source_file.filter((el) => !el.includes(';') && !el.includes('x-') && !el.includes('miss') && !el.includes('tuck')); //new
+    let needle_count_arr = source_file.filter((el) => !el.includes(';') && !el.includes('x-') && !el.includes('miss') && !el.includes('tuck') && !el.includes('drop')); //new
     // let needle_count_arr = source_file.filter((el) => !el.includes(';') && !el.includes('x-vis-color'));
     needle_count_arr = needle_count_arr.map((el) => el.match(/\d+/g));
     needle_count_arr = needle_count_arr.map((arr) => arr.splice(0, 1));

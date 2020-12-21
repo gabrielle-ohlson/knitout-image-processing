@@ -108,7 +108,7 @@ imageColors
           (rib_carrier = readlineSync.keyInSelect(
             rib_bottom,
             chalk`{blue.bold ^Which carrier would you like to use for the bottom rib?} {blue.italic (the corresponding hex code is listed next to each carrier number)}`
-          ));
+          )); //TODO: add option for using a carrier that is not used in piece if <6 carriers in use
         rib_bottom = rib_carrier + 1; //check
         ribB_rows = readlineSync.questionInt(chalk`{blue.bold \nHow many rows? }`);
       } else {
@@ -547,17 +547,59 @@ imageColors
       // knitout.unshift(kniterate_caston);
     }
     const RIB = (arr, carrier, dir1, dir2, rib_rows) => {
+      const POSRIB = (bed, modulo) => {
+        let bed2;
+        bed === 'f' ? (bed2 = 'b') : (bed2 = 'f');
+        for (let n = 1; n <= colors_arr[0].length; ++n) {
+          if (modulo === 'even') {
+            if (n % 2 === 0) arr.push(`knit + ${bed}${n} ${carrier}`);
+          } else if (modulo === 'odd') {
+            if (n % 2 !== 0) arr.push(`knit + ${bed}${n} ${carrier}`);
+          } else if (modulo === 'alt') {
+            if (n % 2 !== 0) {
+              arr.push(`knit + b${n} ${carrier}`);
+            } else {
+              arr.push(`knit + f${n} ${carrier}`);
+            }
+          } else {
+            arr.push(`knit + ${bed}${n} ${carrier}`);
+          }
+        }
+      };
+      const NEGRIB = (bed, modulo) => {
+        // let bed2;
+        // bed === 'f' ? (bed2 = 'b') : (bed2 = 'f');
+        for (let n = colors_arr[0].length; n >= 1; --n) {
+          if (modulo === 'even') {
+            if (n % 2 === 0) arr.push(`knit - ${bed}${n} ${carrier}`);
+          } else if (modulo === 'odd') {
+            if (n % 2 !== 0) arr.push(`knit - ${bed}${n} ${carrier}`);
+          } else if (modulo === 'alt') {
+            if (n % 2 !== 0) {
+              arr.push(`knit - b${n} ${carrier}`);
+              // arr.push(`knit - ${bed}${n} ${carrier}`);
+            } else {
+              arr.push(`knit - f${n} ${carrier}`);
+              // arr.push(`knit - ${bed2}${n} ${carrier}`);
+            }
+          } else {
+            arr.push(`knit - ${bed}${n} ${carrier}`);
+          }
+        }
+      };
       arr.push(`;begin rib`);
       for (let r = 0; r < 2; ++r) {
-        for (let n = colors_arr[0].length; n >= 1; --n) {
-          arr.push(`knit ${dir1} b${n} ${carrier}`);
-        }
-        for (let n = 1; n <= colors_arr[0].length; ++n) {
-          arr.push(`knit ${dir2} f${n} ${carrier}`);
-        }
+        dir1 === '-' ? (NEGRIB('b'), POSRIB('f')) : (POSRIB('b'), NEGRIB('f'));
+        // for (let n = colors_arr[0].length; n >= 1; --n) {
+        //   arr.push(`knit ${dir1} b${n} ${carrier}`);
+        // }
+        // for (let n = 1; n <= colors_arr[0].length; ++n) {
+        //   arr.push(`knit ${dir2} f${n} ${carrier}`);
+        // }
       }
       arr.push(`x-speed-number 100`);
       for (let n = colors_arr[0].length; n >= 1; --n) {
+        ////doesn't rly matter direction for xfer
         if (n % 2 === 0) arr.push(`xfer b${n} f${n}`);
       }
       for (let n = 1; n <= colors_arr[0].length; ++n) {
@@ -565,33 +607,36 @@ imageColors
       }
       arr.push(`x-speed-number ${speed_number}`, `x-stitch-number ${Math.ceil(Number(stitch_number) / 2)}`); //TODO: calculate rib stitch number based on actual stitch number - i'm think Math.ceil(stitch_number/2)
       rib_loop: for (let r = 0; r < rib_rows / 2; ++r) {
-        for (let n = colors_arr[0].length; n >= 1; --n) {
-          if (n % 2 !== 0) {
-            arr.push(`knit ${dir1} b${n} ${carrier}`);
-          } else {
-            arr.push(`knit ${dir1} f${n} ${carrier}`);
-          }
-        }
+        dir1 === '-' ? NEGRIB('b', 'alt') : POSRIB('b', 'alt');
+        // for (let n = colors_arr[0].length; n >= 1; --n) {
+        //   if (n % 2 !== 0) {
+        //     arr.push(`knit ${dir1} b${n} ${carrier}`);
+        //   } else {
+        //     arr.push(`knit ${dir1} f${n} ${carrier}`);
+        //   }
+        // }
         if (r === rib_rows / 2 - 2 && bot_dir_switch) {
           [dir1, dir2] = [dir2, dir1];
           break rib_loop;
         }
-        for (let n = 1; n <= colors_arr[0].length; ++n) {
-          if (n % 2 !== 0) {
-            arr.push(`knit ${dir2} b${n} ${carrier}`);
-          } else {
-            arr.push(`knit ${dir2} f${n} ${carrier}`);
-          }
-        }
+        dir2 === '-' ? NEGRIB('b', 'alt') : POSRIB('b', 'alt');
+        // for (let n = 1; n <= colors_arr[0].length; ++n) {
+        //   if (n % 2 !== 0) {
+        //     arr.push(`knit ${dir2} b${n} ${carrier}`);
+        //   } else {
+        //     arr.push(`knit ${dir2} f${n} ${carrier}`);
+        //   }
+        // }
       }
       arr.push(`x-stitch-number ${stitch_number}`);
       for (let r = 0; r < 4; ++r) {
-        for (let n = colors_arr[0].length; n >= 1; --n) {
-          arr.push(`knit ${dir1} b${n} ${carrier}`);
-        }
-        for (let n = 1; n <= colors_arr[0].length; ++n) {
-          arr.push(`knit ${dir2} f${n} ${carrier}`);
-        }
+        dir1 === '-' ? (NEGRIB('b'), POSRIB('f')) : (POSRIB('b'), NEGRIB('f'));
+        // for (let n = colors_arr[0].length; n >= 1; --n) {
+        //   arr.push(`knit ${dir1} b${n} ${carrier}`);
+        // }
+        // for (let n = 1; n <= colors_arr[0].length; ++n) {
+        //   arr.push(`knit ${dir2} f${n} ${carrier}`);
+        // }
       }
       if (!double_bed) {
         arr.push(`x-speed-number 100`);
@@ -618,6 +663,7 @@ imageColors
     for (let d = colors_data.length - 1; d >= 0; --d) {
       knitout.unshift(colors_data[d]);
     }
+    //TODO: add feature to alter colors data so that it corresponds with new carrier assignment system
     ////
     if (speed_number !== '-1') knitout.unshift(`x-speed-number ${speed_number}`);
     if (stitch_number !== '-1') knitout.unshift(`x-stitch-number ${stitch_number}`);
