@@ -15,6 +15,6 @@ Respond to the prompts as they appear in the terminal.\
 When the program has finished running, a knitout file will be written to the sub-directory 'knit-out-files'. A visual depiction of the knitting machine instructions will also be written to the parent directory (under the name 'knit_motif.png').
 
 **To then add shaping to the file:**\
-Place a graphic (.png or .jpg) of a shape in the 'in-shape-images' folder. (note: the graphic should include a white background and a shape with a black outline and fill.)\
+Place an image (.png or .jpg) in the 'in-shape-images' folder. (*note: the graphic should include a white background and a shape with a black outline and fill*.)\
 From the command-line, type 'npm run shapeify' and respond to the prompts.\
-The program will output a knitout file to the sub-directory 'knit-out-files'.
+The program will then output a knitout file to the sub-directory 'knit-out-files'.
