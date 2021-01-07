@@ -1,0 +1,1 @@
+folder for output colorwork images after processing by 'knitify' [colorwork program].
