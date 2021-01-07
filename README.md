@@ -1,14 +1,15 @@
 # knitout-image-processing
 
-Dependencies:\
+**Dependencies:**\
  [readline-sync](https://www.npmjs.com/package/readline-sync)\
  [chalk](https://www.npmjs.com/package/chalk)\
  [jimp](https://www.npmjs.com/package/jimp)\
  [rgbquant](https://www.npmjs.com/package/rgbquant)
 
+ **NOTE:** ensure that all dependencies have been installed with npm (package manager included with [node](https://nodejs.org/en/download/)) before running the programming.
+
 # Usage
 
-NOTE: ensure that all dependencies have been installed with npm (package manager included with [node](https://nodejs.org/en/download/)) before running the programming.\
 Place the image file (.png or .jpg) that you would like to process in the 'in-colorwork-images' folder.\
 From the command-line, cd to the parent directory ('knitout-image-processing') and type 'npm run knitify'.\
 Respond to the prompts as they appear in the terminal.\
