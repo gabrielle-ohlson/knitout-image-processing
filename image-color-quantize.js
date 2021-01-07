@@ -9,7 +9,7 @@ let palette, reduced;
 let colors_arr = [];
 let pal_hist = [];
 let background = [];
-let colors_data = []; //new loc
+let colors_data = [];
 
 let machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machine will you be using? '), {
   limit: [
@@ -34,9 +34,7 @@ let max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would 
 });
 max_colors = Number(max_colors);
 console.log(chalk.green(`-- Knitting with ${max_colors} colors.`));
-//QUESTIONS:
-//minHueColors: Are there low-occuring colors you'd like to preserve? (Y: max_colors; N: 0)
-//dithKern: Would you like to use dithering? (Y: ?; N: null)
+
 let dithering = readlineSync.keyInYNStrict(
   chalk`{blue.bold \nWould you like to use dithering?} {blue.italic (dithering is recommended for detailed/naturalistic images, but not for graphics/digital artwork.)}`
 );
@@ -73,23 +71,16 @@ let opts = {
   // dithKern: null, //new
   // dithKern: 'Stucki', //new
   dithKern: dithering, //new
+  reIndex: false, //?
+  // useCache: false, //?
   //FloydSteinberg(-/+), Stucki(++), Atkinson(-), Jarvis(+?), null
   // dithDelta: 1, //new
-  // palette: [
-  //   [0, 0, 0], #000000
-  //   [254, 210, 8], #fed208
-  //   [123, 51, 28], #7b331c
-  //   [182, 172, 212], #b6acd4
-  //   [52, 54, 149], #343695
-  //   [123, 28, 45], #7b1c2d
-  // ], //remove
 };
 
 if (palette_opt.length > 0) {
   opts.palette = palette_opt;
 }
 
-console.log(opts); //remove
 
 function getData() {
   const processImage = new Promise((resolve) => {
@@ -99,20 +90,25 @@ function getData() {
       data = image.bitmap.data;
       let q = new RgbQuant(opts);
       q.sample(data, width);
-      palette = q.palette(true, true);
+      palette = q.palette(true);
+
+      // palette = q.palette(true, true);
       q.idxi32.forEach(function (i32) {
         ////return array of palette color occurrences
-        pal_hist.push(q.histogram[i32]);
+        pal_hist.push({ color: q.i32rgb[i32], count: q.histogram[i32] });
+        // pal_hist.push(q.histogram[i32]);
       });
+      // sort it yourself
+      pal_hist.sort(function (a, b) {
+        return a.count == b.count ? 0 : a.count < b.count ? 1 : -1;
+      });
+      palette = pal_hist.map((el) => (el = el.color)); //new //?
       let hex_arr = [];
       const RGBToHex = (r, g, b) => ((r << 16) + (g << 8) + b).toString(16).padStart(6, '0');
       for (let h = 0; h < palette.length; ++h) {
         hex_arr.push(Jimp.rgbaToInt(palette[h][0], palette[h][1], palette[h][2], 255)); //255 bc hex
         colors_data.push(RGBToHex(palette[h][0], palette[h][1], palette[h][2]));
       }
-      // for (let h = 1; h <= colors_data.length; ++h) {
-      //   colors_data[h - 1] = `x-vis-color #${colors_data[h - 1]} ${h}`;
-      // }
       /////
       reduced = q.reduce(data, 2); ////indexed array
       let motif_path = `./out-colorwork-images/knit_motif.png`;
@@ -178,8 +174,6 @@ function getData() {
             break move;
           }
         }
-        console.log(replace); //remove
-        console.log(edge_colors); //remove
         if (edge_colors.length > 0) {
           // for (let c = 1; c <= colors_data.length; ++c) {
           for (let i = edge_colors.length; i > 0; --i) {
@@ -191,7 +185,6 @@ function getData() {
               background = i;
             }
             let edge = colors_data.splice(i - 1, 1, colors_data[replace - 1]);
-            console.log(edge); //remove
             colors_data.splice(replace - 1, 1, edge[0]);
             // colors_data[c - 1] = colors_data[edge_colors[i]];
             // }
@@ -211,8 +204,6 @@ function getData() {
               });
             }
           }
-          // console.log(colors_data); //remove
-          // console.log(`now colors_arr = ${colors_arr}`); //remove
         }
         for (let h = 1; h <= colors_data.length; ++h) {
           colors_data[h - 1] = `x-vis-color #${colors_data[h - 1]} ${h}`;

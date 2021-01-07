@@ -28,12 +28,20 @@ let colors_data = [];
 let kniterate_caston = [],
   waste_yarn_section = [];
 
+let edge_L = [], //new
+  edge_R = [],
+  edge_needlesL = [],
+  edge_needlesR = [],
+  edgeL_done = false,
+  edgeR_done = false;
+
 let carrier_track = [],
   initial_carriers = [];
 const FINDMYCARRIER = ({ CARRIER, DIR }) => ({
   CARRIER,
   DIR,
 });
+let track_back = [];
 
 let stitch_number = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press enter to skip this step)} {blue.bold What would you like to set the stitch number as? }`, {
   defaultInput: -1,
@@ -59,10 +67,10 @@ speed_number === '-1'
 // speed_number === '-1' ? console.log(chalk.green(`-- Speed number: UNSPECIFIED`)) : console.log(chalk.green(`-- Speed number: ${speed_number}`));
 
 // let back_style = ['Default', 'Birdseye', 'Ladderback', 'New'],
-let back_style = ['Default', 'Birdseye', 'Minimal'],
+let back_style = ['Default', 'Birdseye', 'Minimal', 'Secure'], //secure =//new
   style = readlineSync.keyInSelect(
     back_style,
-    chalk`{blue.bold ^What style back would you like to use?} {blue.italic \n=> '}{blue.bold Birdseye}{blue.italic ' is not recommended for pieces that use more than 3 colors due to the build up of extra rows the method creates on the back bed.\n=> Alternatively, '}{blue.bold Minimal}{blue.italic ' creates a reasonably even ratio of front to back rows, resulting in the least amount of build up on the back.\n=> '}{blue.bold Default}{blue.italic ' is an in-between option that is similar to Birdseye, but more suitable for pieces containing up to 5 colors.}`
+    chalk`{blue.bold ^What style back would you like to use?} {blue.italic \n=> '}{blue.bold Birdseye}{blue.italic ' is not recommended for pieces that use more than 3 colors due to the build up of extra rows the method creates on the back bed.\n=> Alternatively, '}{blue.bold Minimal}{blue.italic ' creates a reasonably even ratio of front to back rows, resulting in the least amount of build up on the back.\n=> '}{blue.bold Default}{blue.italic ' is an in-between option that is similar to Birdseye, but more suitable for pieces containing up to 5 colors.\n=> '}{blue.bold Secure}{blue.italic ' is the 'Minimal' option, with additional knits on the side needles for extra security.}`
   );
 console.log(chalk.green('-- Back style: ' + back_style[style]));
 back_style = back_style[style];
@@ -95,6 +103,53 @@ imageColors
     init_dir = '-';
     other_dir = '+';
     machine.includes('kniterate') ? (needle_bed = 253) : (needle_bed = 541); ////one extra so not counting from 0
+    /////
+    if (back_style === 'Secure') {
+      //new
+      reverse = false; //new
+      if (palette.length < 4) {
+        back_style = 'Minimal';
+      } else {
+        //new
+        // edge_L.push(1, 2, 3);
+        edge_L.push(3, 1, 2);
+        // edge_R.push(colors_arr[0].length, colors_arr[0].length - 1, colors_arr[0].length - 2);
+        ////
+        if (palette.length === 3 || palette.length === 6) {
+          if (colors_arr[0].length % palette.length === 0 || colors_arr[0].length % palette.length === 2) {
+            edge_R.push(colors_arr[0].length, colors_arr[0].length - 2, colors_arr[0].length - 1);
+            // edge_R.push(colors_arr[0].length - 2, colors_arr[0].length, colors_arr[0].length - 1);
+          } else if (colors_arr[0].length % palette.length === 5 || colors_arr[0].length % palette.length === 3) {
+            edge_R.push(colors_arr[0].length - 2, colors_arr[0].length - 1, colors_arr[0].length);
+          } else if (colors_arr[0].length % palette.length === 4 || colors_arr[0].length % palette.length === 1) {
+            edge_R.push(colors_arr[0].length - 1, colors_arr[0].length, colors_arr[0].length - 2);
+          } else {
+            edge_R.push(colors_arr[0].length, colors_arr[0].length - 1, colors_arr[0].length - 2);
+          }
+        } else if (palette.length === 4) {
+          if (colors_arr[0].length % palette.length === 0) {
+            edge_R.push(colors_arr[0].length, colors_arr[0].length - 1, colors_arr[0].length - 2);
+            // edge_R.push(colors_arr[0].length - 2, colors_arr[0].length, colors_arr[0].length - 1);
+          } else if (colors_arr[0].length % palette.length === 1) {
+            edge_R.push(colors_arr[0].length - 1, colors_arr[0].length, colors_arr[0].length - 2);
+          } else if (colors_arr[0].length % palette.length === 2) {
+            edge_R.push(colors_arr[0].length - 2, colors_arr[0].length - 1, colors_arr[0].length);
+          } else {
+            edge_R.push(colors_arr[0].length, colors_arr[0].length - 2, colors_arr[0].length - 1);
+          }
+        } else {
+          if (colors_arr[0].length % palette.length === 0) {
+            edge_R.push(colors_arr[0].length, colors_arr[0].length - 1, colors_arr[0].length - 2);
+          } else if (colors_arr[0].length % palette.length === 2) {
+            edge_R.push(colors_arr[0].length - 2, colors_arr[0].length - 1, colors_arr[0].length);
+          } else if (colors_arr[0].length % palette.length === 3) {
+            edge_R.push(colors_arr[0].length, colors_arr[0].length - 2, colors_arr[0].length - 1);
+          } else {
+            edge_R.push(colors_arr[0].length - 1, colors_arr[0].length, colors_arr[0].length - 2);
+          }
+        }
+      }
+    }
     /////
     if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to add rib?}`)) {
       rib = true;
@@ -217,6 +272,7 @@ imageColors
         carrier = jacquard_passes[i - 1][0][1];
         if (carrier === undefined) carrier = jacquard_passes[i - 2][0][1]; //TODO: make this work for birdseye too
       }
+      ////
       if (!carrier_track.some((el) => el.CARRIER === carrier)) {
         carrier_track.push(
           FINDMYCARRIER({
@@ -236,6 +292,77 @@ imageColors
         if (previous.DIR === dir) {
           dir === '+' ? (dir = '-') : (dir = '+');
         }
+        ////new
+        let stack_track = carrier_track.filter((obj) => obj.DIR === dir);
+        // console.log(carrier_track); //remove
+        // console.log(stack_track); //remove
+        // let pos_track = carrier_track.filter(obj => obj.DIR === '+');
+        // let neg_track = carrier_track.filter((obj) => obj.DIR === '-');
+        if (stack_track.length > 3) {
+        // if (stack_track.length > 3) {
+          console.log(stack_track); //remove
+          //come back!
+          let least_freq;
+          if (track_back.length > 0) {
+            if (track_back.length < color_count) {
+              for (let t = 0; t < stack_track.length; ++t) {
+                if (!track_back.includes(stack_track[t].CARRIER)) {
+                  least_freq = stack_track[t].CARRIER;
+                  break;
+                }
+              }
+            }
+            if (least_freq === undefined) {
+              least_freq = [
+                ...track_back.reduce(
+                  (
+                    r,
+                    n // create a map of occurrences
+                  ) => r.set(n, (r.get(n) || 0) + 1),
+                  new Map()
+                ),
+              ].reduce((r, v) => (v[1] < r[1] ? v : r))[0]; // get the the item that appear less times
+            }
+          } else {
+            least_freq = stack_track[0].CARRIER;
+          }
+          console.log(track_back, least_freq); //remove
+          track_back.push(least_freq);
+          let track_dir;
+          dir === '+' ? (track_dir = '-') : (track_dir = '+');
+          if (!carrier_track.some((el) => el.CARRIER === least_freq)) {
+            carrier_track.push(
+              FINDMYCARRIER({
+                CARRIER: least_freq,
+                DIR: track_dir,
+              })
+            );
+            initial_carriers.push(
+              FINDMYCARRIER({
+                CARRIER: least_freq,
+                DIR: track_dir,
+              })
+            );
+          } else {
+            let least_idx = carrier_track.findIndex((obj) => obj.CARRIER === least_freq);
+            carrier_track[least_idx].DIR = track_dir;
+          }
+          if (track_dir === '+') {
+            for (let t = 1; t < colors_arr[0].length; ++t) {
+              if (t === 1 || t === colors_arr[0].length - 1 || t % Number(least_freq) === 0) {
+                //TODO: make this capped at 5, not 6
+                knitout.push(`knit + b${t} ${least_freq}`);
+              }
+            }
+          } else {
+            for (let t = colors_arr[0].length; t >= 1; --t) {
+              if (t === 1 || t === colors_arr[0].length - 1 || t % Number(least_freq) === 0) {
+                knitout.push(`knit - b${t} ${least_freq}`);
+              }
+            }
+          }
+        }
+        ////
         carrier_track[prev_idx].DIR = dir;
       }
       ///////
@@ -301,24 +428,93 @@ imageColors
                 }
               }
             }
-          } else if (back_style === 'Minimal') {
+          } else if (back_style === 'Minimal' || back_style === 'Secure') {
+            if (back_style === 'Secure') {
+              if (edge_needlesL.length === 0) edge_needlesL = [...edge_L];
+              if (edge_needlesR.length === 0) edge_needlesR = [...edge_R];
+            }
+            // } else if (back_style === 'Minimal') {
             if ((dir === '+' && x === 1) || (dir === '-' && x === colors_arr[0].length)) {
               leftovers2 = [...new Set([...leftovers2, ...leftovers])];
               leftovers = [];
+              edgeL_done = false;
+              edgeR_done = false;
             }
-            if (x % passes_per_row[row_count - 1] === pass_count) {
+            if (back_style === 'Secure' && (edge_L.includes(x) || edge_R.includes(x))) {
               if (!taken) {
-                knitout.push(`knit ${dir} b${x} ${carrier}`);
-                if (leftovers2.includes(x)) {
-                  leftovers2.splice(leftovers2.indexOf(x), 1);
+                // if (!edgeL_done && x === edge_needlesL[0]) {
+                if (!edgeL_done && edge_L.includes(x)) {
+                  if (pass_count <= 3 && x % passes_per_row[row_count - 1] === pass_count) {
+                    knitout.push(`knit ${dir} b${x} ${carrier}`);
+                    if (edge_needlesL.includes(x)) edge_needlesL.splice(edge_needlesL.indexOf(x), 1);
+                    edgeL_done = true;
+                  } else if (x === edge_needlesL[0]) {
+                    knitout.push(`knit ${dir} b${edge_needlesL[0]} ${carrier}`);
+                    edge_needlesL.shift();
+                    edgeL_done = true;
+                  }
+                  ////
+                  if (leftovers2.includes(x)) {
+                    leftovers2.splice(leftovers2.indexOf(x), 1);
+                  }
+                  // } else if (!edgeR_done && x === edge_needlesR[0]) {
+                } else if (!edgeR_done && edge_R.includes(x)) {
+                  if (pass_count <= 3 && x % passes_per_row[row_count - 1] === pass_count) {
+                    knitout.push(`knit ${dir} b${x} ${carrier}`);
+                    if (edge_needlesR.includes(x)) edge_needlesR.splice(edge_needlesR.indexOf(x), 1);
+                    edgeR_done = true;
+                  } else if (x === edge_needlesR[0]) {
+                    knitout.push(`knit ${dir} b${edge_needlesR[0]} ${carrier}`);
+                    edge_needlesR.shift();
+                    edgeR_done = true;
+                  }
+                  ////
+                  if (leftovers2.includes(x)) {
+                    leftovers2.splice(leftovers2.indexOf(x), 1);
+                  }
                 }
               } else {
-                leftovers.push(x);
+                edge_needlesL.includes(x) ? (edgeL_done = true) : (edgeR_done = true);
               }
-            } else if (leftovers2.includes(x)) {
-              if (!taken) {
-                knitout.push(`knit ${dir} b${x} ${carrier}`);
-                leftovers2.splice(leftovers2.indexOf(x), 1);
+            } else {
+              if (x % passes_per_row[row_count - 1] === pass_count) {
+                if (!taken) {
+                  // knitout.push(`knit ${dir} b${x} ${carrier}`);
+                  // if (back_style === 'Secure' && ((!edgeL_done && edge_needlesL.includes(x)) || (!edgeR_done && edge_needlesR.includes(x)))) {
+                  // if (x === edge_needlesL[0]) {
+                  //   knitout.push(`knit ${dir} b${edge_needlesL[0]} ${carrier}`);
+                  //   edge_needlesL.shift();
+                  //   edgeL_done = true;
+                  //   ////
+                  //   if (leftovers2.includes(x)) {
+                  //     leftovers2.splice(leftovers2.indexOf(x), 1);
+                  //   }
+                  // } else if (x === edge_needlesR[0]) {
+                  //   knitout.push(`knit ${dir} b${edge_needlesR[0]} ${carrier}`);
+                  //   edge_needlesR.shift();
+                  //   edgeR_done = true;
+                  //   ////
+                  //   if (leftovers2.includes(x)) {
+                  //     leftovers2.splice(leftovers2.indexOf(x), 1);
+                  //   }
+                  // }
+                  // } else {
+                  knitout.push(`knit ${dir} b${x} ${carrier}`);
+                  if (leftovers2.includes(x)) {
+                    leftovers2.splice(leftovers2.indexOf(x), 1);
+                  }
+                  // }
+                  // if (leftovers2.includes(x)) {
+                  //   leftovers2.splice(leftovers2.indexOf(x), 1);
+                  // }
+                } else {
+                  leftovers.push(x);
+                }
+              } else if (leftovers2.includes(x)) {
+                if (!taken) {
+                  knitout.push(`knit ${dir} b${x} ${carrier}`);
+                  leftovers2.splice(leftovers2.indexOf(x), 1);
+                }
               }
             }
           } else {
@@ -665,6 +861,7 @@ imageColors
     }
     //TODO: add feature to alter colors data so that it corresponds with new carrier assignment system
     ////
+    if (back_style === 'Secure') knitout.unshift(`x-carrier-spacing 1.5`); //new //check!
     if (speed_number !== '-1') knitout.unshift(`x-speed-number ${speed_number}`);
     if (stitch_number !== '-1') knitout.unshift(`x-stitch-number ${stitch_number}`);
     knitout.unshift(`;!knitout-2`, `;;Machine: ${machine}`, `;;Carriers:${carriers_str}`);
