@@ -1,5 +1,8 @@
 #exclude all images
 *.png
+!example-shape.png
+!colorwork.png
+!knit_motif.png
 *.jpg
 *.jpeg
 *.bmp
