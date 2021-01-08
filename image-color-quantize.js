@@ -81,7 +81,6 @@ if (palette_opt.length > 0) {
   opts.palette = palette_opt;
 }
 
-
 function getData() {
   const processImage = new Promise((resolve) => {
     Jimp.read(`./out-colorwork-images/colorwork.png`).then((image) => {
@@ -90,9 +89,8 @@ function getData() {
       data = image.bitmap.data;
       let q = new RgbQuant(opts);
       q.sample(data, width);
-      palette = q.palette(true);
-
-      // palette = q.palette(true, true);
+      // palette = q.palette(true);
+      palette = q.palette(true, true);
       q.idxi32.forEach(function (i32) {
         ////return array of palette color occurrences
         pal_hist.push({ color: q.i32rgb[i32], count: q.histogram[i32] });
@@ -102,7 +100,13 @@ function getData() {
       pal_hist.sort(function (a, b) {
         return a.count == b.count ? 0 : a.count < b.count ? 1 : -1;
       });
-      palette = pal_hist.map((el) => (el = el.color)); //new //?
+      ////
+      opts.palette = pal_hist.map((el) => (el = el.color));
+      pal_hist = pal_hist.map((el) => (el = el.count));
+      q = new RgbQuant(opts);
+      q.sample(data, width);
+      palette = q.palette(true, true);
+      /////
       let hex_arr = [];
       const RGBToHex = (r, g, b) => ((r << 16) + (g << 8) + b).toString(16).padStart(6, '0');
       for (let h = 0; h < palette.length; ++h) {
@@ -134,7 +138,6 @@ function getData() {
           }
         }
         ////assign edge colors higher carrier numbers to prevent pockets
-        ///
         function sortByFrequency(array) {
           let frequency = {};
           array.forEach(function (value) {
@@ -150,74 +153,89 @@ function getData() {
         let edge_colors = sortByFrequency(background);
         edge_colors = edge_colors.map((el) => (el += 1)); ////so starting from 1
         background = edge_colors[0];
-        // let edge_colors = [...new Set(background)];
-        // edge_colors = edge_colors.sort((a, b) => b - a);
-        // edge_colors = edge_colors.map((el) => (el += 1)); ////so starting from 1
-        ////
-        // background = background.reduce((a, b, i, arr) => (arr.filter((v) => v === a).length >= arr.filter((v) => v === b).length ? a : b), null); ////find the most common edge color
-        //// check to see edge color is at least 10% of the colors (if not, make background the palette color with most occurrences (palette = ordered from highest->lowest occurrences))
         if (!(pal_hist[background] > 0.1 * pal_hist.reduce((a, b) => a + b, 0))) {
-          // background = palette.length; ////most common color according to sorting, +1 (so not strarting from 0)
           background = 1; ////most common color according to sorting, +1 (so not strarting from 0)
-          // } else {
-          //   // background -= 1;
-          //   background += 1;
         }
         //////
-        let replace = palette.length;
-        move: for (let i = 0; i < edge_colors.length; ++i) {
-          if (edge_colors[i] === palette.length) {
-            // if (edge_colors[i] === edge_colors.length - 1) {
-            edge_colors.unshift();
-            --replace;
-          } else {
-            break move;
+        // let replace = palette.length;
+        // move: for (let i = 0; i < edge_colors.length; ++i) { //go back! //?
+        //   if (edge_colors[i] === palette.length) {
+        //     edge_colors.unshift();
+        //     --replace;
+        //   } else {
+        //     break move;
+        //   }
+        // }
+        for (let i = 1; i <= colors_data.length; ++i) {
+          if (!edge_colors.includes(i)) {
+            edge_colors.push(i);
           }
         }
+        ////
         if (edge_colors.length > 0) {
-          // for (let c = 1; c <= colors_data.length; ++c) {
-          for (let i = edge_colors.length; i > 0; --i) {
-            // if (c === edge_colors[i]) {
-            if (background === i) {
-              //check
-              background = replace;
-            } else if (background === replace) {
-              background = i;
-            }
-            let edge = colors_data.splice(i - 1, 1, colors_data[replace - 1]);
-            colors_data.splice(replace - 1, 1, edge[0]);
-            // colors_data[c - 1] = colors_data[edge_colors[i]];
-            // }
+          /////////
+          let new_colors_data = [];
+          for (let i = 0; i < edge_colors.length; ++i) {
+            new_colors_data.unshift(colors_data[edge_colors[i] - 1]);
           }
+          ////
+          let replaced_bg = false;
+          for (let i = 0; i < edge_colors.length; ++i) {
+            edge_colors[i] = [edge_colors[i], edge_colors.length - i];
+            if (edge_colors[i][0] === background && !replaced_bg) {
+              background = edge_colors[i][1];
+              replaced_bg = true;
+            }
+          }
+          colors_data = [...new_colors_data];
+          ///////
+          // // for (let i = edge_colors.length; i > 0; --i) {
+          // for (let i = edge_colors.length - 1; i >= 0; --i) {
+          //   if (background === edge_colors[i]) {
+          //     // if (background === i) {
+          //     background = replace;
+          //   } else if (background === replace) {
+          //     // background = i;
+          //     background = edge_colors[i];
+          //   }
+          //   let edge = colors_data.splice(edge_colors[i] - 1, 1, colors_data[replace - 1]);
+          //   // let edge = colors_data.splice(i - 1, 1, colors_data[replace - 1]);
+          //   colors_data.splice(replace - 1, 1, edge[0]);
+          // }
+          /////
           for (let r = 0; r < colors_arr.length; ++r) {
             for (let i = edge_colors.length - 1; i >= 0; --i) {
               colors_arr[r] = colors_arr[r].map((c) => {
-                // for (let i = edge_colors.length - 1; i >= 0; --i) { //go back! //?
-                if (c === edge_colors[i]) {
-                  return (c = replace);
-                } else if (c === replace) {
-                  return (c = edge_colors[i]);
+                if (c === edge_colors[i][0]) {
+                  return (c = `${edge_colors[i][1]}`); //turn into string so doesn't get replaced later
                 } else {
                   return c;
                 }
-                // }
               });
             }
           }
+          for (let r = 0; r < colors_arr.length; ++r) {
+            colors_arr[r] = colors_arr[r].map((c) => (c = Number(c)));
+          }
+          /////
+          // for (let r = 0; r < colors_arr.length; ++r) {
+          //   for (let i = edge_colors.length - 1; i >= 0; --i) {
+          //     colors_arr[r] = colors_arr[r].map((c) => {
+          //       if (c === edge_colors[i]) {
+          //         return (c = replace);
+          //       } else if (c === replace) {
+          //         return (c = edge_colors[i]);
+          //       } else {
+          //         return c;
+          //       }
+          //     });
+          //   }
+          // }
         }
         for (let h = 1; h <= colors_data.length; ++h) {
           colors_data[h - 1] = `x-vis-color #${colors_data[h - 1]} ${h}`;
         }
         ///
-        // background = background.reduce((a, b, i, arr) => (arr.filter((v) => v === a).length >= arr.filter((v) => v === b).length ? a : b), null); ////find the most common edge color
-        // //// check to see edge color is at least 10% of the colors (if not, make background the palette color with most occurrences (palette = ordered from highest->lowest occurrences))
-        // if (!(pal_hist[background] > 0.1 * pal_hist.reduce((a, b) => a + b, 0))) {
-        //   // background = palette.length; ////most common color according to sorting, +1 (so not strarting from 0)
-        //   background = 1; ////most common color according to sorting, +1 (so not strarting from 0)
-        // } else {
-        //   // background -= 1;
-        //   background += 1;
-        // }
         colors_arr.push(palette, machine, background, colors_data);
         img.write(motif_path);
         resolve(colors_arr);

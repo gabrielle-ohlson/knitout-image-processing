@@ -1891,7 +1891,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
             } else {
               endN = false;
             }
-            cookie.push(`knit - b${secureLN} ${cookie_carrier}`);
+            cookie.push(`knit - b${secureLN} ${cookie_carrier}`); //come back!***
           }
           if (!secureR) {
             let secureRN = XrightN;
@@ -1903,7 +1903,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
             cookie.splice(
               cookie.findIndex((el) => el.includes('knit')),
               0,
-              `knit - b${secureRN} ${cookie_carrier}`
+              `knit - b${secureRN} ${cookie_carrier}` //come back! ****
             );
           }
         }
