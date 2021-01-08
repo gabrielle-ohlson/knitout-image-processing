@@ -300,7 +300,7 @@ imageColors
         // let neg_track = carrier_track.filter((obj) => obj.DIR === '-');
         if (stack_track.length > 3) {
         // if (stack_track.length > 3) {
-          console.log(stack_track); //remove
+          // console.log(stack_track); //remove
           //come back!
           let least_freq;
           if (track_back.length > 0) {
@@ -326,7 +326,7 @@ imageColors
           } else {
             least_freq = stack_track[0].CARRIER;
           }
-          console.log(track_back, least_freq); //remove
+          // console.log(track_back, least_freq); //remove
           track_back.push(least_freq);
           let track_dir;
           dir === '+' ? (track_dir = '-') : (track_dir = '+');

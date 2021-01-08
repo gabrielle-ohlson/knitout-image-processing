@@ -71,7 +71,7 @@ let opts = {
   // dithKern: null, //new
   // dithKern: 'Stucki', //new
   dithKern: dithering, //new
-  // reIndex: false, //?
+  reIndex: false, //?
   // useCache: false, //?
   //FloydSteinberg(-/+), Stucki(++), Atkinson(-), Jarvis(+?), null
   // dithDelta: 1, //new
@@ -89,6 +89,7 @@ function getData() {
       data = image.bitmap.data;
       let q = new RgbQuant(opts);
       q.sample(data, width);
+      // palette = q.palette(true);
       palette = q.palette(true, true);
       q.idxi32.forEach(function (i32) {
         ////return array of palette color occurrences
@@ -156,38 +157,80 @@ function getData() {
           background = 1; ////most common color according to sorting, +1 (so not strarting from 0)
         }
         //////
-        let replace = palette.length;
-        move: for (let i = 0; i < edge_colors.length; ++i) {
-          if (edge_colors[i] === palette.length) {
-            edge_colors.unshift();
-            --replace;
-          } else {
-            break move;
+        // let replace = palette.length;
+        // move: for (let i = 0; i < edge_colors.length; ++i) { //go back! //?
+        //   if (edge_colors[i] === palette.length) {
+        //     edge_colors.unshift();
+        //     --replace;
+        //   } else {
+        //     break move;
+        //   }
+        // }
+        for (let i = 1; i <= colors_data.length; ++i) {
+          if (!edge_colors.includes(i)) {
+            edge_colors.push(i);
           }
         }
+        ////
         if (edge_colors.length > 0) {
-          for (let i = edge_colors.length; i > 0; --i) {
-            if (background === i) {
-              background = replace;
-            } else if (background === replace) {
-              background = i;
-            }
-            let edge = colors_data.splice(i - 1, 1, colors_data[replace - 1]);
-            colors_data.splice(replace - 1, 1, edge[0]);
+          /////////
+          let new_colors_data = [];
+          for (let i = 0; i < edge_colors.length; ++i) {
+            new_colors_data.unshift(colors_data[edge_colors[i] - 1]);
           }
+          ////
+          let replaced_bg = false;
+          for (let i = 0; i < edge_colors.length; ++i) {
+            edge_colors[i] = [edge_colors[i], edge_colors.length - i];
+            if (edge_colors[i][0] === background && !replaced_bg) {
+              background = edge_colors[i][1];
+              replaced_bg = true;
+            }
+          }
+          colors_data = [...new_colors_data];
+          ///////
+          // // for (let i = edge_colors.length; i > 0; --i) {
+          // for (let i = edge_colors.length - 1; i >= 0; --i) {
+          //   if (background === edge_colors[i]) {
+          //     // if (background === i) {
+          //     background = replace;
+          //   } else if (background === replace) {
+          //     // background = i;
+          //     background = edge_colors[i];
+          //   }
+          //   let edge = colors_data.splice(edge_colors[i] - 1, 1, colors_data[replace - 1]);
+          //   // let edge = colors_data.splice(i - 1, 1, colors_data[replace - 1]);
+          //   colors_data.splice(replace - 1, 1, edge[0]);
+          // }
+          /////
           for (let r = 0; r < colors_arr.length; ++r) {
             for (let i = edge_colors.length - 1; i >= 0; --i) {
               colors_arr[r] = colors_arr[r].map((c) => {
-                if (c === edge_colors[i]) {
-                  return (c = replace);
-                } else if (c === replace) {
-                  return (c = edge_colors[i]);
+                if (c === edge_colors[i][0]) {
+                  return (c = `${edge_colors[i][1]}`); //turn into string so doesn't get replaced later
                 } else {
                   return c;
                 }
               });
             }
           }
+          for (let r = 0; r < colors_arr.length; ++r) {
+            colors_arr[r] = colors_arr[r].map((c) => (c = Number(c)));
+          }
+          /////
+          // for (let r = 0; r < colors_arr.length; ++r) {
+          //   for (let i = edge_colors.length - 1; i >= 0; --i) {
+          //     colors_arr[r] = colors_arr[r].map((c) => {
+          //       if (c === edge_colors[i]) {
+          //         return (c = replace);
+          //       } else if (c === replace) {
+          //         return (c = edge_colors[i]);
+          //       } else {
+          //         return c;
+          //       }
+          //     });
+          //   }
+          // }
         }
         for (let h = 1; h <= colors_data.length; ++h) {
           colors_data[h - 1] = `x-vis-color #${colors_data[h - 1]} ${h}`;
