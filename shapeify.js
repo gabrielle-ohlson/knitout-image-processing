@@ -265,12 +265,12 @@ if (shape_code_reverse !== null) {
   }
 }
 // console.log(shaping_arr); //remove
-// console.log(left_shortrow_arr); //remove
-// console.log(right_shortrow_arr); //remove
-// console.log(shortrow_bindoff); //remove
-// console.log(`first short row: ${first_short_row}`); //remove
-// console.log(`last short row: ${last_short_row}`); //remove
-// console.log(shaping_arr[shaping_arr.length - 1].ROW); //remove
+// console.log(left_shortrow_arr);
+// console.log(right_shortrow_arr);
+// console.log(shortrow_bindoff);
+// console.log(`first short row: ${first_short_row}`);
+// console.log(`last short row: ${last_short_row}`);
+// console.log(shaping_arr[shaping_arr.length - 1].ROW);
 
 //-------------------------------------------------------------
 //***GET USER INPUT (IN FILE & SAVE AS) AND WRITE FILE TO ARRAY
@@ -360,12 +360,18 @@ bg_color = bg_color.charAt(bg_color.length - 1);
 let draw_thread = caston_section.find((line) => line.includes(`;draw thread:`)); ////for shortrowcarriers, know that first one ends up on the right (because draw thread) and rest are on left
 draw_thread = draw_thread.charAt(draw_thread.length - 1);
 
-let rib_top, bindoff_section;
+let rib_top, rib_top_dir, bindoff_section;
 
 let rib_start = in_file[in_file.length - 1].findIndex((el) => el === ';begin rib');
 if (rib_start !== -1) {
   rib_top = in_file[in_file.length - 1].splice(rib_start);
   bindoff_section = rib_top.splice(rib_top.indexOf(`;bindoff section`));
+  rib_dir: for (let i = rib_top.length - 1; i >= 0; --i) {
+    if (rib_top[i].includes(`knit `)) {
+      rib_top[i].includes('+') ? (rib_top_dir = '+') : (rib_top_dir = '-');
+      break rib_dir;
+    }
+  }
 } else {
   bindoff_section = in_file[in_file.length - 1].splice(in_file[in_file.length - 1].indexOf(`;bindoff section`));
 }
@@ -649,7 +655,7 @@ const OP = ({ TYPE, DIR, NEEDLE, CARRIER }) => ({
   NEEDLE,
   CARRIER,
 });
-// let dir, needle, carrier; //check (moved) //? //TODO: deal with nulls
+let dir, needle, carrier; //check (moved) //? //TODO: deal with nulls
 for (let i = 0; i < in_file.length; ++i) {
   let pass_check = [];
   let row = [];
@@ -657,7 +663,7 @@ for (let i = 0; i < in_file.length; ++i) {
   pass_loop: for (let p = 0; p < in_file[i].length; ++p) {
     let op_arr = in_file[i][p].split(' ');
     let type = op_arr[0];
-    let dir, needle, carrier; //check (moved) //?
+    // let dir, needle, carrier; //check (moved) //?
     if (type.includes(';') || type.includes('out')) {
       //TODO: maybe push comments
       continue pass_loop;
@@ -665,11 +671,24 @@ for (let i = 0; i < in_file.length; ++i) {
       // dir = needle = carrier = null;
     }
     ////
+    //new
+    let extension = false;
     if (type === `x-speed-number` || type === `x-stitch-number` || type === `x-roller-advance` || type === `x-add-roller-advance` || type === `rack`) {
+      //TODO: make this go at beginning of pass instead
       //new //check
-      pass.push(in_file[i][p]);
-      continue pass_loop;
+      if (pass.length === 0) {
+        pass.push(in_file[i][p]);
+        continue pass_loop;
+      } else {
+        extension = true;
+      }
     }
+    ////
+    // if (type === `x-speed-number` || type === `x-stitch-number` || type === `x-roller-advance` || type === `x-add-roller-advance` || type === `rack`) { //TODO: make this go at beginning of pass instead
+    //   //new //check
+    //   pass.push(in_file[i][p]);
+    //   continue pass_loop;
+    // }
     ///
     // if (type.includes('hook') || type.includes('out')) { //go back! //?
     //   //TODO: maybe use this to do the inhook + releasehook for shima... maybe just to preserve it (push it to pass but make sure it doesn't throw off pass check)
@@ -688,7 +707,9 @@ for (let i = 0; i < in_file.length; ++i) {
     //   continue pass_loop;
     // } //?
     // if (type !== 'xfer') { //go back! //?
-    if (type !== 'xfer' && type !== 'drop') {
+    // if (type !== 'xfer' && type !== 'drop') {
+    if (type !== 'xfer' && type !== 'drop' && !extension) {
+      //!extension = //new
       //TODO: add support for xfer & drop ?
       op_arr[1] === '+' || '-'
         ? ((dir = op_arr[1]), (needle = op_arr[2]), op_arr.length < 4 ? (carrier = null) : (carrier = op_arr[3]))
@@ -696,7 +717,7 @@ for (let i = 0; i < in_file.length; ++i) {
     }
     ////
     // if (i === 0 && p === 0) pass.push(`pass: ${pass_count} ;`);
-    // if (carrier === null) console.log(in_file[i][p]); //remove //TODO: figure out what those things are that are just ''
+    // if (short_row_section && pass_check.length > 0) {
     if (short_row_section && pass_check.length > 0) {
       //new
       if (rows.length < first_short_row - 1) {
@@ -709,7 +730,6 @@ for (let i = 0; i < in_file.length; ++i) {
         // if (!final_carrier_pos.some((el) => el.CARRIER == carrier)) {
         if (carrier !== null) {
           if (carrier_idx === -1) {
-            //check & confirm that this is what findIndex returns
             final_carrier_pos.push(
               CARRIER_PARK({
                 CARRIER: carrier,
@@ -727,7 +747,8 @@ for (let i = 0; i < in_file.length; ++i) {
       }
     } //new
     ///
-    if (pass_check.length > 0 && (pass_check[pass_check.length - 1].DIR !== dir || pass_check[pass_check.length - 1].CARRIER !== carrier)) {
+    if (pass_check.length > 0 && (extension || pass_check[pass_check.length - 1].DIR !== dir || pass_check[pass_check.length - 1].CARRIER !== carrier)) {
+      // if (pass_check.length > 0 && (pass_check[pass_check.length - 1].DIR !== dir || pass_check[pass_check.length - 1].CARRIER !== carrier)) {
       pass.unshift(`;pass: ${pass_count} ;${pass_check[pass_check.length - 1].DIR};${pass_check[pass_check.length - 1].CARRIER}`); //new //FIXME:
       ++pass_count; //new
       // if (pass_count === 1) pass.unshift(`;pass: ${pass_count} ;${pass_check[pass_check.length - 1].DIR};${pass_check[pass_check.length - 1].CARRIER}`); //new //FIXME:
@@ -885,6 +906,12 @@ let bindoff_carrier;
 let bindoff_time = false;
 let short_tail = [];
 const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
+  let skip_knit = false;
+  if (bindoff_time && !short_row_section && rib_top_dir !== undefined) {
+    //new
+    skip_knit = true;
+    rib_top_dir === '+' ? ((side = 'right'), (xfer_needle = Xright_needle)) : ((side = 'left'), (xfer_needle = Xleft_needle));
+  }
   if (side === 'right') {
     xfer_needle = xfer_needle - count + 1;
   }
@@ -993,7 +1020,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
   };
   //////
   if (side === 'left') {
-    if (bindoff_time) {
+    if (bindoff_time && !skip_knit) { //new
       // xfer_section.push(`x-stitch-number 4`); //new //TODO: remove right
       posLoop('knit', 'f');
       if (double_bed) negLoop('knit', 'b');
@@ -1017,7 +1044,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
       }
     }
   } else if (side === 'right') {
-    if (bindoff_time) {
+    if (bindoff_time && !skip_knit) { //new
       negLoop('knit', 'f');
       if (double_bed) posLoop('knit', 'b');
     }
@@ -1912,7 +1939,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       if (cookie_dir === '+' && next_incR > 0) {
         //new
         end_needle += next_incR;
-        cookie.push(`miss + f${end_needle} ${cookie_carrier}`);
+        cookie.push(`miss + f${end_needle} ${cookie_carrier}`); //come back!!!!!!!!
       } else if (cookie_dir === '-' && next_incL > 0) {
         end_needle -= next_incL;
         cookie.push(`miss - f${end_needle} ${cookie_carrier}`);
@@ -1979,6 +2006,23 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
         // cookieCutter(Xleft_needle, Xright_needle, new_carriers, p);
         if (xtype === 'inc') {
           /////
+          ////new
+          let roller_advance, twist_roller; //new //check
+          let twist_count = 1; //new
+          roll: for (let a = p; a >= 0; --a) {
+            //TODO: maybe go back to other rows if no roll yet?
+            roller_advance = rows[i][a].find((el) => el.includes(`x-roller-advance`));
+            if (roller_advance !== undefined) {
+              break roll;
+            }
+          }
+          if (roller_advance === undefined) roller_advance = `x-roller-advance 100`; //temp
+          if (roller_advance === `x-roller-advance 450`) {
+            twist_roller = `x-roller-advance 225`;
+          } else {
+            twist_roller = `x-roller-advance 50`;
+          }
+          ////
           let info = cookie[0].split(';'); //new
           let c_endN;
           let twisted_stitch;
@@ -2010,22 +2054,30 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
                 if (twist === 0 && !RtwistedB) {
                   if (info[2] === '+') {
                     //new
+                    let x_roll; //new
+                    if (cookie[cookie.length - 1].includes(`x-roller-advance`)) x_roll = cookie.pop(); //new
                     cookie.push(`miss + f${c_endN} ${info[3]}`);
+                    if (x_roll !== undefined) cookie.push(x_roll); //new
                   } else {
-                    // let twisted_stitch = cookie.findIndex((el) => el.includes(' + '));
                     if (!cookie[twisted_stitch + 1].includes(`b${Xright_needle - 1}`) && !cookie[twisted_stitch + 1].includes(`f${Xright_needle - 1}`)) {
-                      cookie.splice(twisted_stitch + 1, 0, `knit - b${Xright_needle - 1} ${info[3]} ;twist`); //remove ;twist
+                      cookie.splice(twisted_stitch + 1, 0, `knit - b${Xright_needle - 1} ${info[3]}`);
                     }
                   }
                 }
-                // if (twist === 0 && info[2] === '+') {
-                //   //new
-                //   if (!RtwistedB) cookie.push(`miss + f${c_endN} ${info[3]}`);
-                // }
-                if (cookie[0] !== `x-roller-advance 50`) {
-                  cookie.unshift(`x-roller-advance 50`);
-                  cookie.push(`x-roller-advance 100`);
+                // if (!cookie.includes(`x-roller-advance 50`)) {
+                if (!cookie.includes(twist_roller) && roller_advance !== `x-roller-advance 0`) {
+                  ++twist_count;
+                  let first_knit = cookie.findIndex((el) => el.includes(`knit `));
+                  if (cookie[first_knit - 1].includes(`x-roller-advance`)) {
+                    cookie.splice(first_knit - 1, 1, twist_roller); //new //?
+                  } else {
+                    cookie.splice(first_knit, 0, twist_roller); //new //?
+                  }
+                  // cookie.unshift(`x-roller-advance 50`);
+                  // cookie.push(`x-roller-advance 100`);
+                  cookie.push(roller_advance); //new
                 }
+                if (roller_advance !== `x-roller-advance 0` && cookie[twisted_stitch + 1].includes(`miss `)) cookie.splice(twisted_stitch + 1, 0, `x-roller-advance 0`); //new //?
               }
             }
             if (RtwistedB) {
@@ -2045,23 +2097,38 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
               });
               if (!RtwistedB) {
                 if (twist === 0) {
-                  //new
                   if (info[2] === '+') {
-                    cookie.push(`miss + f${c_endN} ${info[3]}`);
+                    let x_roll; //new
+                    if (cookie[cookie.length - 1].includes(`x-roller-advance`)) x_roll = cookie.pop(); //new
+                    cookie.push(`miss + f${c_endN} ${info[3]}`); //come back!!!!!!!!
+                    if (x_roll !== undefined) cookie.push(x_roll); //new
                   } else {
                     if (!cookie[twisted_stitch + 1].includes(`b${Xright_needle - 1}`) && !cookie[twisted_stitch + 1].includes(`f${Xright_needle - 1}`)) {
-                      cookie.splice(twisted_stitch + 1, 0, `knit - b${Xright_needle - 1} ${info[3]} ;twist`); //remove ;twist
+                      cookie.splice(twisted_stitch + 1, 0, `knit - b${Xright_needle - 1} ${info[3]}`);
                     }
                   }
                 }
-                // if (twist === 0 && info[2] === '+') {
-                //   //new
-                //   cookie.push(`miss + f${c_endN} ${info[3]}`);
-                // }
-                if (cookie[0] !== `x-roller-advance 50`) {
-                  cookie.unshift(`x-roller-advance 50`);
-                  cookie.push(`x-roller-advance 100`);
+                // if (!cookie.includes(`x-roller-advance 50`)) {
+                if (!cookie.includes(twist_roller) && roller_advance !== `x-roller-advance 0`) {
+                  let first_knit = cookie.findIndex((el) => el.includes(`knit `));
+                  if (cookie[first_knit - 1].includes(`x-roller-advance`)) {
+                    cookie.splice(first_knit - 1, 1, twist_roller); //new //?
+                  } else {
+                    cookie.splice(first_knit, 0, twist_roller); //new //?
+                  }
+                  // cookie.unshift(`x-roller-advance 50`);
+                  // cookie.push(`x-roller-advance 100`);
+                  cookie.push(roller_advance); //new
+                } else if (cookie.includes(twist_roller) && twist_roller === `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`) {
+                  ++twist_count;
+                  cookie.splice(
+                    cookie.findIndex((el) => el === twist_roller),
+                    1,
+                    `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`
+                  );
+                  twist_roller = `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`;
                 }
+                if (roller_advance !== `x-roller-advance 0` && cookie[twisted_stitch + 1].includes(`miss `)) cookie.splice(twisted_stitch + 1, 0, `x-roller-advance 0`); //new //?
               }
             }
           }
@@ -2085,21 +2152,37 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
                 if (twist === 0 && !LtwistedB) {
                   //new
                   if (info[2] === '-') {
+                    let x_roll; //new
+                    if (cookie[cookie.length - 1].includes(`x-roller-advance`)) x_roll = cookie.pop(); //new
                     cookie.push(`miss - f${c_endN} ${info[3]}`);
+                    if (x_roll !== undefined) cookie.push(x_roll); //new
                   } else {
                     if (!cookie[twisted_stitch + 1].includes(`b${Xleft_needle + 1}`) && !cookie[twisted_stitch + 1].includes(`f${Xleft_needle + 1}`)) {
-                      cookie.splice(twisted_stitch + 1, 0, `knit + b${Xleft_needle + 1} ${info[3]} ;twist`); //remove ;twist
+                      cookie.splice(twisted_stitch + 1, 0, `knit + b${Xleft_needle + 1} ${info[3]}`);
                     }
                   }
                 }
-                // if (twist === 0 && info[2] === '-') {
-                //   //new
-                //   if (!LtwistedB) cookie.push(`miss - f${c_endN} ${info[3]}`);
-                // }
-                if (cookie[0] !== `x-roller-advance 50`) {
-                  cookie.unshift(`x-roller-advance 50`);
-                  cookie.push(`x-roller-advance 100`);
+                // if (!cookie.includes(`x-roller-advance 50`)) {
+                if (!cookie.includes(twist_roller) && roller_advance !== `x-roller-advance 0`) {
+                  let first_knit = cookie.findIndex((el) => el.includes(`knit `));
+                  if (cookie[first_knit - 1].includes(`x-roller-advance`)) {
+                    cookie.splice(first_knit - 1, 1, twist_roller); //new //?
+                  } else {
+                    cookie.splice(first_knit, 0, twist_roller); //new //?
+                  }
+                  // cookie.unshift(`x-roller-advance 50`);
+                  // cookie.push(`x-roller-advance 100`);
+                  cookie.push(roller_advance); //new
+                } else if (cookie.includes(twist_roller) && twist_roller === `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`) {
+                  ++twist_count;
+                  cookie.splice(
+                    cookie.findIndex((el) => el === twist_roller),
+                    1,
+                    `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`
+                  );
+                  twist_roller = `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`;
                 }
+                if (roller_advance !== `x-roller-advance 0` && cookie[twisted_stitch + 1].includes(`miss `)) cookie.splice(twisted_stitch + 1, 0, `x-roller-advance 0`); //new //?
               }
             }
             if (LtwistedB) {
@@ -2120,20 +2203,37 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
               if (!LtwistedB) {
                 if (twist === 0) {
                   if (info[2] === '-') {
-                    cookie.push(`miss - f${c_endN} ${info[3]}`);
+                    let x_roll; //new
+                    if (cookie[cookie.length - 1].includes(`x-roller-advance`)) x_roll = cookie.pop(); //new
+                    cookie.push(`miss - f${c_endN} ${info[3]}`); //come back!!!!!!!!
+                    if (x_roll !== undefined) cookie.push(x_roll); //new
                   } else {
                     if (!cookie[twisted_stitch + 1].includes(`b${Xleft_needle + 1}`) && !cookie[twisted_stitch + 1].includes(`f${Xleft_needle + 1}`)) {
-                      cookie.splice(twisted_stitch + 1, 0, `knit + b${Xleft_needle + 1} ${info[3]} ;twist`); //remove ;twist
+                      cookie.splice(twisted_stitch + 1, 0, `knit + b${Xleft_needle + 1} ${info[3]}`);
                     }
                   }
                 }
-                // if (twist === 0 && info[2] === '-') {
-                //   cookie.push(`miss - f${c_endN} ${info[3]}`);
-                // }
-                if (cookie[0] !== `x-roller-advance 50`) {
-                  cookie.unshift(`x-roller-advance 50`);
-                  cookie.push(`x-roller-advance 100`);
+                // if (!cookie.includes(`x-roller-advance 50`)) {
+                if (!cookie.includes(twist_roller) && roller_advance !== `x-roller-advance 0`) {
+                  let first_knit = cookie.findIndex((el) => el.includes(`knit `));
+                  if (cookie[first_knit - 1].includes(`x-roller-advance`)) {
+                    cookie.splice(first_knit - 1, 1, twist_roller); //new //?
+                  } else {
+                    cookie.splice(first_knit, 0, twist_roller); //new //?
+                  }
+                  // cookie.unshift(`x-roller-advance 50`);
+                  // cookie.push(`x-roller-advance 100`);
+                  cookie.push(roller_advance); //new
+                } else if (cookie.includes(twist_roller) && twist_roller === `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`) {
+                  ++twist_count;
+                  cookie.splice(
+                    cookie.findIndex((el) => el === twist_roller),
+                    1,
+                    `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`
+                  );
+                  twist_roller = `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`;
                 }
+                if (roller_advance !== `x-roller-advance 0` && cookie[twisted_stitch + 1].includes(`miss `)) cookie.splice(twisted_stitch + 1, 0, `x-roller-advance 0`); //new //?
               }
             }
           }
@@ -2232,6 +2332,22 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
         cookieCutter(short_Xleft_needle, short_Xright_needle, new_carriers, short_row_carriers, p);
         if (xtype === 'inc') {
           /////
+          ////new
+          let roller_advance, twist_roller; //new //check
+          let twist_count = 1; //new
+          roll: for (let a = p; a >= 0; --a) {
+            roller_advance = rows[i][a].find((el) => el.includes(`x-roller-advance`));
+            if (roller_advance !== undefined) {
+              break roll;
+            }
+          }
+          if (roller_advance === undefined) roller_advance = `x-roller-advance 100`; //temp
+          if (roller_advance === `x-roller-advance 450`) {
+            twist_roller = `x-roller-advance 225`;
+          } else {
+            twist_roller = `x-roller-advance 50`;
+          }
+          ////
           let info = cookie[0].split(';');
           let c_endN;
           info.length > 4 ? (c_endN = info[5]) : info[2] === '+' ? (c_endN = short_Xright_needle) : (c_endN = short_Xleft_needle);
@@ -2256,17 +2372,31 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
               if (!RtwistedF) {
                 if (twist === 0 && !RtwistedB) {
                   if (info[2] === '+') {
+                    //new
+                    let x_roll; //new
+                    if (cookie[cookie.length - 1].includes(`x-roller-advance`)) x_roll = cookie.pop(); //new
                     cookie.push(`miss + f${c_endN} ${info[3]}`);
+                    if (x_roll !== undefined) cookie.push(x_roll); //new
                   } else {
                     if (!cookie[twisted_stitch + 1].includes(`b${short_Xright_needle - 1}`) && !cookie[twisted_stitch + 1].includes(`f${short_Xright_needle - 1}`)) {
-                      cookie.splice(twisted_stitch + 1, 0, `knit - b${short_Xright_needle - 1} ${info[3]} ;twist`); //remove ;twist
+                      cookie.splice(twisted_stitch + 1, 0, `knit - b${short_Xright_needle - 1} ${info[3]}`);
                     }
                   }
                 }
-                if (cookie[0] !== `x-roller-advance 50`) {
-                  cookie.unshift(`x-roller-advance 50`);
-                  cookie.push(`x-roller-advance 100`);
+                // if (!cookie.includes(`x-roller-advance 50`)) {
+                if (!cookie.includes(twist_roller) && roller_advance !== `x-roller-advance 0`) {
+                  ++twist_count; //new
+                  let first_knit = cookie.findIndex((el) => el.includes(`knit `));
+                  if (cookie[first_knit - 1].includes(`x-roller-advance`)) {
+                    cookie.splice(first_knit - 1, 1, twist_roller); //new //?
+                  } else {
+                    cookie.splice(first_knit, 0, twist_roller); //new //?
+                  }
+                  // cookie.unshift(`x-roller-advance 50`);
+                  // cookie.push(`x-roller-advance 100`);
+                  cookie.push(roller_advance); //new //?
                 }
+                if (roller_advance !== `x-roller-advance 0` && cookie[twisted_stitch + 1].includes(`miss `)) cookie.splice(twisted_stitch + 1, 0, `x-roller-advance 0`); //new //?
               }
             }
             if (RtwistedB) {
@@ -2287,17 +2417,38 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
               if (!RtwistedB) {
                 if (twist === 0) {
                   if (info[2] === '+') {
+                    //new
+                    let x_roll; //new
+                    if (cookie[cookie.length - 1].includes(`x-roller-advance`)) x_roll = cookie.pop(); //new
                     cookie.push(`miss + f${c_endN} ${info[3]}`);
+                    if (x_roll !== undefined) cookie.push(x_roll); //new
                   } else {
                     if (!cookie[twisted_stitch + 1].includes(`b${short_Xright_needle - 1}`) && !cookie[twisted_stitch + 1].includes(`f${short_Xright_needle - 1}`)) {
-                      cookie.splice(twisted_stitch + 1, 0, `knit - b${short_Xright_needle - 1} ${info[3]} ;twist`); //remove ;twist
+                      cookie.splice(twisted_stitch + 1, 0, `knit - b${short_Xright_needle - 1} ${info[3]}`);
                     }
                   }
                 }
-                if (cookie[0] !== `x-roller-advance 50`) {
-                  cookie.unshift(`x-roller-advance 50`);
-                  cookie.push(`x-roller-advance 100`);
+                // if (!cookie.includes(`x-roller-advance 50`)) {
+                if (!cookie.includes(twist_roller) && roller_advance !== `x-roller-advance 0`) {
+                  let first_knit = cookie.findIndex((el) => el.includes(`knit `));
+                  if (cookie[first_knit - 1].includes(`x-roller-advance`)) {
+                    cookie.splice(first_knit - 1, 1, twist_roller); //new //?
+                  } else {
+                    cookie.splice(first_knit, 0, twist_roller); //new //?
+                  }
+                  // cookie.unshift(`x-roller-advance 50`);
+                  // cookie.push(`x-roller-advance 100`);
+                  cookie.push(roller_advance); //new //?
+                } else if (cookie.includes(twist_roller) && twist_roller === `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`) {
+                  ++twist_count;
+                  cookie.splice(
+                    cookie.findIndex((el) => el === twist_roller),
+                    1,
+                    `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`
+                  );
+                  twist_roller = `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`;
                 }
+                if (roller_advance !== `x-roller-advance 0` && cookie[twisted_stitch + 1].includes(`miss `)) cookie.splice(twisted_stitch + 1, 0, `x-roller-advance 0`); //new //?
               }
             }
           }
@@ -2320,17 +2471,38 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
               if (!LtwistedF) {
                 if (twist === 0 && !LtwistedB) {
                   if (info[2] === '-') {
+                    //new
+                    let x_roll; //new
+                    if (cookie[cookie.length - 1].includes(`x-roller-advance`)) x_roll = cookie.pop(); //new
                     cookie.push(`miss - f${c_endN} ${info[3]}`);
+                    if (x_roll !== undefined) cookie.push(x_roll); //new
                   } else {
                     if (!cookie[twisted_stitch + 1].includes(`b${short_Xleft_needle + 1}`) && !cookie[twisted_stitch + 1].includes(`f${short_Xleft_needle + 1}`)) {
-                      cookie.splice(twisted_stitch + 1, 0, `knit + b${short_Xleft_needle + 1} ${info[3]} ;twist`); //remove ;twist
+                      cookie.splice(twisted_stitch + 1, 0, `knit + b${short_Xleft_needle + 1} ${info[3]}`);
                     }
                   }
                 }
-                if (cookie[0] !== `x-roller-advance 50`) {
-                  cookie.unshift(`x-roller-advance 50`);
-                  cookie.push(`x-roller-advance 100`);
+                // if (!cookie.includes(`x-roller-advance 50`)) {
+                if (!cookie.includes(twist_roller) && roller_advance !== `x-roller-advance 0`) {
+                  let first_knit = cookie.findIndex((el) => el.includes(`knit `));
+                  if (cookie[first_knit - 1].includes(`x-roller-advance`)) {
+                    cookie.splice(first_knit - 1, 1, twist_roller); //new //?
+                  } else {
+                    cookie.splice(first_knit, 0, twist_roller); //new //?
+                  }
+                  // cookie.unshift(`x-roller-advance 50`);
+                  // cookie.push(`x-roller-advance 100`);
+                  cookie.push(roller_advance); //new //?
+                } else if (cookie.includes(twist_roller) && twist_roller === `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`) {
+                  ++twist_count;
+                  cookie.splice(
+                    cookie.findIndex((el) => el === twist_roller),
+                    1,
+                    `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`
+                  );
+                  twist_roller = `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`;
                 }
+                if (roller_advance !== `x-roller-advance 0` && cookie[twisted_stitch + 1].includes(`miss `)) cookie.splice(twisted_stitch + 1, 0, `x-roller-advance 0`); //new //?
               }
             }
             if (LtwistedB) {
@@ -2351,17 +2523,38 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
               if (!LtwistedB) {
                 if (twist === 0) {
                   if (info[2] === '-') {
+                    //new
+                    let x_roll; //new
+                    if (cookie[cookie.length - 1].includes(`x-roller-advance`)) x_roll = cookie.pop(); //new
                     cookie.push(`miss - f${c_endN} ${info[3]}`);
+                    if (x_roll !== undefined) cookie.push(x_roll); //new
                   } else {
                     if (!cookie[twisted_stitch + 1].includes(`b${short_Xleft_needle + 1}`) && !cookie[twisted_stitch + 1].includes(`f${short_Xleft_needle + 1}`)) {
-                      cookie.splice(twisted_stitch + 1, 0, `knit + b${short_Xleft_needle + 1} ${info[3]} ;twist`); //remove ;twist
+                      cookie.splice(twisted_stitch + 1, 0, `knit + b${short_Xleft_needle + 1} ${info[3]}`);
                     }
                   }
                 }
-                if (cookie[0] !== `x-roller-advance 50`) {
-                  cookie.unshift(`x-roller-advance 50`);
-                  cookie.push(`x-roller-advance 100`);
+                // if (!cookie.includes(`x-roller-advance 50`)) {
+                if (!cookie.includes(twist_roller) && roller_advance !== `x-roller-advance 0`) {
+                  let first_knit = cookie.findIndex((el) => el.includes(`knit `));
+                  if (cookie[first_knit - 1].includes(`x-roller-advance`)) {
+                    cookie.splice(first_knit - 1, 1, twist_roller); //new //?
+                  } else {
+                    cookie.splice(first_knit, 0, twist_roller); //new //?
+                  }
+                  // cookie.unshift(`x-roller-advance 50`);
+                  // cookie.push(`x-roller-advance 100`);
+                  cookie.push(roller_advance); //new //?
+                } else if (cookie.includes(twist_roller) && twist_roller === `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`) {
+                  ++twist_count;
+                  cookie.splice(
+                    cookie.findIndex((el) => el === twist_roller),
+                    1,
+                    `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`
+                  );
+                  twist_roller = `x-roller-advance ${Math.ceil(450 / twist_count / 5) * 5}`;
                 }
+                if (roller_advance !== `x-roller-advance 0` && cookie[twisted_stitch + 1].includes(`miss `)) cookie.splice(twisted_stitch + 1, 0, `x-roller-advance 0`); //new //?
               }
             }
           }
@@ -2437,28 +2630,8 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
         final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === rows[first_short_row - 1][0][1].charAt(rows[first_short_row - 1][0][1].length - 1))].SIDE = 'left'; //new
       }
       shaped_rows.push(`;short row section`);
-      // let push_draw = false;
-      // if (!carriers.includes(draw_thread) && !new_carriers.includes(draw_thread)) {
-      //   push_draw = true;
-      // }
-      // let out_carriers = false;
-      // if (carriers.length > 3 && !errors) {
-      //   out_carriers = true;
-      //   carriers = carriers.filter((el) => !short_row_carriers.includes(el));
-      // }
-      // let out_carriers = false;
-      //////
-      // if (!errors) {
-      //   // out_carriers = true;
-      //   carriers = carriers.filter((el) => !short_row_carriers.includes(el));
-      // }
-      // let push_draw = false;
-      // if (!carriers.includes(draw_thread) && !new_carriers.includes(draw_thread)) {
-      //   push_draw = true;
-      // }
       ///////////////////////////new
-      new_carriers = [...carriers]; //TODO: make sure this doesn't get messed up for
-      // let shortrow_colors;
+      new_carriers = [...carriers];
       let carriers_defined = false;
       let shortrow_colors = carriers.filter((el) => !short_row_carriers.includes(el));
       if (!errors) {
@@ -2468,7 +2641,6 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
             let carrier_idx = new_carriers.indexOf(shortrow_colors[0]);
             short_row_carriers.splice(short_row_carriers.indexOf(draw_thread), 1);
             short_row_carriers.splice(carrier_idx, 0, draw_thread);
-            // short_row_carriers = [draw_thread];
             carriers_defined = true;
           } else {
             let left_carrier = final_carrier_pos.find((el) => el.SIDE === 'left');
@@ -2482,22 +2654,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
           new_carriers.push(draw_thread);
           short_row_carriers.splice(short_row_carriers.indexOf(draw_thread), 1);
         }
-        // shortrow_colors = new_carriers.filter((el) => !short_row_carriers.includes(el)).length;
-        // carriers = new_carriers.filter((el) => !short_row_carriers.includes(el));
-        // new_carriers = new_carriers.filter((el) => !short_row_carriers.includes(el));
       }
-      // let shortrow_colors = new_carriers.length; //new
-      // let push_draw = false;
-      // if (!carriers.includes(draw_thread) && !new_carriers.includes(draw_thread)) {
-      //   new_carriers.push(draw_thread);
-      //   short_row_carriers.splice(short_row_carriers.indexOf(draw_thread), 1);
-      //   // push_draw = true;
-      // }
-      // if (push_draw) {
-      //   //new
-      //   new_carriers.push(draw_thread);
-      //   short_row_carriers.splice(short_row_carriers.indexOf(draw_thread), 1);
-      // }
       if (!carriers_defined) {
         new_carriers = new_carriers.filter((el) => !short_row_carriers.includes(el)); //new
         //new //check
@@ -2525,11 +2682,6 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
           short_row_carriers.splice(splice_start, short_row_carriers.length - splice_start);
           new_carriers.splice(splice_start, new_carriers.length - splice_start);
         }
-        // if (shortrow_colors < new_carriers.length) {
-        //   //new
-        //   new_carriers.splice(shortrow_colors);
-        //   short_row_carriers.splice(shortrow_colors);
-        // }
       }
       ///////////////
       //TODO: add in something similar for if more than 3 carriers ARE used in body (but only 3 in shortrowsection so OK), to make it so if it ends up on left, add in extra pass to make it end up on right
@@ -2550,33 +2702,28 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       let bp_count = 3;
       for (let c = 0; c < final_carrier_pos.length; ++c) {
         //TODO: make this only for color carriers
-        // if (shortrow_colors.includes(final_carrier_pos[c].CARRIER)) { //go back! //?
-          //new //check
-          if (new_carriers.includes(final_carrier_pos[c].CARRIER) && final_carrier_pos[c].SIDE === 'right') {
-            // if (new_carriers.includes(final_carrier_pos[c].CARRIER) && final_carrier_pos[c].SIDE === 'right') {
-            shaped_rows.push(`;pass: back ;-;${final_carrier_pos[c].CARRIER};${Xright_needle};${Xleft_needle}`);
-            for (let n = Xright_needle; n >= Xleft_needle; --n) {
-              if (n === Xright_needle || n === Xleft_needle) {
-                shaped_rows.push(`knit - b${n} ${final_carrier_pos[c].CARRIER}`);
-              } else if (n % bp_count === 0) {
-                shaped_rows.push(`knit - b${n} ${final_carrier_pos[c].CARRIER}`);
-              }
+        //new //check
+        if (new_carriers.includes(final_carrier_pos[c].CARRIER) && final_carrier_pos[c].SIDE === 'right') {
+          shaped_rows.push(`;pass: back ;-;${final_carrier_pos[c].CARRIER};${Xright_needle};${Xleft_needle}`);
+          for (let n = Xright_needle; n >= Xleft_needle; --n) {
+            if (n === Xright_needle || n === Xleft_needle) {
+              shaped_rows.push(`knit - b${n} ${final_carrier_pos[c].CARRIER}`);
+            } else if (n % bp_count === 0) {
+              shaped_rows.push(`knit - b${n} ${final_carrier_pos[c].CARRIER}`);
             }
-            ++bp_count;
-          } else if (short_row_carriers.includes(final_carrier_pos[c].CARRIER) && final_carrier_pos[c].SIDE === 'left') {
-            shaped_rows.push(`;pass: back ;+;${final_carrier_pos[c].CARRIER};${Xleft_needle};${Xright_needle}`);
-            for (let n = Xleft_needle; n <= Xright_needle; ++n) {
-              if (n === Xleft_needle || n === Xright_needle) {
-                shaped_rows.push(`knit + b${n} ${final_carrier_pos[c].CARRIER}`);
-                // shaped_rows.push(`knit + b${n} ${c}`); //check //go back! //?
-              } else if (n % bp_count === 0) {
-                // shaped_rows.push(`knit + b${n} ${c}`);
-                shaped_rows.push(`knit + b${n} ${final_carrier_pos[c].CARRIER}`);
-              }
-            }
-            ++bp_count;
           }
-        // }
+          ++bp_count;
+        } else if (short_row_carriers.includes(final_carrier_pos[c].CARRIER) && final_carrier_pos[c].SIDE === 'left') {
+          shaped_rows.push(`;pass: back ;+;${final_carrier_pos[c].CARRIER};${Xleft_needle};${Xright_needle}`);
+          for (let n = Xleft_needle; n <= Xright_needle; ++n) {
+            if (n === Xleft_needle || n === Xright_needle) {
+              shaped_rows.push(`knit + b${n} ${final_carrier_pos[c].CARRIER}`);
+            } else if (n % bp_count === 0) {
+              shaped_rows.push(`knit + b${n} ${final_carrier_pos[c].CARRIER}`);
+            }
+          }
+          ++bp_count;
+        }
       }
       //////
       short_Xleft_needle = shortrow_bindoff[1];
@@ -2585,7 +2732,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       /////
       cookie = rows[first_short_row - 1][bindoff_pass];
       if (bp_bindoff.length > 0) {
-        cookie = bp_bindoff; //new //come back! & //check
+        cookie = bp_bindoff;
       }
       cookieCutter(short_Xleft_needle, short_Xright_needle, carriers, carriers);
       shaped_rows.push(cookie);
@@ -2598,7 +2745,6 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       xfer_section = [];
       cookie = rows[first_short_row - 1][bindoff_pass];
       if (bp_bindoff.length > 0) {
-        // back_passLpos.push([first_short_row - 1, bindoff_carrier, back_passLpos.length]);
         cookie = bp_bindoff.slice(1);
       }
       cookieCutter(Xleft_needle, Xright_needle, carriers, carriers);
@@ -2608,7 +2754,6 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       let right_carriers = [];
       /////////////////////////////
       find_dir: for (let y = first_short_row - 1; y < rows.length; ++y) {
-        // find_dir: for (let y = first_short_row; y < rows.length; ++y) {
         if (left_carriers.length + right_carriers.length === new_carriers.length) break find_dir;
         parse_pass: for (let i = 0; i < rows[y].length; ++i) {
           //come back!
@@ -2617,7 +2762,6 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
               continue parse_pass; //new
             } else if (bindoff_pass >= i) continue parse_pass; //new
           }
-          // if (y === first_short_row - 1 && bindoff_pass > i) continue parse_pass; //new
           if (rows[y][i].some((el) => el.includes(' - '))) {
             let last_op = rows[y][i][rows[y][i].length - 1];
             if (!left_carriers.includes(last_op.charAt(last_op.length - 1)) && !right_carriers.includes(last_op.charAt(last_op.length - 1))) {
@@ -2645,20 +2789,18 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
       ////////////////////////
       for (let c = 0; c < new_carriers.length; ++c) {
         if (carriers.includes(new_carriers[c]) && shortrow_colors.includes(new_carriers[c])) {
-          // if (carriers.includes(new_carriers[c])) {
           redefine_carriers.push([new_carriers[c], short_row_carriers[c]]);
         } else if (carriers.includes(short_row_carriers[c]) && shortrow_colors.includes(short_row_carriers[c])) {
-          // } else {
           redefine_carriers.push([short_row_carriers[c], new_carriers[c]]);
         }
       }
       /////
       if (rows[first_short_row - 1][rows[first_short_row - 1].length - 1] !== rows[first_short_row - 1][bindoff_pass]) {
-        if (bp_bindoff.length > 0) --bindoff_pass; //new
+        if (bp_bindoff.length > 0) --bindoff_pass;
         ////
         for (let p = bindoff_pass + 1; p < rows[first_short_row - 1].length; ++p) {
           if (back_passLpos.length > 0) {
-            let leftover_carriers = [...back_passLpos]; //new
+            let leftover_carriers = [...back_passLpos];
             for (let c = 0; c < back_passLpos.length; ++c) {
               if (
                 first_short_row - 1 === back_passLpos[c][0] &&
@@ -2676,11 +2818,10 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
                     shaped_rows.push(`knit + b${n} ${back_passLpos[c][1]}`);
                   }
                 }
-                leftover_carriers.splice(leftover_carriers.indexOf(back_passLpos[c]), 1); //new
-                // back_passLpos.splice(c, 1); //new
+                leftover_carriers.splice(leftover_carriers.indexOf(back_passLpos[c]), 1);
               }
             }
-            back_passLpos = leftover_carriers; //new
+            back_passLpos = leftover_carriers;
           }
           //////
           cookie = rows[first_short_row - 1][p];
@@ -2688,7 +2829,7 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
           shaped_rows.push(cookie);
           /////
           if (back_passRneg.length > 0) {
-            let leftover_carriers = [...back_passRneg]; //new
+            let leftover_carriers = [...back_passRneg];
             for (let c = 0; c < back_passRneg.length; ++c) {
               if (
                 first_short_row - 1 === back_passRneg[c][0] &&
@@ -2706,11 +2847,10 @@ for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
                     insert_arr.push(`knit - b${n} ${back_passRneg[c][1]}`);
                   }
                 }
-                leftover_carriers.splice(leftover_carriers.indexOf(back_passRneg[c]), 1); //new
-                // back_passRneg.splice(c, 1);
+                leftover_carriers.splice(leftover_carriers.indexOf(back_passRneg[c]), 1);
               }
             }
-            back_passRneg = leftover_carriers; //new
+            back_passRneg = leftover_carriers;
           }
           cookie = rows[first_short_row - 1][p];
           cookieCutter(short_Xleft_needle, short_Xright_needle, new_carriers, short_row_carriers);
@@ -2890,7 +3030,6 @@ if (xtra_yarn.length > 0) {
 //     }
 //     if (!pos_pass[pos_pass.length - 1].includes(R_NEEDLE)) pos_pass.push(`miss + f${R_NEEDLE} ${xtra_yarn[y]}`); //new //TODO: decide if this should be R_NEEDLE or just like... the first needle it is knit with (could collect that from main func!)
 //     // if (Number(pos_pass[pos_pass.length - 1].split(' ')[2].slice(1)) !== row1_Rneedle) {
-//     //   console.log(Number(pos_pass[poss_pass.length - 1].split(' ')[2].slice(1))); //remove
 //     //   pos_pass.push(`miss + f${row1_Rneedle} ${xtra_yarn[y]}`); //check
 //     // }
 //     pos_pass.unshift(`;pass: yarn in ;+;${xtra_yarn[y]};${pos_pass[0].split(' ')[2].slice(1)};${pos_pass[pos_pass.length - 1].split(' ')[2].slice(1)}`);
@@ -2968,6 +3107,7 @@ inc_miss: for (let i = start_pt; i >= 0; --i) {
           if ((info[2] === '+' && Number(info[5]) < last_carrier_spot[carrier_idx].StartN) || (info[2] === '-' && Number(info[5]) > last_carrier_spot[carrier_idx].StartN)) {
             find_spot: for (let s = i + 1; s < shaped_rows.length; ++s) {
               if (shaped_rows[s].includes('x-') || shaped_rows[s].includes(';pass:')) {
+                if (shaped_rows[s - 1].includes('rack') || shaped_rows[s - 1].includes(';')) --s; //new
                 shaped_rows.splice(s, 0, `miss ${info[2]} f${last_carrier_spot[carrier_idx].StartN} ${info[3]}`);
                 break find_spot;
               }
@@ -3066,7 +3206,6 @@ miss: for (let i = 0; i < shaped_rows.length; ++i) {
 //       }
 //     }
 //     if (Number(pos_pass[pos_pass.length - 1].split(' ')[2].slice(1)) !== row1_Rneedle) {
-//       console.log(Number(pos_pass[poss_pass.length - 1].split(' ')[2].slice(1))); //remove
 //       pos_pass.push(`miss + f${row1_Rneedle} ${xtra_yarn[y]}`); //check
 //     }
 //     //TODO: ^ add miss for bringing in drawthread, and miss for xtra yarn... actually move this up above so it gets included w inc miss ^
@@ -3084,21 +3223,12 @@ miss: for (let i = 0; i < shaped_rows.length; ++i) {
   let end_splice = shaped_rows.indexOf(`;tail`); //new //TODO: actually, take them out before knitting tail so less juggling
   for (let i = 0; i <= carriers_arr.length; ++i) {
     let carrier_search = shaped_rows.map((el) => el.includes(` ${carriers_arr[i]}`) && (el.includes(`knit`) || el.includes(`miss`)));
-    // let carrier_search = shaped_rows.map((el) => el.includes(` ${carriers_arr[i]}`) && el.includes(`knit`));
     let last = carrier_search.lastIndexOf(true);
     if (last !== -1) {
-      // if ((short_row_section && short_row_carriers.includes(carriers_arr[i])) || shaped_rows[last].includes(' + ')) {
       ////
       if (!bindCs.includes(carriers_arr[i]) && (shaped_rows[last].includes(' + ') || (short_row_section && short_row_carriers.includes(carriers_arr[i])))) {
-        // if (!bindCs.includes(carriers_arr[i]) && shaped_rows[last].includes(' + ') && ((short_row_section && short_row_carriers.includes(carriers_arr[i])) || !short_row_section)) {
-        //////
-        // if (
-        //   (short_row_section && (short_row_carriers.includes(carriers_arr[i]) || (new_carriers.includes(carriers_arr[i]) && shaped_rows[last].includes(' + ')))) ||
-        //   (!short_row_section && shaped_rows[last].includes(' + '))
-        // ) {
         let dir;
         let out_spot = Number(shaped_rows[last].split(' ')[2].slice(1));
-        // shaped_rows[last].includes(' + ') ? ((dir = '+'), (out_spot += 6)) : ((dir = '-'), (out_spot -= 2)); //TODO: deal with out spot += 6 for short rowing
         if (shaped_rows[last].includes(' + ')) {
           dir = '+';
           if (!short_row_section || short_row_carriers.includes(carriers_arr[i])) {
@@ -3110,17 +3240,9 @@ miss: for (let i = 0; i < shaped_rows.length; ++i) {
           dir = '-';
           out_spot -= 1;
         }
-        // shaped_rows[last].includes(' + ') && (!short_row_section || short_row_carriers.includes(carriers_arr[i])) ? ((dir = '+'), (out_spot += 6)) : ((dir = '-'), (out_spot -= 1)); //TODO: deal with out spot += 6 for short rowing
-        // if (!short_row_section || (short_row_section && short_row_carriers.includes(carriers_arr[i]))) out_spot += 6;
-        ///
-        // shaped_rows.splice(last + 1, 0, `miss + f${out_spot} ${carriers_arr[i]}`);
-        shaped_rows.splice(last + 1, 0, `miss ${dir} f${out_spot} ${carriers_arr[i]}`);
+        shaped_rows.splice(last + 1, 0, `miss ${dir} f${out_spot} ${carriers_arr[i]} ;yarn-out`); //remove //? //come back!!!!!!
         if (last + 1 < end_splice) ++end_splice;
-        // if (!bindCs.includes(carriers_arr[i])) {
         shaped_rows.splice(end_splice, 0, `${yarn_out} ${carriers_arr[i]}`);
-        // } else {
-        //   shaped_rows.push(`${yarn_out} ${carriers_arr[i]}`); ////at the end //TODO: make this before drop?
-        // }
       } else {
         shaped_rows.splice(last + 1, 0, `${yarn_out} ${carriers_arr[i]}`); ////include bindCs here so takes the carrier out before drop
         if (last + 1 < end_splice) ++end_splice; //new
@@ -3185,10 +3307,10 @@ if (!errors && !shape_error) {
     );
   } else {
     console.log(chalk.red.bgWhite.bold(`\nErrors found--unable to write file. Please refer to console log for details.`));
-    fs.writeFile(`./knit-out-files/${new_file}`, final_file, function (err) {
-      //remove ////for debugging purposes
-      if (err) return console.log(err);
-      console.log(chalk.green(`\nThe knitout file has successfully been altered and saved. The path to the new file is: ${new_file}`));
-    }); //remove
+    // fs.writeFile(`./knit-out-files/${new_file}`, final_file, function (err) {
+    //   //remove ////for debugging purposes
+    //   if (err) return console.log(err);
+    //   console.log(chalk.green(`\nThe knitout file has successfully been altered and saved. The path to the new file is: ${new_file}`));
+    // }); //remove
   }
 }
