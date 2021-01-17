@@ -10,12 +10,12 @@ let row_count = 0;
   readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nColorwork image file: ') });
   readlineSync.promptLoop(function (input) {
     img = input;
-    if (!/\.jpg|\.jpeg|\.png|\.bmp$/i.test(input) || !fs.existsSync(`./in-colorwork-images/${input}`)) {
+    if (!/\.jpg|\.jpeg|\.png$/i.test(input) || !fs.existsSync(`./in-colorwork-images/${input}`)) {
       let error_message = console.log(chalk.red(`-- The image must be a PNG, JPG, or BMP that exists in the 'in-colorwork-images' folder.`));
       return error_message;
     }
     if (fs.existsSync(`./in-colorwork-images/${input}`)) {
-      return /\.jpg|\.jpeg|\.png|\.bmp$/i.test(input); //TODO: test that the program does work with .bmp
+      return /\.jpg|\.jpeg|\.png$/i.test(input); //TODO: test that the program does work with .bmp
     }
   });
   console.log(chalk.green(`-- Reading colorwork data from: ${img}`));
@@ -33,11 +33,7 @@ let row_count = 0;
   });
   row_count = Number(row_count);
   row_count === -1 ? console.log(chalk.green(`-- Row count: AUTO`)) : console.log(chalk.green(`-- Row count: ${row_count}`));
-// }
 
-// if (row_count !== -1) { //TODO: check whether this is actually doing something I want it to do
-//   row_count += 1;
-// } //come back!
 
   if (row_count === -1) {
     row_count = Jimp.AUTO;

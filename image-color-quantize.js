@@ -14,7 +14,7 @@ let colors_data = [];
 let machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machine will you be using? '), {
   limit: [
     function (input) {
-      return input.toLowerCase().includes(`shima`) || input.toLowerCase().includes(`kniterate`); //? include stoll too?
+      return input.toLowerCase().includes(`shima`) || input.toLowerCase().includes(`kniterate`);
     },
   ],
   limitMessage: chalk.red(
@@ -23,7 +23,7 @@ let machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machi
 });
 machine = machine.toLowerCase();
 console.log(chalk.green(`-- Model: ${machine}`)); //? model ??
-//TODO: add support for different shima modesls (and maybe stoll?)
+//TODO: add better support for different shima modesls (and maybe stoll?)
 let carrier_count;
 machine.includes('shima') ? (carrier_count = 10) : (carrier_count = 6); //TODO: limit needle bed with this too (prob will have to use promises :,( )
 let max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would you like to use? '), {
@@ -53,7 +53,7 @@ const hexToRGB = (hex) => {
     Number(((h & (alpha ? 0x0000ff00 : 0x0000ff)) >>> (alpha ? 8 : 0)) + (alpha ? h & 0x000000ff : '')),
   ];
 };
-let palette_opt = []; //new
+let palette_opt = [];
 if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use a predefined palette?}`)) {
   for (let i = 1; i <= max_colors; ++i) {
     let hex = readlineSync.question(chalk.blue.bold(`\nEnter hex-code for color #${i}: `));
@@ -64,17 +64,11 @@ if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use a predef
 let opts = {
   colors: max_colors,
   method: 2,
-  // method: 1,
   //TODO: method: 1, //2 seems overall better, but could be good to test on more images
-  // minHueCols: 0, //TODO: test this more too
   minHueCols: max_colors, //TODO: test this more too
-  // dithKern: null, //new
-  // dithKern: 'Stucki', //new
   dithKern: dithering, //new
   reIndex: false, //?
-  // useCache: false, //?
   //FloydSteinberg(-/+), Stucki(++), Atkinson(-), Jarvis(+?), null
-  // dithDelta: 1, //new
 };
 
 if (palette_opt.length > 0) {
@@ -157,15 +151,6 @@ function getData() {
           background = 1; ////most common color according to sorting, +1 (so not strarting from 0)
         }
         //////
-        // let replace = palette.length;
-        // move: for (let i = 0; i < edge_colors.length; ++i) { //go back! //?
-        //   if (edge_colors[i] === palette.length) {
-        //     edge_colors.unshift();
-        //     --replace;
-        //   } else {
-        //     break move;
-        //   }
-        // }
         for (let i = 1; i <= colors_data.length; ++i) {
           if (!edge_colors.includes(i)) {
             edge_colors.push(i);
@@ -188,20 +173,6 @@ function getData() {
             }
           }
           colors_data = [...new_colors_data];
-          ///////
-          // // for (let i = edge_colors.length; i > 0; --i) {
-          // for (let i = edge_colors.length - 1; i >= 0; --i) {
-          //   if (background === edge_colors[i]) {
-          //     // if (background === i) {
-          //     background = replace;
-          //   } else if (background === replace) {
-          //     // background = i;
-          //     background = edge_colors[i];
-          //   }
-          //   let edge = colors_data.splice(edge_colors[i] - 1, 1, colors_data[replace - 1]);
-          //   // let edge = colors_data.splice(i - 1, 1, colors_data[replace - 1]);
-          //   colors_data.splice(replace - 1, 1, edge[0]);
-          // }
           /////
           for (let r = 0; r < colors_arr.length; ++r) {
             for (let i = edge_colors.length - 1; i >= 0; --i) {
@@ -218,19 +189,6 @@ function getData() {
             colors_arr[r] = colors_arr[r].map((c) => (c = Number(c)));
           }
           /////
-          // for (let r = 0; r < colors_arr.length; ++r) {
-          //   for (let i = edge_colors.length - 1; i >= 0; --i) {
-          //     colors_arr[r] = colors_arr[r].map((c) => {
-          //       if (c === edge_colors[i]) {
-          //         return (c = replace);
-          //       } else if (c === replace) {
-          //         return (c = edge_colors[i]);
-          //       } else {
-          //         return c;
-          //       }
-          //     });
-          //   }
-          // }
         }
         for (let h = 1; h <= colors_data.length; ++h) {
           colors_data[h - 1] = `x-vis-color #${colors_data[h - 1]} ${h}`;

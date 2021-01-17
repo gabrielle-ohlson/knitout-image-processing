@@ -1,3 +1,5 @@
+//TODO: spend some time working on this & getting it in working order
+
 const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
@@ -75,7 +77,7 @@ class Sweater {
     }
     if (sleeve_style === 'Set-in') {
       this.sweater_top_W = dimensions.SHOULDER; //+ ease //?
-      this.armhole_L = Math.round(dimensions.TORSO * 0.43 + this.armhole_ease - this.body_rib_L); //new
+      this.armhole_L = Math.round(dimensions.TORSO * 0.43 + this.armhole_ease - this.body_rib_L);
       this.armhole_sloped_L = Number(((this.armhole_L * 0.335) / 2).toFixed(1));
       //
       this.scye_L = this.armhole_L - 4;
@@ -135,7 +137,6 @@ class TankTop {}
 let chosen_template;
 
 if (shape_code === null) {
-  // if (readlineSync.keyInYNStrict(chalk.blue.bold('\nWould you like to use a pre-made shape template?'))) {
     let templates = ['Sweater', 'Skirt', 'Dress', 'Pants', 'Tank-Top', 'Hat'],
       shape = readlineSync.keyInSelect(templates, chalk.blue.bold('^Which template would you like to use?'));
     console.log(chalk.green('-- Knitting: ' + templates[shape]));
@@ -191,7 +192,6 @@ if (shape_code === null) {
             NECK_CIRC: 35.5,
             HEAD_CIRC: 54, //cm
           });
-          console.log(dimensions); //remove
         }
         if (size === 'S') {
           //8/10 UK
@@ -341,7 +341,6 @@ if (shape_code === null) {
             NECK_CIRC: 37,
             HEAD_CIRC: 54,
           });
-          console.log(dimensions); //remove
         }
         if (size === 'S') {
           dimensions = DIMENSIONS({

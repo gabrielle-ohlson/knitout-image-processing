@@ -10,7 +10,7 @@ function isNumeric(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
-let options = ['Custom Shape', 'Template'], //new
+let options = ['Custom Shape', 'Template'],
   choice = readlineSync.keyInSelect(options, chalk.blue.bold(`^Would you like to input an image for a custom shape, or use a pre-made template?`));
 choice = options[choice];
 console.log(chalk.green('-- Using a: ' + choice));
@@ -20,12 +20,12 @@ if (choice === 'Template') {
   readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nShape image file: ') });
   readlineSync.promptLoop(function (input) {
     img = input;
-    if (!/\.jpg|\.jpeg|\.png|\.bmp$/i.test(input) || !fs.existsSync(`./in-shape-images/${input}`)) {
+    if (!/\.jpg|\.jpeg|\.png$/i.test(input) || !fs.existsSync(`./in-shape-images/${input}`)) {
       let error_message = console.log(chalk.red(`The image must be a PNG, JPG, or BMP that exists in the 'in-shape-images' folder.`));
       return error_message;
     }
     if (fs.existsSync(`./in-shape-images/${input}`)) {
-      return /\.jpg|\.jpeg|\.png|\.bmp$/i.test(input);
+      return /\.jpg|\.jpeg|\.png$/i.test(input);
     }
   });
   console.log(chalk.green(`-- Reading shape data from: ${img}`));
@@ -40,22 +40,8 @@ if (choice === 'Template') {
         return isNumeric(input) || fs.existsSync(`./knit-in-files/${input}`) || fs.existsSync(`./knit-out-files/${input}`);
       },
     ],
-    // limitMessage: chalk.red('-- $<lastInput> is not a number or the name of an existing knitout file.'),
     limitMessage: chalk`{red -- Input valid name of a knitout (.k) file that exists in either the 'knit-out-files' or 'knit-in-files' folder, please.}`,
   });
-  // needle_count = readlineSync.question(
-  //   chalk`{blue.bold \nHow many stitches wide?} {blue.italic (to instead base stitch & row count off of a pre-existing file, input the name of a knitout file that exists in either the 'knit-in-files' or 'knit-out-files' folder) }`,
-  //   {
-  //     limit: [
-  //       function (input) {
-  //         if (input.includes('.') && !isNumeric(input)) input = input.slice(0, input.indexOf('.'));
-  //         input = `${input}.k`;
-  //         return isNumeric(input) || fs.existsSync(`./knit-in-files/${input}`) || fs.existsSync(`./knit-out-files/${input}`);
-  //       },
-  //     ],
-  //     limitMessage: chalk.red('-- $<lastInput> is not a number or the name of an existing knitout file.'),
-  //   }
-  // );
   if (isNumeric(needle_count)) {
     needle_count = Number(needle_count);
     console.log(chalk.green(`-- Needle count: ${needle_count}`));
@@ -65,7 +51,7 @@ if (choice === 'Template') {
       limitMessage: chalk.red('-- $<lastInput> is not a number.'),
     });
     row_count === '-1' ? console.log(chalk.green(`-- Row count: AUTO`)) : console.log(chalk.green(`-- Row count: ${row_count}`));
-  } else { //needle_count serving as temporary substitute for input file
+  } else { ////needle_count serving as temporary substitute for input file
     if (needle_count.includes('.')) needle_count = needle_count.slice(0, needle_count.indexOf('.'));
     needle_count = `${needle_count}.k`;
     console.log(chalk.green(`-- Reading from: ${needle_count}\n\nPlease wait...`));
@@ -81,15 +67,10 @@ if (choice === 'Template') {
       .split('\n');
     let row_count_arr = source_file.filter((el) => el.includes(';row:'));
     row_count = row_count_arr[row_count_arr.length - 1].replace(';row: ', '');
-    // let needle_count_arr = source_file.splice(source_file.findIndex((el) => el.includes(`;background color:`)));
-    // needle_count_arr = needle_count_arr.filter((el) => !el.includes(';'));
-    // let needle_count_arr = source_file.filter((el) => !el.includes(';') && !el.includes('x-') && !el.includes('miss'));
-    let needle_count_arr = source_file.filter((el) => !el.includes(';') && !el.includes('x-') && !el.includes('miss') && !el.includes('tuck') && !el.includes('drop')); //new
-    // let needle_count_arr = source_file.filter((el) => !el.includes(';') && !el.includes('x-vis-color'));
+    let needle_count_arr = source_file.filter((el) => !el.includes(';') && !el.includes('x-') && !el.includes('miss') && !el.includes('tuck') && !el.includes('drop'));
     needle_count_arr = needle_count_arr.map((el) => el.match(/\d+/g));
     needle_count_arr = needle_count_arr.map((arr) => arr.splice(0, 1));
     needle_count_arr = needle_count_arr.map((el) => Number(el));
-    // needle_count = Math.max(...needle_count_arr);
     (function getMax() {
       let len = needle_count_arr.length;
       let max = -Infinity;

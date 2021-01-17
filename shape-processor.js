@@ -2,7 +2,6 @@ const Jimp = require('jimp');
 const fs = require('fs');
 const chalk = require('chalk');
 
-//TODO: deal with situations where only shaping is short rowing (like sweater_front.jpg)
 //////////////////////////////////////////////////////
 
 let brightness, max, last_row, first_short_row, last_short_row, shape_error, shape_err_row;
@@ -49,18 +48,15 @@ if (fs.existsSync('INPUT_DATA.json')) {
   let xtra_char;
   for (let i = 0; i < shape_code.length - 1; ++i) {
     //NOTE: - 1 is correct
-    // if (shape_code[i].length === last_row + 1) {
     if (shape_code[i].length === last_row + 2) {
       xtra_char = shape_code[i].pop();
       console.log(chalk.red('!!too long!!')); //remove
     }
-    // if (shape_code[i + 1].length === last_row - 1) {
     if (shape_code[i + 1].length === last_row) {
       shape_code[i + 1].push(xtra_char);
       console.log(chalk.red('!!too short!!')); //remove
     }
   }
-  // console.log(shape_code); //remove
   ////////////////////////////////////////////////////////
   ////make sure there aren't any floating white dots in the middle
   let splice_arr = [];
@@ -91,7 +87,6 @@ if (fs.existsSync('INPUT_DATA.json')) {
   }
   let white_space;
   for (let r = splice_arr[splice_arr.length - 1]; r >= 0; --r) {
-    //r > 0?
     let white_arr = [];
     for (let i = 0; i < shape_code[0].length; ++i) {
       if (shape_code[r].indexOf('*', i) === -1) {
@@ -135,7 +130,6 @@ if (fs.existsSync('INPUT_DATA.json')) {
           if (px_arr[x] !== shape_code[y + 1][x] && overlap1 !== true) {
             if (px_arr[x + 1] === 1) {
               for (let o = x + 1; o <= px_arr.lastIndexOf(1); ++o) {
-                //maybe < not <=
                 if (px_arr[o] === 1) {
                   if (px_arr[o] !== shape_code[y + 1][o]) {
                     overlap1 = false;
@@ -176,7 +170,6 @@ if (fs.existsSync('INPUT_DATA.json')) {
       let px_arr = shape_code[y];
       for (let x = 0; x < shape_code[0].length; ++x) {
         if (y !== shape_err_row && y !== shape_err_row + 1) {
-          //TODO: figure out why it only gets the first pink dot for second row
           if (px_arr[x] === 0) {
             image.setPixelColor(0xffffffff, x, y); //white
           } else if (px_arr[x] === 1) {
@@ -204,19 +197,12 @@ if (fs.existsSync('INPUT_DATA.json')) {
   shape_code_reverse = shape_code_reverse.reverse();
   first_short_row = shape_code_reverse.length - 1 - splice_arr[splice_arr.length - 1];
   last_short_row = shape_code_reverse.length - 1 - splice_arr[0];
-  // console.log(shape_code_reverse); //remove
-  // console.log(splice_arr); //remove
-  // console.log(`first_short_row = ${first_short_row}`); //remove
-  // console.log(last_short_row); //remove
   ///////
   let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],');
   txt_file = txt_file.join('\n').replace(/\]|,/g, '');
-  if (!fs.existsSync('SHAPE-CODE.txt')) { //new
+  if (!fs.existsSync('SHAPE-CODE.txt')) {
     fs.writeFileSync('SHAPE-CODE.txt', txt_file, function (err) {
-      //new
-      // fs.writeFile('SHAPE-CODE.txt', txt_file, function (err) {
       if (err) return console.log(err);
-      // console.log(`WRITING 'SHAPE-CODE.txt' FILE IN WORKING DIRECTORY`);
     });
   }
   /////

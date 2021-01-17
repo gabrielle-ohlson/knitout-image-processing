@@ -1,6 +1,5 @@
 //TODO: add option to count the # of needles in a row on front bed and if a lot, split it up in 2-3 passes
-//TODO: (//? maybe if kniterate machine, make default cast-on waste yarn, and then otherwise, give option?)
-//TODO: add option for fair isle too (not just jacquard... also maybe ladderback jacquard ? and real (0.5 rack) birdseye [maybe give warning that there might be too much build up on back if a lot of colors -- so recommend ladder back or default])
+//TODO: add option for fair isle too (not just jacquard... also maybe ladderback jacquard ?)
 
 const fs = require('fs');
 const readlineSync = require('readline-sync');
@@ -28,7 +27,7 @@ let colors_data = [];
 let kniterate_caston = [],
   waste_yarn_section = [];
 
-let edge_L = [], //new
+let edge_L = [],
   edge_R = [],
   edge_needlesL = [],
   edge_needlesR = [],
@@ -101,6 +100,14 @@ imageColors
     other_dir = '+';
     machine.includes('kniterate') ? (needle_bed = 253) : (needle_bed = 541); ////one extra so not counting from 0
     /////
+    if ((back_style === 'Secure' || back_style === 'Minimal') && palette.length < 3) {
+      //TODO: fix secure and minimal so doesn't have issue of not pushing taken needles to next carrier pass
+      back_style = 'Default';
+      console.log(
+        `Changing backstyle to 'Default' due to bug that arises when using < 3 colors & either the 'Minimal' or 'Secure' backstyle.\nPlanning to resolve this issue soon.`
+      );
+    }
+    //////
     if (back_style === 'Secure') {
       reverse = false;
       if (palette.length < 4) {
@@ -248,7 +255,7 @@ imageColors
           extra_back6 < 4 ? ++extra_back6 : (extra_back6 = 0);
         }
         /////
-        pass_count = 0; //come back! //here
+        pass_count = 0;
         row_count += 1;
         knitout.push(`;row: ${row_count}`);
         if (passes_per_row[row_count - 1] >= 5) {
@@ -262,7 +269,6 @@ imageColors
         back_needles = [];
       }
       if ((passes_per_row[row_count - 1] === 6 && pass_count === 5) || (passes_per_row[row_count - 1] === 5 && pass_count === 4)) {
-        //come back! //here
         knitout.push(`x-roller-advance 450`);
       }
       i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
@@ -293,7 +299,7 @@ imageColors
         if (previous.DIR === dir) {
           dir === '+' ? (dir = '-') : (dir = '+');
         }
-        ////new
+        ////
         let stack_track = carrier_track.filter((obj) => obj.DIR === dir);
         if (stack_track.length > 3) {
           let least_freq;
@@ -308,7 +314,6 @@ imageColors
             }
             if (least_freq === undefined) {
               let track_back_dir = track_back.filter((el) => stack_track.some((c) => c.CARRIER === el));
-              // console.log(track_back, track_back_dir); //remove
               least_freq = [
                 ...track_back_dir.reduce(
                   (
@@ -340,14 +345,11 @@ imageColors
             );
           } else {
             let least_idx = carrier_track.findIndex((obj) => obj.CARRIER === least_freq);
-            // if (least_freq == '1') console.log(carrier, dir, carrier_track, least_freq, track_dir, stack_track); //remove
             carrier_track[least_idx].DIR = track_dir;
           }
-          // if (least_freq == '1') console.log(carrier, dir, carrier_track, least_freq, track_dir, stack_track); //remove
           if (track_dir === '+') {
             for (let t = 1; t < colors_arr[0].length; ++t) {
               if (t === 1 || t === colors_arr[0].length - 1 || t % Number(least_freq) === 0) {
-                //TODO: make this capped at 5, not 6
                 knitout.push(`knit + b${t} ${least_freq}`);
               }
             }
@@ -379,7 +381,7 @@ imageColors
         }
         if (single_color) {
           knitout.push(`knit ${dir} b${x} ${carrier}`);
-          back_needles.push(x); //check //remove //? or keep?
+          back_needles.push(x); //check //remove //? or keep? //TODO: maybe add this for Secure/Minimal?
         } else {
           if (back_style === 'Ladderback') {
             if (!taken) {
@@ -424,15 +426,16 @@ imageColors
               }
             }
           } else if (back_style === 'Minimal' || back_style === 'Secure') {
-            // if (passes_per_row[row_count - 1] === 6) console.log(passes_per_row[row_count - 1], back_mod, pass_count, extra_back6, x % back_mod); //remove
             if (back_style === 'Secure') {
               if (pass_count === 5) pass_count = extra_back6; //new //come back! //?
               if (edge_needlesL.length === 0) edge_needlesL = [...edge_L];
               if (edge_needlesR.length === 0) edge_needlesR = [...edge_R];
             }
             if ((dir === '+' && x === 1) || (dir === '-' && x === colors_arr[0].length)) {
+              // console.log(`reset: leftovers = ${leftovers}, leftovers2 = ${leftovers2}`); //remove
               leftovers2 = [...new Set([...leftovers2, ...leftovers])];
               leftovers = [];
+              // console.log(`reset: leftovers2 = ${leftovers2}`); //remove
               edgeL_done = false;
               edgeR_done = false;
             }
@@ -442,7 +445,6 @@ imageColors
                   if (pass_count <= 3 && x % back_mod === pass_count) {
                     //new //?
                     // if (pass_count <= 3 && x % passes_per_row[row_count - 1] === pass_count) { //go back! //?
-                    //TODO: turn passes_per_row to 5 if 6 & secure
                     knitout.push(`knit ${dir} b${x} ${carrier}`);
                     if (edge_needlesL.includes(x)) edge_needlesL.splice(edge_needlesL.indexOf(x), 1);
                     edgeL_done = true;
@@ -488,6 +490,7 @@ imageColors
                   leftovers.push(x);
                 }
               } else if (leftovers2.includes(x)) {
+                // console.log(leftovers2); //remove
                 if (!taken) {
                   knitout.push(`knit ${dir} b${x} ${carrier}`);
                   leftovers2.splice(leftovers2.indexOf(x), 1);
@@ -544,12 +547,6 @@ imageColors
               ? ((neg_carrier = carrier), EVEN_CASTON(x, dir, neg_caston))
               : ODD_CASTON(x, dir, neg_caston);
           }
-          // if (draw_thread === undefined) { //go back! //? //come back!
-          //   if (machine.includes('kniterate') && carrier !== neg_carrier && !knitout.some((el) => el.includes(`knit`) && el.includes(` ${carrier}`))) {
-          //     ////last bit bc saying 'only if this carrier hasn't appeared yet, aka the FIRST pass is negative'
-          //     if (rib_bottom != carrier) draw_thread = carrier; //new
-          //   }
-          // }
         }
       }
       ++pass_count;
@@ -587,7 +584,6 @@ imageColors
       }
       ////
       draw: for (let i = initial_carriers.length - 1; i >= 0; --i) {
-        //new //come back! //check
         //start neg so drawthread is farthest away from that color in piece
         if (initial_carriers[i].DIR === '-' && initial_carriers[i].CARRIER != neg_carrier && initial_carriers[i].CARRIER != rib_bottom) {
           draw_thread = initial_carriers[i].CARRIER;
@@ -632,7 +628,7 @@ imageColors
         for (let p = 0; p < caston_count; ++p) {
           kniterate_caston.push(pos_carrier_caston, neg_carrier_caston);
         }
-        /////new
+        /////
         if (
           i < color_count &&
           carrier !== jacquard_passes[0][0][1] &&
@@ -647,9 +643,8 @@ imageColors
       let backpass_draw = false;
       let backpass = [];
       if (draw_thread === undefined) {
-        //come back!
         draw_thread = color_carriers[color_carriers.length - 1];
-        if (color_carriers.length === color_count) backpass_draw = true; //new ////so only if draw_thread is used in piece
+        if (color_carriers.length === color_count) backpass_draw = true; ////so only if draw_thread is used in piece
       }
       kniterate_caston.push(`;kniterate yarns in`);
       kniterate_caston = kniterate_caston.flat();
@@ -690,9 +685,8 @@ imageColors
           }
         } else {
           for (let x = colors_arr[0].length; x > 0; --x) {
-            if (i < 11 || rib_bottom === null || carrier === rib_bottom) waste_yarn_section.push(`knit - b${x} ${carrier}`); //new //check
+            if (i < 11 || rib_bottom === null || carrier === rib_bottom) waste_yarn_section.push(`knit - b${x} ${carrier}`);
             if (backpass_draw && i === 12 && x % 2 !== 0) {
-              //new
               backpass.push(`knit - b${x} ${draw_thread}`);
             }
           }
@@ -707,11 +701,8 @@ imageColors
       }
       waste_yarn_section.push(`rack 0`);
       ////
-      if (backpass_draw) waste_yarn_section.push(backpass); //new
+      if (backpass_draw) waste_yarn_section.push(backpass);
       waste_yarn_section = waste_yarn_section.flat();
-      // if (backpass_draw) knitout.unshift(backpass);
-      // knitout.unshift(waste_yarn_section);
-      // knitout.unshift(kniterate_caston);
     }
     const RIB = (arr, carrier, dir1, dir2, rib_rows) => {
       const POSRIB = (bed, modulo) => {
@@ -762,7 +753,7 @@ imageColors
       for (let n = 1; n <= colors_arr[0].length; ++n) {
         if (n % 2 !== 0) arr.push(`xfer f${n} b${n}`);
       }
-      arr.push(`x-speed-number ${speed_number}`, `x-stitch-number ${Math.ceil(Number(stitch_number) / 2)}`); //TODO: calculate rib stitch number based on actual stitch number - i'm think Math.ceil(stitch_number/2)
+      arr.push(`x-speed-number ${speed_number}`, `x-stitch-number ${Math.ceil(Number(stitch_number) / 2)}`); ////calculate rib stitch number based on actual stitch number
       rib_loop: for (let r = 0; r < rib_rows / 2; ++r) {
         dir1 === '-' ? NEGRIB('b', 'alt') : POSRIB('b', 'alt');
         if (r === rib_rows / 2 - 2 && bot_dir_switch) {
@@ -799,7 +790,6 @@ imageColors
     for (let d = colors_data.length - 1; d >= 0; --d) {
       knitout.unshift(colors_data[d]);
     }
-    //TODO: add feature to alter colors data so that it corresponds with new carrier assignment system
     ////
     if (back_style === 'Secure') knitout.unshift(`x-carrier-spacing 1.5`);
     if (speed_number !== '-1') knitout.unshift(`x-speed-number ${speed_number}`);
@@ -821,6 +811,7 @@ imageColors
   })
   .then(() => {
     ////bindoff
+    //TODO: add negative x-roller-advance or maybe binding off simultaneously from both sides to deal with too much roll tension on latter stitches when large # of needles in work (mostly last stitch breaking... so maybe use out-carrier to other side [by end stitch] to knit that one when ~8 needles to cast off left so stitch is loose & won't break)
     bindoff.push(`;bindoff section`, `x-speed-number 100`, `x-roller-advance 100`);
     let side;
     let count = last_needle;
@@ -848,12 +839,15 @@ imageColors
           bindoff.push(`xfer f${x} b${x + 1}`);
           bindoff.push(`rack 0`);
           if (x !== xfer_needle) {
-            bindoff.push(`x-add-roller-advance -50`);
+            if (x > xfer_needle + 3) { //new //check
+              bindoff.push(`x-add-roller-advance -50`); ////to have 0 roller-advance for tuck
+            }
             bindoff.push(`drop b${x - 1}`);
           }
           bindoff.push(`knit + b${x + 1} ${bindoff_carrier}`);
           if (x < xfer_needle + count - 2) bindoff.push(`tuck - b${x} ${bindoff_carrier}`);
-          if (x === xfer_needle) bindoff.push(`drop b${xfer_needle - 1}`);
+          // if (x === xfer_needle) bindoff.push(`drop b${xfer_needle - 1}`);
+          if (x === xfer_needle + 3) bindoff.push(`drop b${xfer_needle - 1}`); //new ////don't drop fix tuck until 3 bindoffs (& let it form a loop for extra security) //check 3
         }
       }
     };
@@ -876,12 +870,16 @@ imageColors
           bindoff.push(`xfer f${x} b${x - 1}`);
           bindoff.push(`rack 0`);
           if (x !== xfer_needle + count - 1) {
-            bindoff.push(`x-add-roller-advance -50`);
+            if (x < xfer_needle + count - 4) {
+              //new //check
+              bindoff.push(`x-add-roller-advance -50`);
+            }
             bindoff.push(`drop b${x + 1}`);
           }
           bindoff.push(`knit - b${x - 1} ${bindoff_carrier}`);
           if (x > xfer_needle + 1) bindoff.push(`tuck + b${x} ${bindoff_carrier}`);
-          if (x === xfer_needle + count - 1) bindoff.push(`drop b${xfer_needle + count}`);
+          // if (x === xfer_needle + count - 1) bindoff.push(`drop b${xfer_needle + count}`);
+          if (x === xfer_needle + count - 4) bindoff.push(`drop b${xfer_needle + count}`); //new ////don't drop fix tuck until 3 bindoffs (& let it form a loop for extra security) //check 4
         }
       }
     };
@@ -934,12 +932,12 @@ imageColors
     }
     /////
     //TODO: add feature to pause & ask "all stitches dropped?" then miss pass with add-roller-advance 1000 or something (calculate how much is necessary based on how many rows)
-    //TODO: add knitout extension to pause , along with message for
+    //TODO: add knitout extension to pause , along with message
     knitout.push(bindoff);
     knitout = knitout.flat();
     let yarn_out;
     machine.includes('kniterate') ? (yarn_out = 'out') : ((yarn_out = 'outhook'), color_carriers.push(jacquard_passes[0][0][1]));
-    let end_splice = knitout.indexOf(`;tail`); //new //TODO: actually, take them out before knitting tail so less juggling
+    let end_splice = knitout.indexOf(`;tail`);
     for (let i = 0; i <= color_carriers.length; ++i) {
       let carrier_search = knitout.map((el) => el.includes(` ${color_carriers[i]}`) && (el.includes(`knit`) || el.includes(`miss`)));
       let last = carrier_search.lastIndexOf(true);
@@ -959,7 +957,7 @@ imageColors
         }
       }
     }
-    if (!color_carriers.includes(draw_thread)) knitout.splice(end_splice, 0, `${yarn_out} ${draw_thread}`); //new //TODO: maybe add something to check whether it is the bindoff carrier? and what the direction is?
+    if (!color_carriers.includes(draw_thread)) knitout.splice(end_splice, 0, `${yarn_out} ${draw_thread}`);
   })
   //////
   .finally(() => {
