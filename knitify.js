@@ -99,14 +99,6 @@ imageColors
     init_dir = '-';
     other_dir = '+';
     machine.includes('kniterate') ? (needle_bed = 253) : (needle_bed = 541); ////one extra so not counting from 0
-    /////
-    if ((back_style === 'Secure' || back_style === 'Minimal') && palette.length < 3) {
-      //TODO: fix secure and minimal so doesn't have issue of not pushing taken needles to next carrier pass
-      back_style = 'Default';
-      console.log(
-        `Changing backstyle to 'Default' due to bug that arises when using < 3 colors & either the 'Minimal' or 'Secure' backstyle.\nPlanning to resolve this issue soon.`
-      );
-    }
     //////
     if (back_style === 'Secure') {
       reverse = false;
@@ -432,10 +424,8 @@ imageColors
               if (edge_needlesR.length === 0) edge_needlesR = [...edge_R];
             }
             if ((dir === '+' && x === 1) || (dir === '-' && x === colors_arr[0].length)) {
-              // console.log(`reset: leftovers = ${leftovers}, leftovers2 = ${leftovers2}`); //remove
               leftovers2 = [...new Set([...leftovers2, ...leftovers])];
               leftovers = [];
-              // console.log(`reset: leftovers2 = ${leftovers2}`); //remove
               edgeL_done = false;
               edgeR_done = false;
             }
@@ -490,11 +480,12 @@ imageColors
                   leftovers.push(x);
                 }
               } else if (leftovers2.includes(x)) {
-                // console.log(leftovers2); //remove
                 if (!taken) {
                   knitout.push(`knit ${dir} b${x} ${carrier}`);
                   leftovers2.splice(leftovers2.indexOf(x), 1);
                 }
+              } else {
+                leftovers.push(x); //new //check!
               }
             }
           } else {
@@ -839,7 +830,8 @@ imageColors
           bindoff.push(`xfer f${x} b${x + 1}`);
           bindoff.push(`rack 0`);
           if (x !== xfer_needle) {
-            if (x > xfer_needle + 3) { //new //check
+            if (x > xfer_needle + 3) {
+              //new //check
               bindoff.push(`x-add-roller-advance -50`); ////to have 0 roller-advance for tuck
             }
             bindoff.push(`drop b${x - 1}`);
