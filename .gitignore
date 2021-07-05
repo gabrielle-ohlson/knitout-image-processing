@@ -1,8 +1,8 @@
 #exclude all images
 *.png
 !example-shape.png
-!colorwork.png
-!knit_motif.png
+# !colorwork.png
+# !knit_motif.png
 *.jpg
 *.jpeg
 *.bmp
@@ -26,6 +26,8 @@ xtra-files/
 .vscode/
 birdseye-files/
 knit-in-files/
+backups/
+shape-codes/
 
 #exlude .txt files
 *.txt
