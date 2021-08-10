@@ -21,6 +21,8 @@ back-comp.js
 knitify-copy.js
 fixify.js
 
+shapeify-multiple-carriers.js
+
 #exclude test directories
 xtra-files/
 .vscode/

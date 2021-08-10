@@ -1,7 +1,7 @@
 //---------------------------
 //--- INITIAL VARIABLES ---//
 //---------------------------
-let frontOnlyPatterns = ['Bubbles'];
+let frontOnlyPatterns = ['Bubbles', 'Lace'];
 
 let generated = [];
 
@@ -64,11 +64,11 @@ function generateRib(sequence, min, max, dir, carrier, avoid, pattern) {
 	generated.push(';stitch pattern: Rib'); //?
 
 
-	console.log('!', pattern.xfers, min, max); //remove //debug
+	// console.log('!', pattern.xfers, min, max); //remove //debug
 	if (row_count === 0) { //TODO: this again if width of rib increases (transfer new stitches)
 		// pattern.xfers[0] = min;
 		// pattern.xfers[1] = max;
-		generated.push('x-speed-number 100', 'x-roller-advance 0');
+		generated.push('x-speed-number 300', 'x-roller-advance 0');
 		for (let n = max; n >= min; --n) { ////doesn't rly matter direction for xfer
 			if (sequence[n % sequence.length] === 'f') generated.push(`xfer b${n} f${n}`);
 		// if (n % 2 === 0) generated.push(`xfer b${n} f${n}`);
@@ -79,7 +79,7 @@ function generateRib(sequence, min, max, dir, carrier, avoid, pattern) {
 		}
 	} else {
 		if (min < pattern.xfers[0]) {
-			generated.push('x-speed-number 100', 'x-roller-advance 0');
+			generated.push('x-speed-number 300', 'x-roller-advance 0');
 			for (let n = pattern.xfers[0] - 1; n >= min; --n) {
 				if (sequence[n % sequence.length] === 'f') generated.push(`xfer b${n} f${n}`);
 			}
@@ -89,7 +89,7 @@ function generateRib(sequence, min, max, dir, carrier, avoid, pattern) {
 			// pattern.xfers[0] = min;
 		}
 		if (max > pattern.xfers[1]) {
-			generated.push('x-speed-number 100', 'x-roller-advance 0');
+			generated.push('x-speed-number 300', 'x-roller-advance 0');
 			for (let n = max; n > patterns.xfers[1]; --n) {
 				if (sequence[n % sequence.length] === 'f') generated.push(`xfer b${n} f${n}`);
 			}
@@ -338,11 +338,79 @@ function generateBubbles(min, max, dir, carrier) { //TODO: test in bubbles need 
 	return generated;
 }
 
+//--------------
+//--- LACE ---//
+//--------------
+function generateLace(min, max, dir, carrier, avoid) {
+	let laceRows = (options ? options.laceRows : 2);
+	let spaceBtwHoles = (options ? options.spaceBtwHoles : 1);
+	let offset = (options ? options.offset : 1);
+	let offsetReset = (options ? options.offsetReset : 0);
+
+	let xferPasses = row_count - ((laceRows-1)*(row_count/laceRows));
+
+	let mod = offset*row_count;
+	if (mod > spaceBtwHoles || (offsetReset !== 0 && (xferPasses+1) % offsetReset == 0)) mod = 0;
+
+	const POSLACE = () => {
+		for (let n = min; n <= max; ++n) {
+			generated.push(`knit + f${n} ${carrier}`);
+			avoid.push(n);
+		}
+	};
+
+	const NEGLACE = () => {
+		for (let n = max; n >= min; --n) {
+			generated.push(`knit - f${n} ${carrier}`);
+			avoid.push(n);
+		}
+	};
+
+	generated.push(';stitch pattern: Lace'); //?
+
+	if (row_count % laceRows == 0) {
+		generated.push('x-roller-advance 0');
+		generated.push(`x-xfer-stitch-number ${stitch_number}`); //new //check
+		let rack = (xferPasses % 2 == 0 ? 1 : -1);
+
+		for (let n = min; n <= max; ++n) {
+			if ((n - min) % (spaceBtwHoles+1) === mod && n !== min && n !== max) generated.push(`xfer f${n} b${n}`);
+			// if (n !== min && n !== max) generated.push(`xfer f${n} b${n}`); //don't xfer edge-most stitches so don't have to worry about them dropping
+		}
+
+		generated.push(`rack ${rack}`);
+
+		for (let n = min; n <= max; ++n) {
+			if ((n - min) % (spaceBtwHoles+1) === mod && n !== min && n !== max) generated.push(`xfer b${n} f${n+rack}`);
+		}
+
+		generated.push('rack 0');
+
+		// for (let n = min; n <= max; ++n) {
+		// 	if ((n - min) % (spaceBtwHoles+1) !== mod && n !== min && n !== max) generated.push(`xfer b${n} f${n}`);
+		// 	// if ((n - min) % (spaceBtwHoles+1) !== mod || n === min || n === max) generated.push(`xfer b${n} f${n}`);
+		// }
+		// generated.push(`x-roller-advance ${roller_advance}`);
+		// generated.push('x-roller-advance 300');
+		generated.push(`x-xfer-stitch-number ${Math.ceil(stitch_number/2)}`); //new //check
+	}
+
+	// let laceStitch = Math.ceil(stitch_number*1.5);
+	let laceStitch = stitch_number+3;
+	if (laceStitch > 9) laceStitch = 9;
+	generated.push(`x-stitch-number ${laceStitch}`);
+	generated.push('x-roller-advance 300');
+	dir === '+' ? POSLACE() : NEGLACE();
+	generated.push(`x-stitch-number ${stitch_number}`);
+	generated.push(`x-roller-advance ${roller_advance}`);
+
+	return generated;
+}
+
 //-------------------------------
 //--- MAIN PATTERN FUNCTION ---//
 //-------------------------------
 function generatePattern(pattern, row, min, max, dir, speed, stitch, roller, width, backpassCarrier, avoid) {
-// function generatePattern(pattern, min, max, dir, speed, stitch, roller, width, backpassCarrier, avoid) {
 	generated = [];
 
 	row_count = row;
@@ -364,6 +432,7 @@ function generatePattern(pattern, row, min, max, dir, speed, stitch, roller, wid
 		return generateRib(sequence, min, max, dir, pattern.carrier, avoid, pattern);
 	} else if (pattern.name === 'Seed') return generateSeed(min, max, dir, pattern.carrier, avoid);
 	else if (pattern.name === 'Bubbles') return generateBubbles(min, max, dir, pattern.carrier);
+	else if (pattern.name === 'Lace') return generateLace(min, max, dir, pattern.carrier, avoid);
 	// if (name === 'Rib') return generateRib(sequence, min, max, dir, carrier);
 }
 

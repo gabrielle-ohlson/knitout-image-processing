@@ -25,25 +25,17 @@ readlineSync.promptLoop(function (input) {
 });
 if (img) console.log(chalk.green(`-- Reading colorwork data from: ${img}`));
 
-// readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nColorwork image file: ') }); //TODO: make option to skip this and only do stitch pattern
-// readlineSync.promptLoop(function (input) {
-// 	img = input;
-// 	if (!/\.jpg|\.jpeg|\.png$/i.test(input) || !fs.existsSync(`./in-colorwork-images/${input}`)) {
-// 		let error_message = console.log(chalk.red(`-- The image must be a PNG or JPG that exists in the 'in-colorwork-images' folder.`));
-// 		return error_message;
-// 	}
-// 	if (fs.existsSync(`./in-colorwork-images/${input}`)) {
-// 		return /\.jpg|\.jpeg|\.png$/i.test(input);
-// 	}
-// });
-// console.log(chalk.green(`-- Reading colorwork data from: ${img}`));
-
 readlineSync.setDefaultOptions({ prompt: '' });
+if (img) console.log(chalk`{blue.italic \n(press Enter to scale rows according to img dimensions)}`); //new
 needle_count = readlineSync.questionInt(chalk.blue.bold('\nHow many stitches wide? '), {
+	defaultInput: -1, //new
 	limit: Number,
 	limitMessage: chalk.red('-- $<lastInput> is not a number.'),
 });
-console.log(chalk.green(`-- Needle count: ${needle_count}`));
+needle_count = Number(needle_count); //new
+needle_count === -1 ? console.log(chalk.green('-- Needle count: AUTO')) : console.log(chalk.green(`-- Needle count: ${needle_count}`)); //new
+if (needle_count === -1) needle_count = Jimp.AUTO;
+// console.log(chalk.green(`-- Needle count: ${needle_count}`));
 //TODO: maybe limit needle_count and row_count to whole numbers (and limit needle_count to >0) ? or could just do .toFixed
 
 if (img) console.log(chalk`{blue.italic \n(press Enter to scale rows according to img dimensions)}`);
@@ -55,11 +47,7 @@ row_count = readlineSync.question(chalk`{blue.bold How many rows long?} `, {
 });
 row_count = Number(row_count);
 row_count === -1 ? console.log(chalk.green('-- Row count: AUTO')) : console.log(chalk.green(`-- Row count: ${row_count}`));
-
-
-if (row_count === -1) {
-	row_count = Jimp.AUTO;
-}
+if (row_count === -1) row_count = Jimp.AUTO;
 
 let colorwork_path = './out-colorwork-images/colorwork.png';
 if (fs.existsSync(colorwork_path)) {

@@ -6,6 +6,7 @@ let brightness, max, last_row, first_short_row, last_short_row, shape_error, sha
 let shape_code = [];
 let shape_code_reverse = [];
 let short_row_section = false;
+let section_count = 1;
 
 if (fs.existsSync('INPUT_DATA.json')) {
 	let colors_str = fs.readFileSync('INPUT_DATA.json').toString();
@@ -84,13 +85,25 @@ if (fs.existsSync('INPUT_DATA.json')) {
 		}
 	}
 	let white_space;
+	let rowSectCount = 1;
 	for (let r = splice_arr[splice_arr.length - 1]; r >= 0; --r) {
 		let white_arr = [];
+		let prevPxIdx;
+		if (rowSectCount > section_count) section_count = rowSectCount; //new //check
+		rowSectCount = 1; //reset it
 		for (let i = 0; i < shape_code[0].length; ++i) {
 			if (shape_code[r].indexOf('*', i) === -1) {
 				break;
 			}
 			let px_idx = shape_code[r].indexOf('*', i);
+
+			if (prevPxIdx) {
+				if ((px_idx-prevPxIdx) > 1) {
+					rowSectCount += 1;
+				}
+			} else rowSectCount += 1;
+			prevPxIdx = px_idx;
+
 			if (!white_arr.includes(px_idx)) {
 				white_arr.push(px_idx);
 			}
@@ -114,6 +127,8 @@ if (fs.existsSync('INPUT_DATA.json')) {
 			}
 		}
 	}
+
+	console.log('section_count:', section_count); //remove //debug
 	
 	for (let y = 0; y < shape_code.length; ++y) {
 		let px_arr = shape_code[y];
@@ -186,11 +201,12 @@ if (fs.existsSync('INPUT_DATA.json')) {
 		image.dither565();
 		image.write('shape_code.png');
 	});
-	////create flipped (horiz & vert) version of shape code array for it is processed in the right direction
-	for (let i = 0; i < shape_code.length; ++i) {
-		let subarr_reverse = shape_code[i].reverse();
-		shape_code_reverse.push(subarr_reverse);
-	}
+	////create flipped (horiz & vert) version of shape code array for it is processed in the right direction //TODO: fix this, actually shouldn't flip horizontally it seems (?)
+	// for (let i = 0; i < shape_code.length; ++i) { //TODO: remove this?
+	// 	let subarr_reverse = shape_code[i].reverse();
+	// 	shape_code_reverse.push(subarr_reverse);
+	// }px0_arr
+	shape_code_reverse = [...shape_code]; //new
 	shape_code_reverse = shape_code_reverse.reverse();
 	first_short_row = shape_code_reverse.length - 1 - splice_arr[splice_arr.length - 1];
 	last_short_row = shape_code_reverse.length - 1 - splice_arr[0];
@@ -282,6 +298,7 @@ module.exports = {
 	short_row_section,
 	first_short_row,
 	last_short_row,
+	section_count,
 	shape_error,
 	shape_err_row,
 };
