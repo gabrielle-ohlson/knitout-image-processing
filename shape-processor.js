@@ -127,8 +127,6 @@ if (fs.existsSync('INPUT_DATA.json')) {
 			}
 		}
 	}
-
-	console.log('section count:', section_count); //remove //debug
 	
 	for (let y = 0; y < shape_code.length; ++y) {
 		let px_arr = shape_code[y];

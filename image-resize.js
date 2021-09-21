@@ -26,8 +26,8 @@ readlineSync.promptLoop(function (input) {
 if (img) console.log(chalk.green(`-- Reading colorwork data from: ${img}`));
 
 readlineSync.setDefaultOptions({ prompt: '' });
-if (img) console.log(chalk`{blue.italic \n(press Enter to scale rows according to img dimensions)}`); //new
-needle_count = readlineSync.questionInt(chalk.blue.bold('\nHow many stitches wide? '), {
+if (img) console.log(chalk`{blue.italic \n(press Enter to scale stitches according to img dimensions)}`); //new
+needle_count = readlineSync.questionInt(chalk.blue.bold('How many stitches wide? '), {
 	defaultInput: -1, //new
 	limit: Number,
 	limitMessage: chalk.red('-- $<lastInput> is not a number.'),
@@ -64,6 +64,7 @@ if (fs.existsSync(colorwork_path)) {
 if (img) {
 	Jimp.read(`./in-colorwork-images/${img}`, (err, image) => {
 		if (err) throw err;
+		if (needle_count == -1 && row_count == -1) row_count = image.getHeight(); //if both auto (so Jimp doesn't throw an error)
 		image.resize(needle_count, row_count).write(colorwork_path);
 	});
 } else { //if just stitch pattern

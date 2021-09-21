@@ -11,8 +11,8 @@ let frontOnlyPatterns = patternLibrary.frontOnlyPatterns;
 
 let xfer_speed = 300;
 let waste_stitch = 6, waste_speed = 400, waste_roller = 150;
-let stData, patternCarriers = [], patternRanges = [], patterns = [], includesPattern = false, needlesToAvoid = []; //new
-let stitchOnly = fs.existsSync('./out-colorwork-images/stitch.png'); //new
+let stData, patternCarriers = [], patternRanges = [], patterns = [], includesPattern = false, needlesToAvoid = [];
+let stitchOnly = fs.existsSync('./out-colorwork-images/stitch.png');
 
 let pieceWidth, background, machine, palette, color_count, init_dir, other_dir, draw_thread, draw_dir, double_bed;
 let colors_arr = [];
@@ -154,7 +154,7 @@ function resolvePromises() {
 		quantify.then((arr) => {
 			colors_arr = arr;
 		}).then(() => {
-			console.log('stitchOnly:', stitchOnly); //remove //debug
+			// console.log('stitchOnly:', stitchOnly); //remove //debug
 			if (stitchOnly) fs.renameSync('./out-colorwork-images/stitch.png', './out-colorwork-images/colorwork.png');
 
 			if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to include any stitch patterns in your motif?}`)) {
@@ -1188,7 +1188,8 @@ resolvePromises()
 
 			for (let i = 0; i < 14; ++i) {
 				i % 2 !== 0 && i < 13 ? (dir = '-') : (dir = '+');
-				if (i === 8) waste_yarn_section.push(`pause switch C${carrier}`); //check
+				// if (i === 8) waste_yarn_section.push(`pause switch C${carrier}`); //check
+				if (i === 8 && colorwork_carriers.includes(carrier)) waste_yarn_section.push(`pause switch C${carrier}`); //check
 				if (i === 13) {
 					if (speed_number < 400) waste_yarn_section.push(`x-speed-number ${speed_number}`); //remove //?
 					waste_yarn_section.push(`;draw thread: ${draw_thread}`);
@@ -1209,6 +1210,10 @@ resolvePromises()
 					}
 				}
 			}
+
+			// if (!colorwork_carriers.includes(waste_carrier) && !extra_pos_waste_pass) { //if not used in rest of piece, get it out of the way
+			// 	waste_yarn_section.push(`miss - f${piece_width} ${waste_carrier}`); //new //check
+			// }
 
 			carrier = caston_carrier; //new
 			if (rib_bottom !== null && carrier === rib_bottom) negCaston = false;
