@@ -36,3 +36,9 @@ shape-codes/
 
 #exlude .txt files
 *.txt
+
+#exclude user-generated prompt-answers
+!/prompt-answers/
+/prompt-answers/*
+!/prompt-answers/knitify/answers.json
+!/prompt-answers/shapeify/answers.json

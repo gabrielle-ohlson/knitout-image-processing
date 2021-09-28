@@ -4,6 +4,7 @@ const chalk = require('chalk');
 const Jimp = require('jimp');
 const RgbQuant = require('rgbquant');
 
+let machine, max_colors, dithering, palette_opt = [];
 let height, width, data;
 let palette, reduced;
 let colors_arr = [];
@@ -21,55 +22,78 @@ if (fs.existsSync('./out-colorwork-images/stitch.png')) { //stitch only
 // 	colorwork_path = `./out-colorwork-images/stitch.png`;
 // 	stitchOnly = true;
 // }
+let saveAnswers = false;
+let promptAnswers = {};
+if (fs.existsSync('./prompt-answers/knitify/answers.json')) {
+	promptAnswers = JSON.parse(fs.readFileSync('./prompt-answers/knitify/answers.json'));
 
-let machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machine will you be using? '), {
-	limit: [
-		function (input) {
-			return input.toLowerCase().includes('shima') || input.toLowerCase().includes('kniterate');
-		},
-	],
-	limitMessage: chalk.red(
-		'-- The program does not currently support the $<lastInput> machine. Please open an issue at the github repository (https://github.com/textiles-lab/knitout-image-processing) to request for this machine to be supported.'
-	),
-});
-machine = machine.toLowerCase();
-console.log(chalk.green(`-- Model: ${machine}`)); //TODO: add better support for different shima models (and maybe stoll?)
-let carrier_count;
-machine.includes('shima') ? (carrier_count = 10) : (carrier_count = 6); //TODO: limit needle bed with this too (prob will have to use promises :,( )
+	machine = promptAnswers['machine'];
+	max_colors = Number(promptAnswers['max_colors']);
+	dithering = promptAnswers['dithering']; //TODO: check about null
+	palette_opt = promptAnswers['palette'];
+} else {
+	if (fs.existsSync('./prompt-answers/knitify/saved.json')) {
+		saveAnswers = true;
+		promptAnswers = JSON.parse(fs.readFileSync('./prompt-answers/knitify/saved.json'));
+	}
 
-let max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would you like to use? '), { //TODO: make sure this is ok when using just stitch pattern
-	limit: machine.includes('shima') ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [1, 2, 3, 4, 5, 6],
-	limitMessage: chalk.red(
-		`-- The ${machine} machine is capable of working with a max of ${carrier_count} colors per row, but $<lastInput> is not within that accepted range. Please input a valid number.`
-	),
-});
-max_colors = Number(max_colors);
-console.log(chalk.green(`-- Knitting with ${max_colors} color(s).`));
+	machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machine will you be using? '), {
+		limit: [
+			function (input) {
+				return input.toLowerCase().includes('shima') || input.toLowerCase().includes('kniterate');
+			},
+		],
+		limitMessage: chalk.red(
+			'-- The program does not currently support the $<lastInput> machine. Please open an issue at the github repository (https://github.com/textiles-lab/knitout-image-processing) to request for this machine to be supported.'
+		),
+	});
+	machine = machine.toLowerCase();
+	console.log(chalk.green(`-- Model: ${machine}`)); //TODO: add better support for different shima models (and maybe stoll?)
+	if (saveAnswers) promptAnswers['machine'] = machine; //new //*
 
-let dithering = (stitchOnly ? null : readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use dithering?} {blue.italic (dithering is recommended for detailed/naturalistic images, but not for graphics/digital artwork.)}`)); //*
-// let dithering = readlineSync.keyInYNStrict(
-// 	chalk`{blue.bold \nWould you like to use dithering?} {blue.italic (dithering is recommended for detailed/naturalistic images, but not for graphics/digital artwork.)}`
-// );
-dithering === true ? (dithering = 'Stucki') : (dithering = null);
+	let carrier_count;
+	machine.includes('shima') ? (carrier_count = 10) : (carrier_count = 6); //TODO: limit needle bed with this too (prob will have to use promises :,( )
 
+	max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would you like to use? '), { //TODO: make sure this is ok when using just stitch pattern
+		limit: machine.includes('shima') ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [1, 2, 3, 4, 5, 6],
+		limitMessage: chalk.red(
+			`-- The ${machine} machine is capable of working with a max of ${carrier_count} colors per row, but $<lastInput> is not within that accepted range. Please input a valid number.`
+		),
+	});
+	max_colors = Number(max_colors);
+	console.log(chalk.green(`-- Knitting with ${max_colors} color(s).`));
+	if (saveAnswers) promptAnswers['max_colors'] = max_colors; //new //*
 
-const hexToRGB = (hex) => {
-	let alpha = false,
-		h = hex.slice(hex.startsWith('#') ? 1 : 0);
-	if (h.length === 3) h = [...h].map((x) => x + x).join('');
-	else if (h.length === 8) alpha = true;
-	h = parseInt(h, 16);
-	return [
-		Number((alpha ? a : '') + (h >>> (alpha ? 24 : 16))),
-		Number((h & (alpha ? 0x00ff0000 : 0x00ff00)) >>> (alpha ? 16 : 8)),
-		Number(((h & (alpha ? 0x0000ff00 : 0x0000ff)) >>> (alpha ? 8 : 0)) + (alpha ? h & 0x000000ff : '')),
-	];
-};
-let palette_opt = [];
-if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use a predefined palette?}`)) { //TODO: make this change blank color of colorwork.png if only stitch pattern
-	for (let i = 1; i <= max_colors; ++i) {
-		let hex = readlineSync.question(chalk.blue.bold(`\nEnter hex-code for color #${i}: `));
-		palette_opt.push(hexToRGB(hex));
+	dithering = (stitchOnly ? null : readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use dithering?} {blue.italic (dithering is recommended for detailed/naturalistic images, but not for graphics/digital artwork.)}`)); //*
+	// let dithering = readlineSync.keyInYNStrict(
+	// 	chalk`{blue.bold \nWould you like to use dithering?} {blue.italic (dithering is recommended for detailed/naturalistic images, but not for graphics/digital artwork.)}`
+	// );
+	dithering === true ? (dithering = 'Stucki') : (dithering = null);
+	if (saveAnswers) promptAnswers['dithering'] = dithering; //new //*
+
+	const hexToRGB = (hex) => {
+		let alpha = false,
+			h = hex.slice(hex.startsWith('#') ? 1 : 0);
+		if (h.length === 3) h = [...h].map((x) => x + x).join('');
+		else if (h.length === 8) alpha = true;
+		h = parseInt(h, 16);
+		return [
+			Number((alpha ? a : '') + (h >>> (alpha ? 24 : 16))),
+			Number((h & (alpha ? 0x00ff0000 : 0x00ff00)) >>> (alpha ? 16 : 8)),
+			Number(((h & (alpha ? 0x0000ff00 : 0x0000ff)) >>> (alpha ? 8 : 0)) + (alpha ? h & 0x000000ff : '')),
+		];
+	};
+	// let palette_opt = [];
+	if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use a predefined palette?}`)) { //TODO: make this change blank color of colorwork.png if only stitch pattern
+		for (let i = 1; i <= max_colors; ++i) {
+			let hex = readlineSync.question(chalk.blue.bold(`\nEnter hex-code for color #${i}: `));
+			palette_opt.push(hexToRGB(hex));
+		}
+	}
+	if (saveAnswers) {
+		promptAnswers['palette'] = palette_opt; //new //*
+
+		fs.writeFileSync('./prompt-answers/knitify/saved.json', JSON.stringify(promptAnswers)); //new //*
 	}
 }
 
@@ -82,7 +106,7 @@ let opts = {
 	//FloydSteinberg(-/+), Stucki(++), Atkinson(-), Jarvis(+?), null
 };
 
-if (palette_opt.length > 0) {
+if (palette_opt.length) {
 	opts.palette = palette_opt;
 }
 

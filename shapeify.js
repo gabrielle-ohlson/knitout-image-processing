@@ -3412,7 +3412,7 @@ miss: for (let i = 0; i < shaped_rows.length; ++i) {
 			}
 		}
 	}
-	// if (!carriers_arr.includes(draw_thread)) shaped_rows.splice(end_splice, 0, `${yarn_out} ${draw_thread}`); //go back! //? //removed because now knitify takes out draw thread
+	// if (!carriers_arr.includes(draw_thread)) shaped_rows.splice(end_splice, 0, `${yarn_out} ${draw_thread}`); //go back! //? // removed because now knitify takes out draw thread
 })();
 
 //------------------------------------------------------------

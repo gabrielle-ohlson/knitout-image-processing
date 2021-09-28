@@ -45,21 +45,23 @@ if (fs.existsSync('INPUT_DATA.json')) {
 		}
 	}
 	//TODO: maybe remove this
-	let xtra_char;
-	for (let i = 0; i < shape_code.length - 1; ++i) { //NOTE: - 1 is correct
-		if (shape_code[i].length === last_row + 2) {
-			xtra_char = shape_code[i].pop();
-			console.log(chalk.red('!!too long!!')); //remove
-		}
-		if (shape_code[i + 1].length === last_row) {
-			shape_code[i + 1].push(xtra_char);
-			console.log(chalk.red('!!too short!!')); //remove
-		}
-	}
+	// let xtra_char;
+	// for (let i = 0; i < shape_code.length - 1; ++i) { //NOTE: - 1 is correct
+	// 	// console.log(shape_code[i].length); //remove //debug
+	// 	if (shape_code[i].length === last_row + 2) {
+	// 		xtra_char = shape_code[i].pop();
+	// 		console.log(chalk.red('!!too long!!')); //remove
+	// 	}
+	// 	if (shape_code[i + 1].length === last_row) {
+	// 		shape_code[i + 1].push(xtra_char);
+	// 		console.log(chalk.red('!!too short!!')); //remove
+	// 	}
+	// }
 	
-	////make sure there aren't any floating white dots in the middle
+	////make sure there aren't any floating white dots in the middle //TODO: maybe remove this?
 	let splice_arr = [];
-	for (let y = 0; y < shape_code.length - 1; ++y) {
+	// for (let y = 0; y < shape_code.length - 1; ++y) { //remove //?
+	for (let y = 0; y < shape_code.length; ++y) { //?
 		let px_arr = shape_code[y];
 		if (px_arr.includes(0) && px_arr.includes(1)) {
 			let px0_arr = []; ////array for white pixels
@@ -84,6 +86,7 @@ if (fs.existsSync('INPUT_DATA.json')) {
 			//TODO: figure out how to deal with kelp situation
 		}
 	}
+
 	let white_space;
 	let rowSectCount = 1;
 	for (let r = splice_arr[splice_arr.length - 1]; r >= 0; --r) {
