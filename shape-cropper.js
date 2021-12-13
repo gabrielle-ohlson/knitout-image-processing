@@ -67,8 +67,18 @@ if (choice === 'Template') {
 			.split('\n');
 		let row_count_arr = source_file.filter((el) => el.includes(';row:'));
 		row_count = row_count_arr[row_count_arr.length - 1].replace(';row: ', '');
-		let needle_count_arr = source_file.filter((el) => !el.includes(';') && !el.includes('x-') && !el.includes('miss') && !el.includes('tuck') && !el.includes('drop') && !el.includes('xfer') && !el.includes('pause') && !el.includes('rack'));
+		let needle_count_arr = source_file.filter((el) => el.trim().length && !el.includes(';') && !el.includes('x-') && !el.includes('miss') && !el.includes('tuck') && !el.includes('drop') && !el.includes('xfer') && !el.includes('pause') && !el.includes('rack'));
+		let copyN = [...needle_count_arr]; //remove //debug
 		needle_count_arr = needle_count_arr.map((el) => el.match(/\d+/g));
+
+		for (let i = 0; i < needle_count_arr.length; ++i) {
+			if (needle_count_arr[i] === null) {
+				console.log(copyN[i]); //remove //debug
+				console.log(needle_count_arr[i]);
+				console.log(needle_count_arr[i].splice(0, 1)); //remove //debug
+			}
+		}
+
 		needle_count_arr = needle_count_arr.map((arr) => arr.splice(0, 1));
 		needle_count_arr = needle_count_arr.map((el) => Number(el));
 		(function getMax() {

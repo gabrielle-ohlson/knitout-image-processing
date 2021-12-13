@@ -9,13 +9,17 @@ let row_count = 0;
 
 let saveAnswers = false;
 let preloadFile, promptAnswers = {};
+
 readlineSync.setDefaultOptions({ prompt: chalk`{blue.italic (press Enter to skip and answer prompts) }{blue.bold Filename for pre-loaded prompt answers: }` }); //TODO: make option to skip this and only do stitch pattern
 readlineSync.promptLoop(function (input) {
-	preloadFile = input;
 	if (input === '') { //if skipping
 		preloadFile = undefined;
 		return true;
 	}
+
+	if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
+	input = `${input}.json`;
+	preloadFile = input;
 
 	if (!/\.json$/i.test(input) || !fs.existsSync(`./prompt-answers/knitify/${input}`)) {
 		let error_message = console.log(chalk.red(`-- The pre-loaded answers must be a JSON file that exists in the 'prompt-answers/knitify' folder.`));

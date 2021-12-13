@@ -7,7 +7,8 @@ const RgbQuant = require('rgbquant');
 
 //--- define some variables ---
 let stImg, stitchPixels;
-let stPatOpts = ['Rib', 'Bubbles', 'Seed', 'Lace', 'Buttonholes', 'Horizontal Buttonholes']; //TODO: add more
+let stPatOpts = ['Rib', 'Garter', 'Bubbles', 'Seed', 'Lace', 'Horizontal Buttonholes']; //TODO: add more
+let customStPat = ['Rib', 'Garter', 'Bubbles', 'Lace']; //new //*
 let stPatNullCarrier = ['Horizontal Buttonholes']; //new //*
 let stitchPatterns = [];
 class StitchPattern {
@@ -72,11 +73,15 @@ while (!stopPrompt) {
 	let options = [...patOpts],
 		choice = readlineSync.keyInSelect(options, chalk.blue.bold(`^Select a stitch pattern to use in your motif.`));
 	choice = stPatOpts[choice];
-	if (choice === 'Rib') {
-		let ribOptions = ['1x1', '2x2'],
-			ribChoice = readlineSync.keyInSelect(ribOptions, chalk.blue.bold(`^Which type of rib? `));
-		choice = `Rib ${ribOptions[ribChoice]}`;
-	}
+	// if (choice === 'Rib') {
+	// 	let rib_f = readlineSync.questionInt(chalk.blue.bold(`\nHow many front needles in sequence? (e.g. '2') `));
+	// 	let rib_b = readlineSync.questionInt(chalk.blue.bold(`\nHow many back needles in sequence? (e.g. '2') `));
+
+	// 	choice = `Rib ${rib_f}x${rib_b}`;
+	// 	// let ribOptions = ['1x1', '2x2'],
+	// 	// 	ribChoice = readlineSync.keyInSelect(ribOptions, chalk.blue.bold(`^Which type of rib? `));
+	// 	// choice = `Rib ${ribOptions[ribChoice]}`;
+	// }
 	console.log(chalk.green('-- Using pattern: ' + choice));
 	stitchPatterns.push(new StitchPattern(choice));
 	if (stImg) {
@@ -101,6 +106,7 @@ const hexToRGB = (hex) => {
 
 let colors = [hexToRGB('#FFFFFF')];
 
+let carrierSelect1 = true;
 for (let i = 0; i < stitchPatterns.length; ++i) {
 	if (stImg) {
 		stopPrompt = false;
@@ -120,8 +126,9 @@ for (let i = 0; i < stitchPatterns.length; ++i) {
 		if (stPatNullCarrier.includes(stitchPatterns[i].name)) stitchPatterns[i].carrier = null; //new //*
 		else {
 			stopPrompt = false;
-			if (i === 0) { //TODO: remove if !stImg
+			if (carrierSelect1) { //TODO: remove if !stImg
 				console.log(chalk`{white.bold \nYou may choose from the following list of existing carriers (along with the hex-code for the corresponding color), or specify a new carrier (if enough are left over).\nCarriers used in the motif thus far:}{white ${carrierColors}}`);
+				carrierSelect1 = false;
 			}
 			while (!stopPrompt) {
 				stitchPatterns[i].carrier = readlineSync.question(chalk.blue.bold(`\nEnter the carrier you'd like to use for the '${stitchPatterns[i].name}' stitch pattern (e.g. 1): `)); //TODO: present data of colors attached to each carrier
@@ -134,7 +141,8 @@ for (let i = 0; i < stitchPatterns.length; ++i) {
 			console.log(chalk.green('-- Carrier: ' + stitchPatterns[i].carrier));
 		}
 	} else stitchPatterns[i].carrier = (stPatNullCarrier.includes(stitchPatterns[i].name) ? (null) : (1)); //only one stitchPattern, so will be 1 automatically (or null, if applicable) //new //*
-	if (stitchPatterns[i].name === 'Bubbles' || stitchPatterns[i].name === 'Lace' || stitchPatterns[i].name === 'Buttonholes') {
+	// if (stitchPatterns[i].name === 'Bubbles' || stitchPatterns[i].name === 'Lace' || stitchPatterns[i].name === 'Garter') {
+	if (customStPat.includes(stitchPatterns[i].name)) { //new //*
 		if (readlineSync.keyInYNStrict(chalk.blue.bold(`\nWould you like to add any other customizations for the '${stitchPatterns[i].name}' stitch pattern?`))) {
 			if (stitchPatterns[i].name === 'Bubbles') {
 				stitchPatterns[i].options.bubbleWidth = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many stitches wide should the bubbles be? `)));
@@ -149,17 +157,14 @@ for (let i = 0; i < stitchPatterns.length; ++i) {
 				stitchPatterns[i].options.spaceBtwHoles = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many knit stitches between lace holes? `)));
 				stitchPatterns[i].options.offset = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many needles to offset the placement of lace holes relative to the prior lace formation pass? `)));
 				stitchPatterns[i].options.offsetReset = Number(readlineSync.questionInt(chalk.blue.bold(`\nAfter how many rows should the offset reset? (input 0 to have the reset be automatic) `)));
-			} else if (stitchPatterns[i].name === 'Buttonholes') {
-				stitchPatterns[i].options.buttonHeight = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many rows long should the button holes be? `)));
-				// if (stitchPatterns[i].options.buttonHeight % 2 !== 0) {
-				// 	stitchPatterns[i].options.buttonHeight += 1;
-				// 	console.log(`WARNING: Increasing button height to ${stitchPatterns[i].options.buttonHeight} since it needs to be an even number of rows.`);
-				// }
-				stitchPatterns[i].options.spaceBtwHoles = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many knit rows between button holes? `)));
-				if (stitchPatterns[i].options.spaceBtwHoles % 2 === 0) {
-					stitchPatterns[i].options.spaceBtwHoles += 1;
-					console.log(`WARNING: Increasing spaceBtwHoles to ${stitchPatterns[i].options.spaceBtwHoles} since it needs to be an odd number of rows.`);
-				}
+			} else if (stitchPatterns[i].name === 'Garter') {
+				stitchPatterns[i].options.patternRows = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many garter rows (switching between knits and purls)? `)));
+			} else if (stitchPatterns[i].name === 'Rib') {
+				let frontWidth = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many front needles in sequence? (e.g. '2'): `)));
+				// stitchPatterns[i].options.frontWidth = 'f'.repeat(rib_f);
+				let backWidth = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many back needles in sequence? (e.g. '2'): `)));
+				// stitchPatterns[i].options.backWidth = 'b'.repeat(rib_b);
+				stitchPatterns[i].options.sequence = 'f'.repeat(frontWidth) + 'b'.repeat(backWidth);
 			}
 		} else stitchPatterns[i].options = undefined;
 	} else stitchPatterns[i].options = undefined;
@@ -274,14 +279,36 @@ function getStitchData() {
 						}
 
 						// get side info for buttonholes, if applicable
-						// let buttonholes = stPatMap.filter(el => el.name === 'Buttonholes');
-						if (stPatMap.some(el => el.name.includes('Buttonholes'))) { //check //v //TODO: ensure Buttonholes are only on edge (throw error if not)
+						let ribStPats = stPatMap.filter(el => el.name.includes('Rib'));
+						if (stPatMap.some(el => el.name.includes('Buttonholes'))) { //check //v //TODO: ensure Buttonholes are only on edge (throw error if not) //TODO: detect if rib comes before for ALL of them, and if not all the same, separate into multiple stitch patterns
 							for (let b = 0; b < stPatMap.length; ++b) {
 								if (stPatMap[b].name.includes('Buttonholes')) {
+									console.log(stPatMap[b]); //remove //debug
 									stPatMap[b].action = 'bindoff'; //new //*
-									let stRow1 = stPatMap[b].rows[Object.keys(stPatMap[b].rows)[0]];
-									if (stRow1[0] < (width - stRow1[stRow1.length - 1])) stPatMap[b].side = 'left';
+									let stRow1Key = Object.keys(stPatMap[b].rows)[0];
+									let stRow1 = stPatMap[b].rows[stRow1Key];
+									if (stRow1[0] < (width - stRow1[stRow1.length-1])) stPatMap[b].side = 'left';
 									else stPatMap[b].side = 'right';
+
+									if (ribStPats.length) {
+										let stR1Prev = `${Number(stRow1Key) - 1}`;
+										for (let r = 0; r < ribStPats.length; ++r) {
+											let ribRowKeys = Object.keys(ribStPats[r].rows);
+											
+											if (ribRowKeys.includes(stR1Prev)) { //might be surrounded //check
+												let overlap = true;
+
+												checkForOverlap: for (let n = stRow1[0]; n <= stRow1[stRow1.length - 1]; ++n) {
+													if (!ribStPats[r].rows[stR1Prev].includes(n)) {
+														overlap = false;
+														break checkForOverlap;
+													}
+												}
+												
+												if (overlap) stPatMap[b].name = `${ribStPats[r].name} Buttonholes`;	
+											}
+										}
+									}
 								}
 							}
 						} //^

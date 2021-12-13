@@ -3,14 +3,15 @@
 //---------------------------
 //--- INITIAL VARIABLES ---//
 //---------------------------
+// let frontOnlyPatterns = ['Garter', 'Bubbles', 'Lace'];
 let frontOnlyPatterns = ['Bubbles', 'Lace'];
-let avoidAll = ['Lace', 'Buttonholes']; //new
+let avoidAll = ['Lace']; //new
 
 let generateKnitout;
 let generated = [];
-let avoid = []; //new
+let avoidOnBack = []; //new
 
-let speed_number, stitch_number, roller_advance, row_count, pieceWidth, extraCarrier;
+let speed_number, stitch_number, roller_advance, row_count, pieceWidth, extraCarrier, colCt;
 
 let options;
 
@@ -40,82 +41,181 @@ function extraCarrierPass() {
 	}
 }
 
+
 //-------------
 //--- RIB ---//
 //-------------
-// function generateRib(sequence, min, max, dir, carrier, avoid, pattern) {
-function generateRib(sequence, min, max, dir, carrier, pattern) {
-	const POSRIB = () => {
-		for (let n = min; n <= max; ++n) {
+// function generateRib(sequence, min, max, dir, carrier, currNs, prevNs, nextNs, frill) { //rib will need to be multiple colors, i guess //TODO: test frill
+function generateRib(min, max, dir, carrier, currNs, prevNs, nextNs, frill) { //rib will need to be multiple colors, i guess //TODO: test frill
+	let sequence = (options ? options.sequence : 'fb'); //*
+
+	let f_width = sequence.match(/f/gi).length;
+	let b_width = sequence.match(/b/gi).length;
+
+	let extra_rib_f_pass_ct = 0;
+	let tuckOnBack = false;
+	// if (!generateKnitout && sequence.match(/f/gi).length > 4) {
+	if (f_width > 4) {
+		if (generateKnitout) extra_rib_f_pass_ct = 2 * Math.floor(colCt/2); //round to nearest even number (so total is odd) //extra passes to prevent yarn breakage from not enough knitting happening in the front sections
+		else {
+			avoidOnBack = [[], []];//TODO: maybe > 5 //?
+			tuckOnBack = true;
+		}
+		// rib_f_pass_ct = 2 * Math.floor(colCt/2) + 1; //round to nearest odd number
+		// extra_rib_f_pass_ct = 2 * Math.floor(colCt/2); //round to nearest even number (so total is odd) //extra passes to prevent yarn breakage from not enough knitting happening in the front sections
+	}
+
+	const POSRIB = (n_min, n_max, doingExtra) => {
+		for (let n = n_min; n <= n_max; ++n) {
 			if (sequence[n % sequence.length] === 'f') {
-				if (generateKnitout) generated.push(`knit + f${n} ${carrier}`);
-				else avoid.push(n);
-				// generated.push(`knit + f${n} ${carrier}`);
-				// avoid.push(n);
-			// } else generated.push(`knit + b${n} ${carrier}`);
-			} else if (generateKnitout) generated.push(`knit + b${n} ${carrier}`);
+				if (generateKnitout) {
+					generated.push(`knit + f${n} ${carrier}`);
+					if (!doingExtra && extra_rib_f_pass_ct > 0 && sequence[(n+1) % sequence.length] === 'b') { // knit again!
+						let extra_edge_n = ((n-f_width+1) >= n_min ? (n-f_width+1) : n_min); //TODO: check
+						generated.push(";extra front rib passes");
+						for (let p = 0; p < extra_rib_f_pass_ct; ++p) {
+							// if (p % 2 === 0) NEGRIB(n, extra_edge_n);
+							if (p % 2 === 0) NEGRIB(extra_edge_n, n, true);
+							else POSRIB(extra_edge_n, n, true);
+						}
+					}
+				} else if (currNs.includes(n)) {
+					if (tuckOnBack) {
+						if (n % 2 === 0) avoidOnBack[0].push(n); //don't knit these
+						else avoidOnBack[1].push(n); //don't knit these
+					} else avoidOnBack.push(n); //don't knit these
+				}
+			// } else if (generateKnitout) generated.push(`knit + b${n} ${carrier}`); //remove //?
+			} else if (generateKnitout || !frill) {
+				// sequence[((n/colCt) % sequence.length) * colCt]
+				// if (generateKnitout && row_count <= 3) console.log('+!!!', n, (n / colCt), ((n / colCt) % sequence.length), (((n / colCt) % sequence.length) * colCt), sequence[(((n / colCt) % sequence.length) * colCt)]); //remove //debug
+			// 	// if ((((n/colCt) % sequence.length) / colCt) < sequence.length) generated.push(`knit + b${n} ${carrier}`); 
+				// if (sequence[(((n / colCt) % sequence.length) / colCt)] === 'b') {
+				if (frill || sequence[(((n / colCt) % sequence.length) * colCt)] === 'b') { //TODO: check for ffbb
+					// if (row_count <= 3) console.log('!!!', n); //remove //debug
+					if (generateKnitout) generated.push(`knit + b${n} ${carrier}`); //TODO: check //if longer, will be 'undefined'
+					else if (!frill && currNs.includes(n)) avoidOnBack.push(n); //don't knit these #*#*#*
+				}
+			}
 		}
 	};
 
-	const NEGRIB = () => {
-		for (let n = max; n >= min; --n) {
+	const NEGRIB = (n_min, n_max, doingExtra) => {
+		for (let n = n_max; n >= n_min; --n) {
 			if (sequence[n % sequence.length] === 'f') {
-				if (generateKnitout) generated.push(`knit - f${n} ${carrier}`);
-				else avoid.push(n);
-				// generated.push(`knit - f${n} ${carrier}`);
-				// avoid.push(n);
-			// } else generated.push(`knit - b${n} ${carrier}`);
-			} else if (generateKnitout) generated.push(`knit - b${n} ${carrier}`);
+				if (generateKnitout) {
+					generated.push(`knit - f${n} ${carrier}`);
+
+					if (!doingExtra && extra_rib_f_pass_ct > 0 && sequence[(n-1) % sequence.length] === 'b') { // knit again!
+						let extra_edge_n = ((n+f_width-1) <= n_max ? (n+f_width-1) : n_max); //TODO: check
+						generated.push(";extra front rib passes");
+						for (let p = 0; p < extra_rib_f_pass_ct; ++p) {
+							if (p % 2 === 0) POSRIB(n, extra_edge_n, true);
+							else NEGRIB(n, extra_edge_n, true);
+							// else NEGRIB(extra_edge_n, n);
+						}
+					}
+				} else if (currNs.includes(n)) {
+					if (tuckOnBack) {
+						if (n % 2 === 0) avoidOnBack[0].push(n); //don't knit these
+						else avoidOnBack[1].push(n); //don't knit these
+					} else avoidOnBack.push(n);
+				}
+			// } else if (generateKnitout) generated.push(`knit - b${n} ${carrier}`); //TODO: every other?
+			} else if (generateKnitout || !frill) {
+				// if (generateKnitout && row_count <= 3) console.log('-!!!', n, (n / colCt), ((n / colCt) % sequence.length), ((n % sequence.length) * colCt), sequence[((n % sequence.length) * colCt)]); //remove //debug
+
+				if (frill || sequence[(((n / colCt) % sequence.length) * colCt)] === 'b') {
+					generated.push(`knit - b${n} ${carrier}`); //TODO: check //if longer, will be 'undefined'
+					if (!frill && currNs.includes(n)) avoidOnBack.push(n); //don't knit these #*#*#*
+				}
+			}
 		}
 	};
 
 	if (!generateKnitout) { //new
-		POSRIB(); //direction doesn't matter
-		return avoid;
+		POSRIB(min, max); //direction doesn't matter since will return the same needles to avoid either way
+		
+		return avoidOnBack;
 	} else {
-		generated.push(';stitch pattern: Rib'); //?
+		let xferBack = [];
 
-		if (row_count === 0) { //TODO: this again if width of rib increases (transfer new stitches)
-			// pattern.xfers[0] = min;
-			// pattern.xfers[1] = max;
+		generated.push(';stitch pattern: Rib');
+		let emptyNeedles = ';empty:'; //new //*
+
+		for (let n = min; n <= max; ++n) {
+			if (sequence[n % sequence.length] === 'f') emptyNeedles += ` b${n}`; //new //check
+			else emptyNeedles += ` f${n}`; //new //*
+		}
+		generated.push(emptyNeedles); //new //*
+
+		if (row_count === 0) {
 			generated.push('x-speed-number 300', 'x-roller-advance 0');
 			for (let n = max; n >= min; --n) { ////doesn't rly matter direction for xfer
 				if (sequence[n % sequence.length] === 'f') generated.push(`xfer b${n} f${n}`);
-			// if (n % 2 === 0) generated.push(`xfer b${n} f${n}`);
 			}
 			for (let n = min; n <= max; ++n) {
 				if (sequence[n % sequence.length] === 'b') generated.push(`xfer f${n} b${n}`);
-			// if (n % 2 !== 0) generated.push(`xfer f${n} b${n}`);
+				// if (frill || sequence[(((n / colCt) % sequence.length) / colCt)] === 'b') generated.push(`xfer f${n} b${n}`); //new //TODO: //check
 			}
-		} else {
-			if (min < pattern.xfers[0]) {
-				generated.push('x-speed-number 300', 'x-roller-advance 0');
-				for (let n = pattern.xfers[0] - 1; n >= min; --n) {
+		} else { //this again if width of rib increases (transfer new stitches)
+			// if (min < pattern.xfers[0]) {
+			for (let n = min; n <= max; ++n) {
+				if (!prevNs.includes(n)) {
 					if (sequence[n % sequence.length] === 'f') generated.push(`xfer b${n} f${n}`);
-				}
-				for (let n = min; n < pattern.xfers[0]; ++n) {
 					if (sequence[n % sequence.length] === 'b') generated.push(`xfer f${n} b${n}`);
 				}
-				// pattern.xfers[0] = min;
-			}
-			if (max > pattern.xfers[1]) {
-				generated.push('x-speed-number 300', 'x-roller-advance 0');
-				for (let n = max; n > pattern.xfers[1]; --n) {
-					if (sequence[n % sequence.length] === 'f') generated.push(`xfer b${n} f${n}`);
+
+				if (sequence !== 'fb' && !nextNs.includes(n)) { //new //*
+					if (sequence[n % sequence.length] === 'b' && n % 2 === 0) xferBack.push(`xfer b${n} f${n}`);
+					if (sequence[n % sequence.length] === 'f' && n % 2 !== 0) xferBack.push(`xfer f${n} b${n}`);
 				}
-				for (let n = pattern.xfers[1] + 1; n <= max; ++n) {
-					if (sequence[n % sequence.length] === 'b') generated.push(`xfer f${n} b${n}`);
-				}
-				// pattern.xfers[1] = max;
+
+				// if (sequence !== 'fb' && !nextNs.includes(n) && n % 2 === 0) { //new //*
+				// 	if (sequence[n % sequence.length] === 'b') xferBack.push(`xfer b${n} f${n}`);
+				// 	if (sequence[n % sequence.length] === 'f') xferBack.push(`xfer f${n} b${n}`);
+				// }
 			}
+			// if (min < prevRowLeftN) {
+			// 	generated.push('x-speed-number 300', 'x-roller-advance 0');
+			// 	// for (let n = pattern.xfers[0] - 1; n >= min; --n) {
+			// 	for (let n = prevRowLeftN - 1; n >= min; --n) {
+			// 		if (sequence[n % sequence.length] === 'f') generated.push(`xfer b${n} f${n}`);
+			// 	}
+			// 	// for (let n = min; n < pattern.xfers[0]; ++n) {
+			// 	for (let n = min; n < prevRowLeftN; ++n) {
+			// 		if (sequence[n % sequence.length] === 'b') generated.push(`xfer f${n} b${n}`);
+			// 		// if (frill || sequence[(((n / colCt) % sequence.length) / colCt)] === 'b') generated.push(`xfer f${n} b${n}`); //new //TODO: //check
+			// 	}
+			// }
+			// // if (max > pattern.xfers[1]) {
+			// if (max > prevRowRightN) {
+			// 	generated.push('x-speed-number 300', 'x-roller-advance 0');
+			// 	// for (let n = max; n > pattern.xfers[1]; --n) {
+			// 	for (let n = max; n > prevRowRightN; --n) {
+			// 		if (sequence[n % sequence.length] === 'f') generated.push(`xfer b${n} f${n}`);
+			// 	}
+			// 	// for (let n = pattern.xfers[1] + 1; n <= max; ++n) {
+			// 	for (let n = prevRowRightN + 1; n <= max; ++n) {
+			// 		if (sequence[n % sequence.length] === 'b') generated.push(`xfer f${n} b${n}`);
+			// 		// if (frill || sequence[(((n / colCt) % sequence.length) / colCt)] === 'b') generated.push(`xfer f${n} b${n}`); //new //TODO: //check
+			// 	}
+			// }
 		}
 
 		// calculate rib stitch number based on actual stitch number
 		generated.push(`x-speed-number ${speed_number}`, `x-roller-advance ${roller_advance}`, `x-stitch-number ${Math.ceil(Number(stitch_number) / 2)}`);
 	
-		dir === '-' ? NEGRIB() : POSRIB();
+		dir === '-' ? NEGRIB(min, max) : POSRIB(min, max);
 
 		generated.push(`x-stitch-number ${stitch_number}`);
+
+		if (xferBack.length) {
+			generated.push('x-speed-number 300', 'x-roller-advance 0', ";transfer alternating needles that aren't in next pattern row");
+			generated = [...generated, ...xferBack];
+			generated.push(`x-speed-number ${speed_number}`, `x-roller-advance ${roller_advance}`); //reset
+		}
+
 
 		// if (!double_bed) { //TODO: maybe add this back in
 		// 	generated.push('x-speed-number 100');
@@ -129,6 +229,106 @@ function generateRib(sequence, min, max, dir, carrier, pattern) {
 	}
 }
 
+
+//----------------
+//--- GARTER ---//
+//----------------
+function generateGarter(min, max, dir, carrier, currNs, prevNs, nextNs) { //TODO: xfer back to front bed *always* after knitting so floats are behind //TODO: tuck instead of knitting if avoidOnBack = [[], []]
+	let patternRows = (options ? options.patternRows : 2); //*
+
+	const POS_GARTER = (bed) => {
+		for (let n = min; n <= max; ++n) {
+			generated.push(`knit + ${bed}${n} ${carrier}`)
+		}
+	};
+
+	const NEG_GARTER = (bed) => {
+		for (let n = max; n >= min; --n) {
+			generated.push(`knit - ${bed}${n} ${carrier}`);
+		}
+	};
+
+	generated.push(';stitch pattern: Garter');
+	// generated.push(`;stitch pattern: Garter (row: ${row_count})`);
+	let emptyNeedles = ';empty:'; //new //*
+
+	let mod = row_count % (patternRows*2);
+	let garterBed, otherBed, xfer_mod;
+
+	if (mod < patternRows) { // (maybe) xfer to front bed and knit there
+		garterBed = 'f';
+		otherBed = 'b';
+		xfer_mod = 0;
+	} else { // (maybe) xfer to back bed and knit there
+		garterBed = 'b';
+		otherBed = 'f';
+		xfer_mod = patternRows;
+	}
+
+	avoidOnBack = [[], []];
+	for (let n = min; n <= max; ++n) {
+		// if (!generateKnitout && garterBed !== 'b' && currNs.includes(n)) avoidOnBack.push(n); //don't knit these //TODO: have it instead do every other (like a cast-on)
+		// if (!generateKnitout && garterBed !== 'b' && currNs.includes(n)) {
+		// 	if (n % 2 === 0) avoidOnBack[0].push(n);
+		// 	else avoidOnBack[1].push(n);
+		// 	// avoidOnBack.push(n); //don't knit these //TODO: have it instead do every other (like a cast-on)
+		// }
+		if (!generateKnitout && currNs.includes(n)) {
+			if (n % 2 === 0) avoidOnBack[0].push(n);
+			else avoidOnBack[1].push(n);
+			// avoidOnBack.push(n); //don't knit these //TODO: have it instead do every other (like a cast-on)
+		}
+		emptyNeedles += ` ${otherBed}${n}`; //TODO: only do this if front empty (since back might not be empty...) but only if other carriers are being used... hm....
+	}
+
+	if (!generateKnitout) return avoidOnBack;
+
+	generated.push(emptyNeedles); //new //*
+
+	let xferBack = [];
+	generated.push('x-speed-number 300', 'x-roller-advance 0');
+
+	for (let n = min; n <= max; ++n) {
+		// emptyNeedles += `${otherBed}${n}`;
+		if (!prevNs.includes(n) || garterBed === 'b') generated.push(`xfer ${otherBed}${n} ${garterBed}${n}`); //if `!prevNs.includes(n)`, means width of garter increased (transfer new stitches) //only for front or new needles (since garter is always xfered back to front bed as home base)
+		// if (!prevNs.includes(n) || garterBed === 'b' || row_count % (patternRows*2) === 0) generated.push(`xfer ${otherBed}${n} ${garterBed}${n}`); //if `!prevNs.includes(n)`, means width of garter increased (transfer new stitches)
+		// if (mod === xfer_mod || !prevNs.includes(n)) generated.push(`xfer ${otherBed}${n} ${garterBed}${n}`); //if `!prevNs.includes(n)`, means width of garter increased (transfer new stitches)
+
+		if (!nextNs.includes(n) && n % 2 === 0) xferBack.push(`xfer ${garterBed}${n} ${otherBed}${n}`) //every other //new //*
+	}
+
+	// generated.push(`x-speed-number ${speed_number}`, `x-roller-advance ${roller_advance}`); //reset //TODO: if back bed, maybe more roller since xferring back //? //lets try that
+	generated.push(`x-speed-number ${speed_number}`);
+	if (garterBed === 'b') generated.push(`x-roller-advance ${roller_advance+100}`); //reset //TODO: if back bed, maybe more roller since xferring back //? //lets try that
+	else generated.push(`x-roller-advance ${roller_advance}`); //reset //TODO: if back bed, maybe more roller since xferring back //? //lets try that
+
+
+	dir === '+' ? POS_GARTER(garterBed) : NEG_GARTER(garterBed);
+
+	generated.push('x-speed-number 300', 'x-roller-advance 0'); //for (potential) xfers
+
+	//*
+	if (xferBack.length) {
+		generated.push(";transfer alternating needles that aren't in next pattern row");
+		generated = [...generated, ...xferBack];
+		// generated.push(`x-speed-number ${speed_number}`, `x-roller-advance ${roller_advance}`); //reset
+	}
+
+	if (garterBed === 'b') {
+		generated.push(";transfer needles to front");
+		for (let n = min; n <= max; ++n) {
+			// emptyNeedles += `${otherBed}${n}`;
+			if (nextNs.includes(n)) generated.push(`xfer b${n} f${n}`); //xfer to front bed so don't see floats
+		}
+		// generated.push(`x-speed-number ${speed_number}`, `x-roller-advance ${roller_advance}`); //reset
+	}
+
+	generated.push(`x-speed-number ${speed_number}`, `x-roller-advance ${roller_advance}`); //reset
+
+	return generated;
+}
+
+
 //--------------
 //--- SEED ---//
 //--------------
@@ -138,24 +338,17 @@ function generateSeed(min, max, dir, carrier) { //TODO: figure out how to avoid 
 		if (row_count % 2 === 0) {
 			for (let n = min; n <= max; ++n) {
 				if (n % 2 === 0) {
-				// 	generated.push(`knit + f${n} ${carrier}`);
-				// 	avoid.push(n);
-				// } else generated.push(`knit + b${n} ${carrier}`);
 					if (generateKnitout) generated.push(`knit + f${n} ${carrier}`);
-					else avoid.push(n);
+					else avoidOnBack.push(n); //TODO: have way to change this if other carrier knits before (so avoidOnBack will be different for that carrier compared to carriers knitting after seed carrier)
 				} else if (generateKnitout) generated.push(`knit + b${n} ${carrier}`);
 			}
 		} else {
 			for (let n = min; n <= max; ++n) {
-				// if (n % 2 === 0) generated.push(`knit + b${n} ${carrier}`);
-				// else {
-				// 	generated.push(`knit + f${n} ${carrier}`);
-				// 	avoid.push(n);
-				// }
-				if (generateKnitout && n % 2 === 0) generated.push(`knit + b${n} ${carrier}`);
-				else {
+				if (n % 2 === 0) {
+					if (generateKnitout) generated.push(`knit + b${n} ${carrier}`);
+				} else {
 					if (generateKnitout) generated.push(`knit + f${n} ${carrier}`);
-					else avoid.push(n);
+					else avoidOnBack.push(n);
 				}
 			}
 		}
@@ -165,38 +358,36 @@ function generateSeed(min, max, dir, carrier) { //TODO: figure out how to avoid 
 		if (row_count % 2 === 0) {
 			for (let n = max; n >= min; --n) {
 				if (n % 2 === 0) {
-				// 	generated.push(`knit - f${n} ${carrier}`);
-				// 	avoid.push(n);
-				// } else generated.push(`knit - b${n} ${carrier}`);
 					if (generateKnitout) generated.push(`knit - f${n} ${carrier}`);
-					else avoid.push(n);
+					else avoidOnBack.push(n);
 				} else if (generateKnitout) generated.push(`knit - b${n} ${carrier}`);
 			}
 		} else {
 			for (let n = max; n >= min; --n) {
-				// if (n % 2 === 0) generated.push(`knit - b${n} ${carrier}`);
-				// else {
-				// 	generated.push(`knit - f${n} ${carrier}`);
-				// 	avoid.push(n);
-				// }
-				if (generateKnitout && n % 2 === 0) generated.push(`knit - b${n} ${carrier}`);
-				else {
+				if (n % 2 === 0) {
+					if (generateKnitout) generated.push(`knit - b${n} ${carrier}`);
+				} else {
 					if (generateKnitout) generated.push(`knit - f${n} ${carrier}`);
-					else avoid.push(n);
+					else avoidOnBack.push(n);
 				}
+				// if (generateKnitout && n % 2 === 0) generated.push(`knit - b${n} ${carrier}`);
+				// else {
+				// 	if (generateKnitout) generated.push(`knit - f${n} ${carrier}`);
+				// 	else avoidOnBack.push(n);
+				// }
 			}
 		}
 	}
 
 	if (!generateKnitout) { //new
 		posSeed(); //direction doesn't matter
-		return avoid;
+		return avoidOnBack;
 	} else { //new
 		generated.push(';stitch pattern: Seed');
 		let emptyNeedles = ';empty:';
 
 		// generated.push('x-roller-advance 0', 'x-speed-number 100');
-		generated.push(`x-stitch-number ${Math.floor(stitch_number/2)}`, 'x-speed-number 200', 'x-roller-advance 80', 'x-xfer-style two-pass'); //?
+		generated.push(`x-stitch-number ${Math.floor(stitch_number/2)}`, 'x-speed-number 300', 'x-roller-advance 80', 'x-xfer-style two-pass'); //?
 		if (row_count % 2 === 0) {
 			for (let n = min; n <= max; ++n) {
 				if (n % 2 === 0) {
@@ -358,9 +549,6 @@ function generateBubbles(min, max, dir, carrier) { //TODO: test in bubbles need 
 
 	generated.push(';stitch pattern: Bubbles'); //?
 
-	
-	// extraCarrierPass(); //? //remove
-
 	dir === '+' ? posBubblePass() : negBubblePass();
 
 	if (extraCarrier && extraCarrierPasses % 2 !== 0) extraCarrierPass(); //make sure carrier ends up where it started
@@ -373,7 +561,6 @@ function generateBubbles(min, max, dir, carrier) { //TODO: test in bubbles need 
 //--------------
 //--- LACE ---//
 //--------------
-// function generateLace(min, max, dir, carrier, avoid) {
 function generateLace(min, max, dir, carrier) { //TODO: figure out what to do about avoiding all... maybe have it tuck over any empty needles?
 	let laceRows = (options ? options.laceRows : 2);
 	let spaceBtwHoles = (options ? options.spaceBtwHoles : 1);
@@ -387,19 +574,15 @@ function generateLace(min, max, dir, carrier) { //TODO: figure out what to do ab
 
 	const POSLACE = () => {
 		for (let n = min; n <= max; ++n) {
-			// generated.push(`knit + f${n} ${carrier}`);
-			// avoid.push(n);
 			if (generateKnitout) generated.push(`knit + f${n} ${carrier}`);
-			else avoid.push(n);
+			else avoidOnBack.push(n);
 		}
 	};
 
 	const NEGLACE = () => {
 		for (let n = max; n >= min; --n) {
-			// generated.push(`knit - f${n} ${carrier}`);
-			// avoid.push(n);
 			if (generateKnitout) generated.push(`knit - f${n} ${carrier}`);
-			else avoid.push(n);
+			else avoidOnBack.push(n);
 		}
 	};
 
@@ -413,7 +596,6 @@ function generateLace(min, max, dir, carrier) { //TODO: figure out what to do ab
 
 			for (let n = min; n <= max; ++n) {
 				if ((n - min) % (spaceBtwHoles+1) === mod && n !== min && n !== max) generated.push(`xfer f${n} b${n}`);
-				// if (n !== min && n !== max) generated.push(`xfer f${n} b${n}`); //don't xfer edge-most stitches so don't have to worry about them dropping
 			}
 
 			generated.push(`rack ${rack}`);
@@ -424,16 +606,9 @@ function generateLace(min, max, dir, carrier) { //TODO: figure out what to do ab
 
 			generated.push('rack 0');
 
-			// for (let n = min; n <= max; ++n) {
-			// 	if ((n - min) % (spaceBtwHoles+1) !== mod && n !== min && n !== max) generated.push(`xfer b${n} f${n}`);
-			// 	// if ((n - min) % (spaceBtwHoles+1) !== mod || n === min || n === max) generated.push(`xfer b${n} f${n}`);
-			// }
-			// generated.push(`x-roller-advance ${roller_advance}`);
-			// generated.push('x-roller-advance 300');
 			generated.push(`x-xfer-stitch-number ${Math.ceil(stitch_number/2)}`); //new //check
 		}
 
-		// let laceStitch = Math.ceil(stitch_number*1.5);
 		let laceStitch = stitch_number+3;
 		if (laceStitch > 9) laceStitch = 9;
 		generated.push(`x-stitch-number ${laceStitch}`);
@@ -441,186 +616,24 @@ function generateLace(min, max, dir, carrier) { //TODO: figure out what to do ab
 	}
 
 	dir === '+' ? POSLACE() : NEGLACE();
-	// generated.push(`x-stitch-number ${stitch_number}`);
-	// generated.push(`x-roller-advance ${roller_advance}`);
 
-	// return generated;
 	if (generateKnitout) {
 		generated.push(`x-stitch-number ${stitch_number}`);
 		generated.push(`x-roller-advance ${roller_advance}`);
 
 		return generated;
-	} else return avoid;
+	} else return avoidOnBack;
 }
 
 //---------------------
-//--- BUTTON HOLE ---//
+//--- BUTTON HOLES ---//
 //---------------------
-// function generateButtonHole(min, max, dir, carrier, side, avoid) {
-function generateButtonHole(min, max, dir, carrier, side) { //TODO: xfer all loops to front if first time
-	if (row_count === 1) { //if first time
-		for (let n = min; n <= max; ++n) {
-			generated.push(`xfer b${n} f${n}`);
-			// if (racked) generated.push(`knit + b${n} ${carrier}`);
-		}
-	}
-	// avoid = []; //make it empty
-	//TODO: attempt knitting at rack 0.25, and also just doing rib for this section instead of jacquard
-
-	// let buttonHeight = (options ? (options.buttonHeight+1) : 7); //TODO: find the optimal button height
-	let buttonHeight = (options ? options.buttonHeight : 6); //TODO: find the optimal button height
-	let spaceBtwHoles = (options ? options.spaceBtwHoles : 5); //TODO: find the optimal space between holes //10 //?
-
-	let mod = buttonHeight + spaceBtwHoles;
-
-	// console.log('row_count:', row_count, 'dir:', dir, 'mod:', mod, 'row_count % mod:', row_count % mod, 'spaceBtwHoles:', spaceBtwHoles, 'buttonHeight', buttonHeight); //remove //debug
-
-	const POSHOLE = () => {
-		for (let n = min; n <= max; ++n) {
-			generated.push(`knit + f${n} ${carrier}`); //f first since pos rack and pos direction
-			// if (racked) generated.push(`knit + b${n} ${carrier}`);
-		}
-	};
-
-	const NEGHOLE = () => {
-		// if (first) generated.push('rack 0.25'); //check
-		for (let n = max; n >= min; --n) {
-			// if (racked) generated.push(`knit - b${n} ${carrier}`); //b first since pos rack and neg direction
-			generated.push(`knit - f${n} ${carrier}`);
-		}
-		// if (last) generated.push('rack 0'); //check
-	};
-
-	if ((row_count % mod) < spaceBtwHoles) { //no hole, just one pass
-		// generated.push('rack 0.25'); //check
-		
-		// if (dir === '+') {
-		// 	if (!((row_count % mod) === 0 && side === 'left')) POSHOLE(); //skip if would cause a float //check
-		// } else {
-		// 	if (!((row_count % mod) === 0 && side === 'right')) NEGHOLE(); //skip if would cause a float //check if only for when inbtw % 2 === 0
-		// }
-		if (dir === '+') { //TODO: figure out why skipping for pos pass at top
-			if ((spaceBtwHoles % 2 === 0) && (row_count % mod) === 0 && side === 'left') generated.push(';skipping to prevent float');
-			else POSHOLE();
-		} else {
-			if ((spaceBtwHoles % 2 === 0) && (row_count % mod) === 0 && side === 'right') generated.push(';skipping to prevent float');
-			else NEGHOLE(); //check
-		}
-
-		// works when sequence is: neg(1) pos(2[but]); neg(2[but]) pos(1) -- repeat
-		//NOT when sequence is: neg(2[but]) pos(2) -- repeat (aka 2 is the only color) 
-
-		// generated.push('rack 0');
-	} else { //hole! (or skip)
-		// for (let n = min; n <= max; ++n) {
-		// 	avoid.push(n); //new
-		// }
-		// if (dir === '+' && ((side === 'left' && (row_count % mod) === spaceBtwHoles) || (side === 'right' && (row_count % mod) === (mod-1)))) { //yes
-		// 	// if (row_count === (mod-1)) row_count -= 1; //undo future increment //? //go back!
-		// 	generated.push(';stitch pattern: Buttonhole'); //?
-
-		// 	generated.push('rack 0.25'); //check
-
-		// 	for (let p = 0; p < buttonHeight; ++p) {
-		// 		// if (p % 2 === 0) POSHOLE((p === 0), (p === buttonHeight-1)); //remove
-		// 		if (p % 2 === 0) POSHOLE(true);
-		// 		else NEGHOLE(true);
-		// 	}
-
-		// 	generated.push('rack 0');
-		// } else
-		if ((row_count % mod) === spaceBtwHoles) {
-			// buttonHeight % 2 !== 0 && // dir === '+' && side === 'right' // dir === '-' && side === 'left'
-			// ||
-			// buttonHeight % 2 === 0 && // dir === '-' && side === 'right' // dir === '+' && side === 'left' // add extra pass!
-
-			if ((buttonHeight % 2 === 0 && ((dir === '+' && side === 'left') || (dir === '-' && side === 'right'))) || (buttonHeight % 2 !== 0 && ((dir === '+' && side === 'right') || (dir === '-' && side === 'left')))) buttonHeight += 1; // to make sure carrier is correctly positioned //check //go back!
-
-			let posMod = (dir === '+' ? 0 : 1);
-
-			// generated.push(';stitch pattern: Buttonhole'); //?
-			generated.push(`;stitch pattern: Buttonhole (${buttonHeight})`); //?
-
-			if (side === 'right') generated.push(`xfer b${min} f${min}`, `xfer b${min+1} f${min+1}`, `xfer b${min+2} f${min+2}`);
-			else generated.push(`xfer b${max} f${max}`, `xfer b${max-1} f${max-1}`, `xfer b${max-2} f${max-2}`); //new //cehck
-
-			generated.push(`x-roller-advance ${200}`);
-
-			// generated.push('rack 0.25'); //check
-
-			for (let p = 0; p < buttonHeight; ++p) {
-				if (p % 2 === posMod) POSHOLE(true);
-				else NEGHOLE(true);
-			}
-
-			generated.push(`x-roller-advance ${roller_advance}`); //new
-
-			// generated.push('rack 0');
-
-			// } else if (dir === '-' && ((side === 'left' && (row_count % mod) === (mod-1)) || (side === 'right' && (row_count % mod) === spaceBtwHoles))) { //yes
-			// 	generated.push(';stitch pattern: Buttonhole'); //?
-
-			// 	generated.push('rack 0.25'); //check
-
-			// 	for (let p = 0; p < buttonHeight; ++p) {
-			// 		if (p % 2 === 0) NEGHOLE(true);
-			// 		else POSHOLE(true);
-			// 	}
-
-			// 	generated.push('rack 0');
-		} else { //otherwise, skip
-			let backN1 = (side === 'right' ? (min) : (max));
-			let backNShift = (side === 'right' ? (1) : (-1));
-			generated.push(';stitch pattern: Buttonhole (other side)'); //? //new
-			if ((row_count % mod) === (spaceBtwHoles+1)) {//first one
-				if (dir === '+') generated.push(`knit + b${backN1} ${carrier}`, `knit + b${backN1+(backNShift*2)} ${carrier}`); //new
-				else generated.push(`knit - b${backN1+(backNShift*2)} ${carrier}`, `knit - b${backN1} ${carrier}`); //new
-				// if (dir === '+') generated.push(`knit + b${backN1} ${carrier}`, `knit + b${backN1+(backNShift*2)} ${carrier}`, `knit - b${backN1+backNShift} ${carrier}`); //new
-				// else generated.push(`knit - b${backN1} ${carrier}`, `knit - b${backN1+(backNShift*2)} ${carrier}`, `knit + b${backN1+backNShift} ${carrier}`); //new
-			} else if ((row_count % mod) === (spaceBtwHoles+2)) { //second one
-				if (dir === '-') generated.push(`knit - b${backN1+backNShift} ${carrier}`); //new
-				else generated.push(`knit + b${backN1+backNShift} ${carrier}`); //new
-			} else if (((row_count % mod) === (mod-1)) && ((dir === '+' && side === 'right') || (dir === '-' && side === 'left'))) {//last one //new
-				generated.push(';extra pass to prevent float'); //remove //debug
-				// generated.push('rack 0.25');
-				if (dir === '+') POSHOLE(true);
-				else NEGHOLE(true);
-				// generated.push('rack 0');
-			} else {
-				if (dir === '+') generated.push(`knit + b${backN1} ${carrier}`, `knit + b${backN1+backNShift} ${carrier}`, `knit + b${backN1+(backNShift*2)} ${carrier}`); //new
-				else generated.push(`knit - b${backN1+(backNShift*2)} ${carrier}`, `knit - b${backN1+backNShift} ${carrier}`, `knit - b${backN1} ${carrier}`); //new
-				// if (side === 'right') generated.push(`knit ${dir} b${min} ${carrier}`); //new //check //TODO: maybe make this a twisted stitch?
-				// else generated.push(`knit ${dir} b${max} ${carrier}`);
-			}
-			// for (let n = min; n <= max; ++n) { //new location
-			// 	avoid.push(n); //new
-			// }
-		}
-	}
-
-	// return [generated, avoid];
-	return generated;
-}
-
-// function generateHorizButtonhole(buttonLeft, buttonRight, dir, carrier, side, action) {
 function generateHorizButtonhole(buttonLeft, buttonRight, dir, carrier, action) {
-	// let buttonWidth = (options ? options.buttonWidth : 6); //TODO: find the optimal button width
-	// let spaceBtwHoles = (options ? options.spaceBtwHoles : 5); //TODO: find the optimal space between holes //10 //?
-
 	generated.push(';stitch pattern: Horizontal Buttonhole');
-	// if (row_count % spaceBtwHoles === 0) { //buttonhole time (bindoff)
+
 	if (action === 'bindoff') { //buttonhole time (bindoff)
 		generated.push('x-roller-advance 100');
-		generated.push(`x-xfer-stitch-number ${Math.ceil(stitch_number/2)}`); //new //check
-		//TODO: see if we need to set xfer stitch number
-		// let buttonLeft, buttonRight;
-		// if (side === 'right') {
-		// 	buttonLeft = min;
-		// 	buttonRight = min+buttonWidth;
-		// } else {
-		// 	buttonLeft = max-buttonWidth;
-		// 	buttonRight = max;
-		// }
+		generated.push(`x-xfer-stitch-number ${Math.ceil(stitch_number/2)}`);
 
 		for (let n = buttonLeft; n <= buttonRight; ++n) { //bindoff
 			generated.push(`xfer f${n} b${n}`);
@@ -629,9 +642,8 @@ function generateHorizButtonhole(buttonLeft, buttonRight, dir, carrier, action) 
 		if (dir === '+') {
 			for (let n = buttonLeft; n <= buttonRight; ++n) { //bindoff
 				generated.push(`knit + b${n} ${carrier}`);
-				if (n === buttonLeft) generated.push(`knit - b${n+1} ${carrier}`); //twisted stitch, just to get bindoff going //new //TODO: //check on machine
+				if (n === buttonLeft) generated.push(`knit - b${n+1} ${carrier}`); //twisted stitch, just to get bindoff going //new //TODO: //check on machine (this works well here, but not for actually bindoff for some reason)
 				else generated.push(`tuck - b${n-1} ${carrier}`);
-				// else generated.push('x-add-roller-advance -100', `tuck - b${n-1} ${carrier}`);
 
 				generated.push(`xfer b${n} f${n}`);
 				generated.push('rack -1');
@@ -645,7 +657,6 @@ function generateHorizButtonhole(buttonLeft, buttonRight, dir, carrier, action) 
 				generated.push(`knit - b${n} ${carrier}`);
 				if (n === buttonRight) generated.push(`knit + b${n-1} ${carrier}`); //twisted stitch, just to get bindoff going //new //TODO: //check on machine
 				else generated.push(`tuck - b${n+1} ${carrier}`);
-				// else generated.push('x-add-roller-advance -100', `tuck - b${n+1} ${carrier}`);
 
 				generated.push(`xfer b${n} f${n}`);
 				generated.push('rack 1');
@@ -656,7 +667,6 @@ function generateHorizButtonhole(buttonLeft, buttonRight, dir, carrier, action) 
 			}
 		}
 		generated.push(`x-roller-advance ${roller_advance}`);
-	// } else if (row_count % spaceBtwHoles === 1) { //cast back on
 	} else { //cast back on
 		generated.push('rack 0.25');
 		if (dir === '+') {
@@ -674,44 +684,84 @@ function generateHorizButtonhole(buttonLeft, buttonRight, dir, carrier, action) 
 	return generated;
 }
 
+function generateRibButtonhole(sequence, buttonLeft, buttonRight, dir, carrier, action) {
+	generated.push(';stitch pattern: Rib Buttonhole');
+	
+	if (action === 'bindoff') { //buttonhole time (bindoff)
+		generated.push(';shapeify_ignore start'); //new //*
+		generated.push('x-roller-advance 100');
+		generated.push(`x-xfer-stitch-number ${Math.ceil(stitch_number/2)}`);
+		
+		for (let n = buttonLeft; n <= buttonRight; ++n) { //bindoff
+			if (sequence[n % sequence.length] === 'f') generated.push(`xfer f${n} b${n}`); //new //*
+		}
+		
+		if (dir === '+') {
+			for (let n = buttonLeft; n <= buttonRight; ++n) { //bindoff
+				generated.push(`knit + b${n} ${carrier}`);
+
+				if (n === buttonLeft) generated.push(`miss - b${n-1} ${carrier}`); //new
+				else generated.push(`tuck - b${n-1} ${carrier}`); //new
+				// if (n === buttonLeft) generated.push(`knit - b${n+1} ${carrier}`); //twisted stitch, just to get bindoff going //TODO: //check on machine (this works well here, but not for actually bindoff for some reason)
+				// else generated.push(`tuck - b${n-1} ${carrier}`); //removed //^ //TODO: check to see if works better now
+				
+				generated.push(`xfer b${n} f${n}`);
+				generated.push('rack -1');
+				generated.push(`xfer f${n} b${n+1}`);
+				generated.push('rack 0');
+				
+				if (n > buttonLeft) generated.push('x-add-roller-advance -100', `drop b${n-1}`);
+			}
+			
+			if (sequence[(buttonRight + 1) % sequence.length] === 'f') generated.push(`xfer b${buttonRight+1} f${buttonRight+1}`); //new //check
+		} else {
+			for (let n = buttonRight; n >= buttonLeft; --n) { //bindoff
+				generated.push(`knit - b${n} ${carrier}`);
+				if (n === buttonRight) generated.push(`miss - b${n+1} ${carrier}`); //new
+				else generated.push(`tuck - b${n+1} ${carrier}`); //new
+				// if (n === buttonRight) generated.push(`knit + b${n-1} ${carrier}`); //twisted stitch, just to get bindoff going /TODO: //check on machine
+				// else generated.push(`tuck - b${n+1} ${carrier}`); //removed //^ //TODO: check to see if works better now
+				
+				generated.push(`xfer b${n} f${n}`);
+				generated.push('rack 1');
+				generated.push(`xfer f${n} b${n-1}`);
+				generated.push('rack 0');
+				
+				if (n < buttonRight) generated.push('x-add-roller-advance -100', `drop b${n+1}`);
+			}
+
+			if (sequence[(buttonLeft - 1) % sequence.length] === 'f') generated.push(`xfer b${buttonLeft - 1} f${buttonLeft - 1}`); //new //check
+		}
+		generated.push(`x-roller-advance ${roller_advance}`);
+		generated.push(';shapeify_ignore end'); //new //*
+	} else { //cast back on
+		generated.push('rack 0.25'); //TODO: check if zigzag for rib works ok (or if should do full need and then xfer)
+		if (dir === '+') {
+			for (let n = buttonLeft; n <= buttonRight; ++n) {
+				if (sequence[n % sequence.length] === 'f') generated.push(`knit + f${n} ${carrier}`); //new
+				else generated.push(`knit + b${n} ${carrier}`);
+			}
+		} else {
+			for (let n = buttonRight; n >= buttonLeft; --n) {
+				if (sequence[n % sequence.length] === 'b') generated.push(`knit - b${n} ${carrier}`);
+				else generated.push(`knit - f${n} ${carrier}`);
+			}
+		}
+		generated.push('rack 0');
+	}
+	
+	return generated;
+}
+
+
 //-------------------------------
 //--- MAIN PATTERN FUNCTION ---//
 //-------------------------------
-// function avoidNeedleRange(pattern, row, min, max) { //new //TODO: make this work better for rib and seed (or tuck along needles that are empty and then drop to get other carriers to other side)
-// 	let avoidNs = [];
-// 	//patterns that involve avoiding some needles:
-// 	if (!frontOnlyPatterns.includes(pattern.name) || pattern.name === 'Lace') {
-// 		if (pattern.name === 'Buttonholes') {
-// 			let buttonHeight = (options ? options.buttonHeight : 7); //TODO: find the optimal button height
-// 			let spaceBtwHoles = (options ? options.spaceBtwHoles : 8); //TODO: find the optimal space between holes //10 //?
-// 			let mod = buttonHeight + spaceBtwHoles;
-// 			console.log('row!:', row, (row % mod), (row % mod) > spaceBtwHoles); //remove //debug
-// 			// if ((row % mod) > spaceBtwHoles) { // >= //? //should avoid for one after?
-// 			// if ((row % mod) > spaceBtwHoles && (row % mod) !== (mod-1)) { // >= //? //should avoid for one after?
-// 			// if ((row % mod) > spaceBtwHoles && (row % mod) !== 0) { // >= //? //should avoid for one after?
-// 			if ((row % mod) >= spaceBtwHoles) { // >= //? //should avoid for one after?
-// 				for (let n = min; n <= max; ++n) {
-// 					avoidNs.push(n); //new
-// 				}
-// 			}
-// 		} else {
-// 			for (let n = min; n <= max; ++n) {
-// 				avoidNs.push(n);
-// 			}
-// 		}
-// 	}
-
-// 	return avoidNs;
-// }
-
-
-// function generatePattern(pattern, row, min, max, dir, speed, stitch, roller, width, backpassCarrier, avoid) {
-// function generatePattern(pattern, row, min, max, dir, speed, stitch, roller, width, backpassCarrier) {
-// function generatePattern(pattern, row, min, max, generate, dir, speed, stitch, roller, width, backpassCarrier) {
-function generatePattern(pattern, row, min, max, generate, dir, speed, stitch, roller, width, currentCarrier, backpassCarrier) {
+function generatePattern(pattern, row, min, max, needles, generate, dir, speed, stitch, roller, width, currentCarrier, backpassCarrier, rowColCt, prevRowNs, nextRowNs) { // rowColCt = new
 	generated = [];
-	avoid = [];
+	avoidOnBack = [];
 
+	// if (row == console.log('')
 	let patternName = pattern.name;
 	row_count = row;
 	options = pattern.options;
@@ -722,6 +772,7 @@ function generatePattern(pattern, row, min, max, generate, dir, speed, stitch, r
 		roller_advance = roller;
 		pieceWidth = width;
 		extraCarrier = backpassCarrier;
+		colCt = rowColCt;
 	}
 	// row_count = row;
 	// speed_number = speed;
@@ -733,40 +784,39 @@ function generatePattern(pattern, row, min, max, generate, dir, speed, stitch, r
 	// console.log(pattern.name); //remove //debug
 	// console.log(options); //remove //debug
 	// console.log(Object.keys(options).length); //remove //debug
-	if (!generate && avoidAll.includes(patternName)) { //Lace and Buttonholes
+	if (!prevRowNs) prevRowNs = [max+1, min-1]; //new //*
+
+	if (!nextRowNs) nextRowNs = []; //new //*
+	
+	if (!generate && avoidAll.includes(patternName)) { //Lace
 		let pMin = min,
 			pMax = max;
-		if (patternName === 'Buttonholes') {
-			let buttonHeight = (options ? options.buttonHeight : 6); //TODO: find the optimal button height
-			let spaceBtwHoles = (options ? options.spaceBtwHoles : 5); //TODO: find the optimal space between holes //10 //?
-			let mod = buttonHeight + spaceBtwHoles;
-
-			if ((row_count % mod) < spaceBtwHoles) { //don't avoid edge-most needle by button hole if not knitting hole rn
-				if (pattern.side === 'right') pMin += 3;
-				else pMax -= 3; 
-			}
-		}
 
 		for (let n = pMin; n <= pMax; ++n) {
-			avoid.push(n); //new
+			avoidOnBack.push(n); //new
 		}
-		return avoid;
+		return avoidOnBack;
 	} else {
 		if (patternName.includes('Rib')) {
-			let sequence;
-			if (patternName === 'Rib 1x1') sequence = 'fb';
-			else if (patternName === 'Rib 2x2') sequence = 'ffbb';
+			// let sequence = (patternName.includes('1x1') ? 'fb' : 'ffbb');
+			// let rib_type = patternName.split(' ')[1].split('x');
+			// let sequence = `${'f'.repeat(Number(rib_type[0]))}${'b'.repeat(Number(rib_type[0]))}`;
+
+			// let sequence;
+			// if (patternName === 'Rib 1x1') sequence = 'fb';
+			// else if (patternName === 'Rib 2x2') sequence = 'ffbb';
 			// let pattern = "bbffbf";
-			return generateRib(sequence, min, max, dir, pattern.carrier, pattern);
-		} else if (patternName === 'Seed') return generateSeed(min, max, dir, pattern.carrier);
+			// return generateRib(sequence, min, max, dir, pattern.carrier, pattern);
+			if (patternName.includes('Buttonholes')) return generateRibButtonhole((patternName.includes('1x1') ? 'fb' : 'ffbb'), min, max, dir, currentCarrier, pattern.action);
+			// else return generateRib(sequence, min, max, dir, pattern.carrier, needles, prevRowNs, nextRowNs, true); //new /Frill for now, just to test
+			else return generateRib(min, max, dir, pattern.carrier, needles, prevRowNs, nextRowNs, true); //new /Frill for now, just to test
+		} else if (patternName === 'Garter') return generateGarter(min, max, dir, pattern.carrier, needles, prevRowNs, nextRowNs);
+		else if (patternName === 'Seed') return generateSeed(min, max, dir, pattern.carrier);
 		else if (patternName === 'Bubbles') {
 			if (generate) return generateBubbles(min, max, dir, pattern.carrier);
 			else return [];
 		} else if (patternName === 'Lace') return generateLace(min, max, dir, pattern.carrier);
-		else if (patternName === 'Buttonholes') return generateButtonHole(min, max, dir, pattern.carrier, pattern.side); //new
 		else if (patternName === 'Horizontal Buttonholes') return generateHorizButtonhole(min, max, dir, currentCarrier, pattern.action);
-		// else if (patternName === 'Horizontal Buttonholes') return generateHorizButtonhole(min, max, dir, currentCarrier, pattern.side, pattern.action);
-		// if (name === 'Rib') return generateRib(sequence, min, max, dir, carrier);
 	}
 }
 
