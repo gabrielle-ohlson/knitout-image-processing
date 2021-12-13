@@ -404,7 +404,7 @@ carriers = carriers.sort((a, b) => a - b);
 //---------------------------------------------------------------
 //--- GET USER INPUT (PREFERNCES/MACHINE SPECS/SWATCH INFO) ---//
 //---------------------------------------------------------------
-let inc_methods;
+let inc_methods, inc_method;
 if (increasing) {
 	(inc_methods = ['xfer', 'twisted-stitch', 'split']), (inc_method = readlineSync.keyInSelect(inc_methods, chalk.blue.bold(`^Which increasing method would you like to use?`)));
 	inc_method = inc_methods[inc_method];
@@ -442,10 +442,10 @@ if (short_row_section) {
 	}
 }
 let redefine_carriers = [];
-let xtra_carriers = [];
-if (short_row_section) xtra_carriers = short_row_carriers.filter((el) => !carriers.includes(el) && el !== draw_thread);
+let xtra_neg_carriers = []; //carriers to be added in for short_row_section
+if (short_row_section) xtra_neg_carriers = short_row_carriers.filter((el) => !carriers.includes(el) && el !== draw_thread);
 if (short_row_carriers.length === 5 && !carriers.includes(draw_thread)) {
-	xtra_carriers = [];
+	xtra_neg_carriers = [];
 }
 
 if (short_row_carriers.length < 3 && short_row_section && !sinkers) {
@@ -465,7 +465,8 @@ let header = caston_section,
 	yarns_in = [],
 	rib_bottom = [],
 	base = [];
-//TODO: only have xtra_carriers brought in if they are necessary (i.e. if only one color is used in short row section, no xtra carriers [or if math works out so carriers are on correct side])
+
+//TODO: only have xtra_neg_carriers brought in if they are necessary (i.e. if only one color is used in short row section, no xtra carriers [or if math works out so carriers are on correct side])
 yarns_in = header.splice(header.findIndex((el) => el.includes(';background color:')) + 1);
 caston_section = yarns_in.splice(yarns_in.findIndex((el) => el.includes(';kniterate yarns in')));
 
@@ -541,13 +542,6 @@ yarnsin: for (let i = 0; i < yarns_in.length; ++i) {
 	} else if (line[0] !== 'drop') {
 		kniterate_caston.push(yarns_in[i]);
 	}
-}
-
-if (xtra_carriers.length > 0) {
-	base = [...kniterate_caston];
-	base.reverse();
-	base.splice(base.findIndex((el) => el.includes(`${yarn_in} `))); //TODO: maybe filter out x-stitch-number, etc. for base?
-	base.reverse();
 }
 
 let draw_dir, caston_dir;
@@ -1798,7 +1792,7 @@ if (!row1_small) {
 	Xleft_needle = row1_Lneedle;
 	Xright_needle = row1_Rneedle;
 }
-let xtra_yarn = [];
+let xtra_pos_carriers = [];
 let back_passLpos = [];
 let back_passRneg = [];
 
@@ -2862,15 +2856,15 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			}
 			
 			//TODO: add in something similar for if more than 3 carriers ARE used in body (but only 3 in shortrowsection so OK), to make it so if it ends up on left, add in extra pass to make it end up on right
-			xtra_carriers = xtra_carriers.filter((c) => short_row_carriers.includes(c) || new_carriers.includes(c));
+			xtra_neg_carriers = xtra_neg_carriers.filter((c) => short_row_carriers.includes(c) || new_carriers.includes(c));
 			for (let c = 0; c < short_row_carriers.length; ++c) {
-				if (xtra_carriers.includes(short_row_carriers[c]) && !xtra_yarn.includes(short_row_carriers[c])) {
-					xtra_yarn.push(short_row_carriers[c]);
+				if (xtra_neg_carriers.includes(short_row_carriers[c]) && !xtra_pos_carriers.includes(short_row_carriers[c])) {
+					xtra_pos_carriers.push(short_row_carriers[c]);
 				}
 			}
 			
-			xtra_carriers = xtra_carriers.filter((c) => !xtra_yarn.includes(c));
-			//TODO: move xtra_carriers splicing down here so don't add in more carriers than necessary
+			xtra_neg_carriers = xtra_neg_carriers.filter((c) => !xtra_pos_carriers.includes(c));
+			//TODO: move xtra_neg_carriers splicing down here so don't add in more carriers than necessary
 			for (let p = 0; p < bindoff_pass; ++p) {
 				cookie = rows[first_short_row - 1][p];
 				cookieCutter(Xleft_needle, Xright_needle, carriers, carriers, null);
@@ -3088,7 +3082,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 	}
 	
 	if (!short_row_section && r + xfer_row_interval > shaping_arr[shaping_arr.length - 1].ROW) {
-		console.log('!!!!!'); //remove //debug
+		console.log(`Heads up that no more shaping happens after row ${r} (generating warning because xfer_row_interval ${xfer_row_interval} is too large and the shaping part of the piece only goes up to row ${shaping_arr[shaping_arr.length - 1].ROW}).\n`); //debug
 		warning = true;
 	}
 	// if (rows[r + xfer_row_interval + xfer_row_interval] === undefined) {
@@ -3134,7 +3128,8 @@ if (short_row_section && short_row_carriers.includes(bindoff_carrier)) {
 }
 bindoff_time = true;
 xfer_section.push(';bindoff section', 'pause bindoff');
-xfer_section.push('x-speed-number 100', 'x-roller-advance 100');
+// xfer_section.push('x-speed-number 100', 'x-roller-advance 100');
+xfer_section.push(`x-speed-number ${xfer_speed_number}`, 'x-roller-advance 100');
 
 BINDOFF(Bxfer_needle, bindoff_count, bindoff_side, double_bed, xfer_section);
 bindoff.push(xfer_section);
@@ -3195,41 +3190,48 @@ shaped_rows = shaped_rows.flat();
 //---------------------------------------------------------------------------------------------
 //--- ADD EXTRA POS PASSES TO YARN IN SECTION FOR CARRIERS THAN START WITH NEG DIR PASSES ---//
 //---------------------------------------------------------------------------------------------
-if (xtra_carriers.length > 0) {
-	if (!base[base.length - 1].includes(L_NEEDLE)) base.push(`miss - f${L_NEEDLE} c`); //// c for temp placeholder //TODO: decide if this should be L_NEEDLE or just like... the first needle it is knit with (could collect that from main func!)
-	for (let i = 0; i < xtra_carriers.length; ++i) {
-		let xcarrier = xtra_carriers[i];
-		let xtra_passes = base.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${xcarrier}`));
+if (xtra_neg_carriers.length > 0) {
+	for (let i = 0; i < xtra_neg_carriers.length; ++i) {
+		let xcarrier = xtra_neg_carriers[i];
+
+		let pos_carrier_caston = [], neg_carrier_caston = [];
+		let b = 'f';
+		for (let n = Number(xcarrier); n <= row1_Rneedle; n += 6) {
+			pos_carrier_caston.push(`knit + ${b}${n} ${xcarrier}`);
+			b === 'f' ? (b = 'b') : (b = 'f');
+			neg_carrier_caston.unshift(`knit - ${b}${n} ${xcarrier}`);
+		}
+		let xtra_passes = [...pos_carrier_caston, ...neg_carrier_caston, ...pos_carrier_caston, ...neg_carrier_caston];
+		if (!neg_carrier_caston[neg_carrier_caston.length - 1].includes(L_NEEDLE)) xtra_passes.push(`miss - f${L_NEEDLE} ${xcarrier}`);
+
 		shaped_rows.splice(
 			shaped_rows.indexOf(';kniterate yarns in'),
 			0,
-			`;pass: yarn in ;-;${xtra_carriers[i]};${row1_Rneedle};${L_NEEDLE}`, //TODO: maybe add the miss for this too
+			`;pass: yarn in ;-;${xcarrier};${row1_Rneedle};${L_NEEDLE}`, //TODO: maybe add the miss for this too
 			`${yarn_in} ${xcarrier}`,
 			xtra_passes
 		);
 	}
-	base.pop(); //// remove the miss so doesn't interfere with xtra_yarn
 }
 
-if (xtra_yarn.length > 0) {
-	xtra: for (let x = 0; x < base.length; ++x) {
-		//TODO: adapt for shima
-		if (base[x].includes(`${yarn_in}`)) {
-			continue xtra;
+if (xtra_pos_carriers.length > 0) { //xtra_xtra_pos_yarnInyarn is for carriers that need an extra pos pass
+	for (let i = 0; i < xtra_pos_carriers.length; ++i) {
+		let xcarrier = xtra_pos_carriers[i];
+		
+		let pos_carrier_caston = [], neg_carrier_caston = [];
+		let b = 'f';
+		for (let n = Number(xcarrier); n <= row1_Rneedle; n += 6) {
+			pos_carrier_caston.push(`knit + ${b}${n} ${xcarrier}`);
+			b === 'f' ? (b = 'b') : (b = 'f');
+			neg_carrier_caston.unshift(`knit - ${b}${n} ${xcarrier}`);
 		}
-		if (base[x].includes(' + ')) {
-			base.push(base[x]);
-		} else {
-			break xtra;
-		}
-	}
-	if (!base[base.length - 1].includes(R_NEEDLE)) base.push(`miss + f${R_NEEDLE} c`); //// c for temp placeholder //TODO: decide if this should be R_NEEDLE or just like... the first needle it is knit with (could collect that from main func!)
-	for (let i = 0; i < xtra_yarn.length; ++i) {
-		let xcarrier = xtra_yarn[i];
-		let xtra_passes = base.map((el) => el.replace(` ${el.charAt(el.length - 1)}`, ` ${xcarrier}`));
-		shaped_rows.splice(shaped_rows.indexOf(`;kniterate yarns in`), 0, `;pass: yarn in ;+;${xtra_yarn[i]};${row1_Lneedle};${R_NEEDLE}`, `${yarn_in} ${xcarrier}`, xtra_passes);
+		let xtra_passes = [...pos_carrier_caston, ...neg_carrier_caston, ...pos_carrier_caston, ...neg_carrier_caston, ...pos_carrier_caston];
+		if (!pos_carrier_caston[pos_carrier_caston.length - 1].includes(R_NEEDLE)) xtra_passes.push(`miss + f${R_NEEDLE} ${xcarrier}`);
+
+		shaped_rows.splice(shaped_rows.indexOf(`;kniterate yarns in`), 0, `;pass: yarn in ;+;${xcarrier};${row1_Lneedle};${R_NEEDLE}`, `${yarn_in} ${xcarrier}`, xtra_passes);
 	}
 }
+
 // //0: '' ; 1: pass... ; 2:dir ; 3:carrier ; 4:start_needle ; 5:end_needle (length === 6)
 
 //------------------------------------------------------------------------------------
@@ -3451,7 +3453,7 @@ final_file = final_file.join('\n');
 //--------------------------------------------------
 if (!errors && !shape_error) {
 	console.log(
-		chalk`{green \nno errors found :-)}\n{black.bgYellow ! WARNING:} {bold IT IS RECOMMENDED THAT YOU VIEW THE NEW FILE ON THE KNITOUT LIVE VISUALIZER} {italic (https://github.com/textiles-lab/knitout-live-visualizer)} {bold BEFORE USE TO ENSURE THAT IT WILL PRODUCE A KNIT TO YOUR LIKING.\n***contact:} {italic info@edgygrandma.com} {bold if you have any questions about this program.}`
+		chalk`{green \nno errors found :-)}\n{black.bgYellow ! WARNING:} {bold IT IS RECOMMENDED THAT YOU VIEW THE NEW FILE ON THE KNITOUT LIVE VISUALIZER} {italic (https://textiles-lab.github.io/knitout-live-visualizer/)} {bold BEFORE USE TO ENSURE THAT IT WILL PRODUCE A KNIT TO YOUR LIKING.\n***contact:} {italic info@edgygrandma.com} {bold if you have any questions about this program.}`
 	);
 }
 
