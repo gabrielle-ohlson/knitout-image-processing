@@ -340,6 +340,11 @@ let in_file = fs
 for (let i = 0; i < in_file.length; ++i) {
 	in_file[i] = in_file[i].split('\n');
 	in_file[i] = in_file[i].filter((el) => !el.includes('ow:')); //;row (just just 'ow:' because split at ';r')
+
+	// in_file[i] = in_file[i].filter((el) => !el.includes('ow:') && el.trim().length); //;row (just just 'ow:' because split at ';r') //go back! //? //*//*//*
+
+	// let blank = in_file[i].filter(el => el.includes(';row:')); //go back! //? //*//*//*
+	// if (blank.length) console.log(blank, blank.length); //remove //debug
 }
 
 let yarn_out, yarn_in;
@@ -765,7 +770,7 @@ for (let i = 0; i < in_file.length; ++i) {
 				}
 			}
 		}
-		
+
 		//TODO: since 3 happens before bindoff for shortrow, side should be right
 		if (pass_check.length > 0 && (extension || pass_check[pass_check.length - 1].DIR !== dir || pass_check[pass_check.length - 1].CARRIER !== carrier)) {
 			pass_check[pass_check.length - 1].DIR === '+' || pass_check[pass_check.length - 1].DIR === '-' ? pass.unshift(`;pass: ${pass_count} ;${pass_check[pass_check.length - 1].DIR};${pass_check[pass_check.length - 1].CARRIER}`) : pass.unshift(`;pass: ${pass_count} ;${pass_check[pass_check.length - 1].DIR}`);
@@ -891,7 +896,7 @@ const dec1DoubleBed = (dec_needle, side) => { ////if double bed, need to just do
 		if (!emptyRow.includes(`b${dec_needle}`)  && (!emptyRow.includes(`f${dec_needle + 1}`) || !emptyRow.includes(`b${dec_needle + 1}`))) {
 			racking = 1;
 			xfer_section.push('rack 1');
-			
+
 			xfer_section.push('x-add-roller-advance 150');
 			xfer_section.push(`xfer b${dec_needle} f${dec_needle + 1}`);
 			if (emptyRow.includes(`f${dec_needle + 1}`)) {
@@ -2022,7 +2027,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 		}
 
 		left_bindC = right_bindC = lastKnitLn.charAt(lastKnitLn.length - 1);
-		
+
 		for (let i = 0; i < rows[r - 1].length; ++i) {
 			if (rows[r - 1][i].some((el) => el.includes(' - '))) {
 				findKnit: for (let ln = rows[r - 1][i].length - 1; ln >= 0; --ln) {
@@ -2165,6 +2170,11 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				let endN = false;
 				let secureL = false,
 					secureR = false;
+
+				if (cookie_carrier === undefined) { // no knitting in this pass
+					shaped_rows.push(cookie);
+					return; //new //*
+				}
 
 				// if (cookie[0].includes(';pass:') && cookie[0].includes(';xfer')) endN = true, secureL = true, secureR = true; //because irrelevant //new //check //*
 
@@ -2931,7 +2941,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			//TODO: if rows[r].length < 2 && it isn't a negative pass, no rows[first_short_row] instead 
 			let shortRow1 = rows[first_short_row];
 
-				if (r === shaping_arr[shaping_arr.length - 1].ROW) {
+			if (r === shaping_arr[shaping_arr.length - 1].ROW) {
 				let negPass = false;
 				findNegPass: for (let p = 0; p < shortRow1.length; ++p) {
 					if (shortRow1[p].some((el) => el.includes(' - '))) {
@@ -3260,7 +3270,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			}
 
 			shaped_rows = shaped_rows.flat(); //flatten so can properly splice
-			
+
 			for (let rC = 0; rC < redefine_carriers.length; ++rC) {
 				if (carriers.includes(redefine_carriers[rC][1]) && !shortrow_colors.includes(redefine_carriers[rC][1])) { //pause to change yarn if it was used early in piece
 					findSpot: for (let sr = shaped_rows.length - 1; sr >= 0; --sr) {
@@ -3504,7 +3514,7 @@ if (xtra_neg_carriers.length > 0) {
 if (xtra_pos_carriers.length > 0) { //xtra_xtra_pos_yarnInyarn is for carriers that need an extra pos pass
 	for (let i = 0; i < xtra_pos_carriers.length; ++i) {
 		let xcarrier = xtra_pos_carriers[i];
-		
+
 		let pos_carrier_caston = [], neg_carrier_caston = [];
 		let b = 'f';
 		for (let n = Number(xcarrier); n <= row1_Rneedle; n += 6) {
