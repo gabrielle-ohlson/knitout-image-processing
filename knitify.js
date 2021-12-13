@@ -191,6 +191,12 @@ if (fs.existsSync('./prompt-answers/knitify/answers.json')) {
 			back_style,
 			chalk`{blue.bold ^What style back would you like to use?} {blue.italic (note: this doesn't matter if you're using *only* stitch patterns)} {blue.italic \n=> '}{blue.bold Default}{blue.italic ' is a freeform option that is similar to Birdseye in performance, but more suitable for pieces containing up to 5 colors.\n=> '}{blue.bold Birdseye}{blue.italic ' is not recommended for pieces that use more than 3 colors due to the build up of extra rows the method creates on the back bed.\n=> Alternatively, '}{blue.bold Minimal}{blue.italic ' creates a reasonably even ratio of front to back rows, resulting in the least amount of build up on the back.\n=> '}{blue.bold Secure}{blue.italic ' is the 'Minimal' option, with additional knits on the side needles for extra security.}`
 		);
+
+		if (style == -1) {
+			console.log('Killing program.')
+			process.kill(process.pid);
+		}
+
 		console.log(chalk.green('-- Back style: ' + back_style[style]));
 		back_style = back_style[style];
 	}
@@ -356,13 +362,17 @@ resolvePromises()
 				let rib_top_opts = [...rib_bot_opts];
 				// rib_top = [...rib_bottom];
 				if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to add ribbing to the bottom of the piece?}`)) {
-					// rib_bottom,
 					rib_bot_opts,
 					(rib_carrier = readlineSync.keyInSelect(
-						// rib_bottom,
 						rib_bot_opts,
 						chalk`{blue.bold ^Which carrier would you like to use for the bottom rib?} {blue.italic (the corresponding hex code is listed next to each carrier number)}`
 					));
+
+					if (rib_carrier == -1) {
+						console.log('Killing program.')
+						process.kill(process.pid);
+					}
+
 					rib_bottom = rib_carrier + 1;
 					if (rib_bottom > color_count && !user_specified_carriers.includes(rib_bottom)) user_specified_carriers.push(rib_bottom);
 					ribB_rows = readlineSync.questionInt(chalk`{blue.bold \nHow many rows? }`);
@@ -373,13 +383,17 @@ resolvePromises()
 				ribPrompt['ribB_rows'] = ribB_rows; //new //*
 				
 				if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to add ribbing to the top of the piece?}`)) {
-					// rib_top,
 					rib_top_opts,
 					(rib_carrier = readlineSync.keyInSelect(
-						// rib_top,
 						rib_top_opts,
 						chalk`{blue.bold ^Which carrier would you like to use for the top rib?} {blue.italic (the corresponding hex code is listed next to each carrier number)}`
 					));
+
+					if (rib_carrier == -1) {
+						console.log('Killing program.')
+						process.kill(process.pid);
+					}
+					
 					rib_top = rib_carrier + 1;
 					if (rib_top > color_count && !user_specified_carriers.includes(rib_top)) user_specified_carriers.push(rib_top);
 					ribT_rows = readlineSync.questionInt(chalk`{blue.bold \nHow many rows? }`);

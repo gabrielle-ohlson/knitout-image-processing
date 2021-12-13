@@ -12,7 +12,14 @@ function isNumeric(n) {
 
 let options = ['Custom Shape', 'Template'],
 	choice = readlineSync.keyInSelect(options, chalk.blue.bold(`^Would you like to input an image for a custom shape, or use a pre-made template?`));
+	
+if (choice == -1) {
+	console.log('Killing program.')
+	process.kill(process.pid);
+}
+
 choice = options[choice];
+
 console.log(chalk.green('-- Using a: ' + choice));
 if (choice === 'Template') {
 	process.exit();

@@ -10,8 +10,14 @@ let errors = false;
 console.log(
 	chalk`{bgYellow.black.bold WRITING 'SHAPE-CODE.txt' FILE IN WORKING DIRECTORY.\nIf you would like to edit the shape in the .txt file, please do so now.\nValid characters are: 0 }{black.bgYellow [white space] }{bgYellow.black.bold and 1 }{black.bgYellow [shape]}`
 );
-// let { shape_code, shape_code_reverse, shortrow_code, short_row_section, first_short_row, last_short_row, shape_error, shape_err_row } = (readlineSync.keyInYNStrict(chalk.blue.bold('Are you ready to proceed?')) ? require('./shape-processor') : null); //remove
-readlineSync.keyInYNStrict(chalk.blue.bold('Are you ready to proceed?'));
+
+let proceed = readlineSync.keyInYNStrict(chalk.blue.bold('Are you ready to proceed?'));
+
+if (!proceed) {
+	console.log('Killing program.')
+	process.kill(process.pid);
+}
+
 let { shape_code, shape_code_reverse, shortrow_code, short_row_section, first_short_row, last_short_row, section_count, shape_error, shape_err_row } = require('./shape-processor');
 
 let shaping_arr = [];
@@ -425,9 +431,15 @@ carriers = carriers.sort((a, b) => a - b);
 //---------------------------------------------------------------
 //--- GET USER INPUT (PREFERNCES/MACHINE SPECS/SWATCH INFO) ---//
 //---------------------------------------------------------------
-let inc_methods;
+let inc_methods, inc_method;
 if (increasing) {
 	(inc_methods = ['xfer', 'twisted-stitch', 'split']), (inc_method = readlineSync.keyInSelect(inc_methods, chalk.blue.bold(`^Which increasing method would you like to use?`)));
+
+	if (inc_method == -1) {
+		console.log('Killing program.')
+		process.kill(process.pid);
+	}
+
 	inc_method = inc_methods[inc_method];
 }
 

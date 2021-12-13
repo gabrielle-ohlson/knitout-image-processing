@@ -270,7 +270,7 @@ Save as:
 </tr>
 <tr>
 <td>Shaping specs:</td>
-<td><a href="#shapeify3">3) Sinkers</a></td><td><a href="#shapeify4">4) Increasing method</a></td><td><a href="#shapeify5">4) Transfer speed</a></td>
+<td><a href="#shapeify3">3) Increasing method</a></td><td><a href="#shapeify4">4) Transfer speed</a></td>
 </tr>
 </table>
 
@@ -310,11 +310,6 @@ Save new file as:
 ```
 <a id="shapeify2"></a>**^2.** Enter a name for the output knitout file. The file with be saved to the 'knit-out-files' folder.\
 *e.g. `stars-shape.k`*
-```console
-Does the machine you are using have sinkers? (If you are using a kniterate machine, the answer is no [enter 'n']. Otherwise, the answer is likely yes [enter 'y'], but you should double-check to ensure no damage is done to your machine during short-rowing.) [y/n]:
-```
-<a id="shapeify3"></a>**^3.** Whether the machine has sinkers or not determines the method of short-rowing that the program will use.\
-*e.g. `n`*
 
 *if increasing exists in the shape*:
 ```console
@@ -324,12 +319,12 @@ Does the machine you are using have sinkers? (If you are using a kniterate machi
 [0] CANCEL\
 ^Which increasing method would you like to use? [1, 2, 3, 0]:
 ```
-<a id="shapeify4"></a>**^4.** The program is capable of using three different methods of increasing--the first ('xfer') will increase by transfer stitches on the edge to adjacent empty needles and then knitting twisted stitches (different direction than the other stitches in a given pass) on the new empty needles. The second ('twisted-stitch') will simply knit twisted stitches on adjacent empty needles to increase. The third and final method ('split') will increase by splitting (a technique that involves transferring a loop from one needle to another while knitting a new loop on the first needle).\
+<a id="shapeify3"></a>**^3.** The program is capable of using three different methods of increasing--the first ('xfer') will increase by transfer stitches on the edge to adjacent empty needles and then knitting twisted stitches (different direction than the other stitches in a given pass) on the new empty needles. The second ('twisted-stitch') will simply knit twisted stitches on adjacent empty needles to increase. The third and final method ('split') will increase by splitting (a technique that involves transferring a loop from one needle to another while knitting a new loop on the first needle).\
 *e.g. `1`*
 ```console
 What carriage speed would you like to use for transfer operations? (press enter to use default speed, 100.)
 ```
-<a id="shapeify5"></a>**^5.** Distinct from the knitting speed, a speed for transfer operations can be specified.\
+<a id="shapeify4"></a>**^4.** Distinct from the knitting speed, a speed for transfer operations can be specified.\
 *e.g. `200`*
 ## <a id="troubleshooting"></a>Troubleshooting
 

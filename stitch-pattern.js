@@ -72,16 +72,14 @@ let patOpts = [...stPatOpts];
 while (!stopPrompt) {
 	let options = [...patOpts],
 		choice = readlineSync.keyInSelect(options, chalk.blue.bold(`^Select a stitch pattern to use in your motif.`));
+	
+	if (choice == -1) {
+		console.log('Killing program.')
+		process.kill(process.pid);
+	}
+	
 	choice = stPatOpts[choice];
-	// if (choice === 'Rib') {
-	// 	let rib_f = readlineSync.questionInt(chalk.blue.bold(`\nHow many front needles in sequence? (e.g. '2') `));
-	// 	let rib_b = readlineSync.questionInt(chalk.blue.bold(`\nHow many back needles in sequence? (e.g. '2') `));
 
-	// 	choice = `Rib ${rib_f}x${rib_b}`;
-	// 	// let ribOptions = ['1x1', '2x2'],
-	// 	// 	ribChoice = readlineSync.keyInSelect(ribOptions, chalk.blue.bold(`^Which type of rib? `));
-	// 	// choice = `Rib ${ribOptions[ribChoice]}`;
-	// }
 	console.log(chalk.green('-- Using pattern: ' + choice));
 	stitchPatterns.push(new StitchPattern(choice));
 	if (stImg) {
