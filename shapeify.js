@@ -633,7 +633,10 @@ caston_section = kniterate_caston.flat();
 //--------------------------------------------------------------
 //--- FACTORY FUNCTIONS TO STORE CARRIER PARKING POSITIONS ---//
 //--------------------------------------------------------------
-let final_carrier_pos = [];
+let tracked_carriers = [];
+let carrier_track = {}; //new //check
+let final_carrier_pos = []; //TODO: remove code for final_carrier_pos since no longer using
+
 const CARRIER_PARK = ({ CARRIER, SIDE, ROW, IDX }) => ({
 	CARRIER,
 	SIDE,
@@ -683,6 +686,8 @@ for (let c = 0; c < maybeNewCs.length; ++c) {
 //----------------------------------------------------------------
 //--- SPLIT FILE INTO ARRAY OF ROWS WITH SUBARRAYS OF PASSES ---//
 //----------------------------------------------------------------
+let shapeifyIgnore = false;
+
 let rows = [];
 let pass_count = 1;
 const OP = ({ TYPE, DIR, NEEDLE, CARRIER }) => ({
@@ -701,17 +706,26 @@ for (let i = 0; i < in_file.length; ++i) {
 		let type = op_arr[0];
 		if (type.includes(';') || type.includes('out')) { //TODO: maybe push comments
 			if (type === ';empty:') { //come back!
-				patternEmptyNeedles[rows.length - 1] = op_arr.filter(el => el.charAt(0) === 'f' || el.charAt(0) === 'b');
-				// patternEmptyNeedles[rows.length] = EMPTY({FRONT: op_arr.filter(el => el.charAt(0) === 'f'), BACK: op_arr.filter(el => el.charAt(0) === 'b')}); //remove //?
+				let passEmptyNeedles = op_arr.filter(el => el.charAt(0) === 'f' || el.charAt(0) === 'b');
+				if (!patternEmptyNeedles[rows.length - 1]) patternEmptyNeedles[rows.length - 1] = [];
+				patternEmptyNeedles[rows.length - 1] = [...patternEmptyNeedles[rows.length - 1], ...passEmptyNeedles]; //new //*
+				// patternEmptyNeedles[rows.length - 1] = op_arr.filter(el => el.charAt(0) === 'f' || el.charAt(0) === 'b');
+			} else if (type === ';shapeify_ignore') { //new //*
+				if (op_arr[1] === 'start') shapeifyIgnore = true;
+				else if (op_arr[1] === 'end') shapeifyIgnore = false;
 			}
+			continue pass_loop;
+		}
+
+		if (shapeifyIgnore || type.includes('x-') || (type === 'rack')) {
+			pass.push(in_file[i][p]);
 			continue pass_loop;
 		}
 		
 		let extension = false;
-		// if (type === 'x-speed-number' || type === 'x-stitch-number' || type === 'x-roller-advance' || type === 'x-add-roller-advance' || type === 'x-xfer-style' || type === 'pause' || type === 'rack') { //remove //?
-		if ((type.charAt(0) === 'x' &&  type.charAt(1) === '-') || type === 'pause' || type === 'rack') { //new
-			if (pass.length === 0 || pass.every(el => el.includes('x-') || el.includes('rack') || el.includes('pause'))) { //new //check //*
-			// if (pass.length === 0) {
+
+		if ((type.charAt(0) === 'x' &&  type.charAt(1) === '-') || type === 'pause' || type === 'rack') {
+			if (pass.length === 0 || pass.every(el => el.includes('x-') || el.includes('rack') || el.charAt(0) === ';' || el.includes('pause'))) {
 				pass.push(in_file[i][p]);
 				continue pass_loop;
 			} else {
@@ -725,15 +739,25 @@ for (let i = 0; i < in_file.length; ++i) {
 				? ((dir = op_arr[1]), (needle = op_arr[2]), op_arr.length < 4 ? (carrier = null) : (carrier = op_arr[3]))
 				: ((dir = null), (needle = op_arr[1]), (carrier = null));
 		} else if (!extension) {
-			dir = type; //new //check //*
+			dir = type;
 		}
-		
-		if (short_row_section && pass_check.length > 0) {
-			if (rows.length < first_short_row - 1) {
-				let side;
-				dir === '+' ? (side = 'right') : (side = 'left');
-				let carrier_idx = final_carrier_pos.findIndex((el) => el.CARRIER == carrier);
-				if (carrier !== null && carrier !== undefined) { //* //new undefined
+
+		if (carrier !== null && carrier !== undefined) {
+			let side = dir === '+' ? ('right') : ('left');
+			if (!tracked_carriers.includes(carrier)) {
+				tracked_carriers.push(carrier);
+				carrier_track[carrier] = {}; //new //*
+			}
+
+			carrier_track[carrier][rows.length] = { 'side': side, 'idx': row.length }; //new //*
+
+			if (short_row_section && pass_check.length > 0) {
+				// if (rows.length < first_short_row - 1) { //beep //TODO: change this to < first_short_row //? //*//*//*
+				if (rows.length < first_short_row) { //beep //TODO: change this to < first_short_row //? //*//*//*
+					// let side;
+					// dir === '+' ? (side = 'right') : (side = 'left');
+					let carrier_idx = final_carrier_pos.findIndex((el) => el.CARRIER == carrier);
+					// if (carrier !== null && carrier !== undefined) { //* //new undefined
 					if (carrier_idx === -1) {
 						final_carrier_pos.push(
 							CARRIER_PARK({
@@ -748,13 +772,15 @@ for (let i = 0; i < in_file.length; ++i) {
 						final_carrier_pos[carrier_idx].ROW = rows.length;
 						final_carrier_pos[carrier_idx].IDX = row.length;
 					}
+					// }
 				}
 			}
 		}
 		
+		//TODO: since 3 happens before bindoff for shortrow, side should be right
 		if (pass_check.length > 0 && (extension || pass_check[pass_check.length - 1].DIR !== dir || pass_check[pass_check.length - 1].CARRIER !== carrier)) {
-			pass_check[pass_check.length - 1].DIR === '+' || pass_check[pass_check.length - 1].DIR === '-' ? pass.unshift(`;pass: ${pass_count} ;${pass_check[pass_check.length - 1].DIR};${pass_check[pass_check.length - 1].CARRIER}`) : pass.unshift(`;pass: ${pass_count} ;${pass_check[pass_check.length - 1].DIR}`); //*
-			// pass.unshift(`;pass: ${pass_count} ;${pass_check[pass_check.length - 1].DIR};${pass_check[pass_check.length - 1].CARRIER}`); //* //remove
+			pass_check[pass_check.length - 1].DIR === '+' || pass_check[pass_check.length - 1].DIR === '-' ? pass.unshift(`;pass: ${pass_count} ;${pass_check[pass_check.length - 1].DIR};${pass_check[pass_check.length - 1].CARRIER}`) : pass.unshift(`;pass: ${pass_count} ;${pass_check[pass_check.length - 1].DIR}`);
+
 			++pass_count;
 			row.push(pass);
 			pass_check = [];
@@ -775,11 +801,27 @@ for (let i = 0; i < in_file.length; ++i) {
 	rows.push(row);
 }
 
-for (let pat in patternEmptyNeedles) {
-	console.log(pat); //remove //debug
+function findCarrierSide(c, row, passIdx) {
+	let carrierRows = Object.keys(carrier_track[c]);
+
+	if (carrierRows.includes(row)) {
+		if (passIdx && carriersRows[row].idx >= passIdx) return carrier_track[c][Math.max.apply(null, carrierRows.filter(function(r){return r < row}))].side; //find most recent row excluding current row if passIdx / this carrier knits during or after given passIdx
+		else return carrier_track[c][row].side;
+	} else return carrier_track[c][Math.max.apply(null, carrierRows.filter(function(r){return r <= row}))].side;
 }
 
-// console.log(patternEmptyNeedles); //remove //debug
+function findCarrierOnSide(side, row, passIdx, returnAll) {
+	let sideCs = [];
+	for (let i = 0; i < tracked_carriers.length; ++i) {
+		let cSide = findCarrierSide(tracked_carriers[i], row, passIdx);
+		if (cSide == side) {
+			if (returnAll) sideCs.push(tracked_carriers[i]);
+			else return tracked_carriers[i];
+		}
+	}
+	if (returnAll) return sideCs;
+}
+
 
 //--------------------------------------------------------------------------------------
 //--- DETERMINE IF SINGLE OR DOUBLE BED //; IDENTIFY THE LEFT & RIGHT MOST NEEDLES ---//
