@@ -882,115 +882,285 @@ const decSingleBed = (dec_needle1, count1, rack1, side, dec_needle2, count2, rac
 	xfer_section.push('rack 0');
 };
 
-const dec1DoubleBed = (dec_needle, side) => { ////if double bed, need to just do it twice
-	if (emptyRow.length) xfer_section.push('x-carrier-stopping-distance 3.5'); //new //check //*
 
+const dec1DoubleBed = (dec_needle, side) => { ////if double bed, need to just do it twice
+	if (emptyRow.length) xfer_section.push('x-carrier-stopping-distance 3.5');
+
+	let racking = 0;
 	if (side === 'left') {
-		xfer_section.push('rack 1');
-		if (!emptyRow.includes(`b${dec_needle}`)) { //new //check //*
+		if (!emptyRow.includes(`b${dec_needle}`)  && (!emptyRow.includes(`f${dec_needle + 1}`) || !emptyRow.includes(`b${dec_needle + 1}`))) {
+			racking = 1;
+			xfer_section.push('rack 1');
+			
 			xfer_section.push('x-add-roller-advance 150');
 			xfer_section.push(`xfer b${dec_needle} f${dec_needle + 1}`);
+			if (emptyRow.includes(`f${dec_needle + 1}`)) {
+				racking = 0;
+				xfer_section.push('rack 0');
+
+				xfer_section.push(`xfer f${dec_needle + 1} b${dec_needle + 1}`);
+			}
 		}
-		if (!emptyRow.includes(`b${dec_needle + 1}`)) { //new //check //*
+
+		if (!emptyRow.includes(`b${dec_needle + 1}`) && !emptyRow.includes(`f${dec_needle + 2}`)) {
+			if (racking !== 1) {
+				racking = 1;
+				xfer_section.push('rack 1'); //put rack back to 1
+			}
 			xfer_section.push(`xfer b${dec_needle + 1} f${dec_needle + 2}`); //come back!
 		}
-		if (!emptyRow.includes(`f${dec_needle}`)) { //new //check //*
+
+		if (!emptyRow.includes(`f${dec_needle}`) && (!emptyRow.includes(`b${dec_needle + 1}`) || !emptyRow.includes(`f${dec_needle + 1}`))) {
+			racking = -1;
 			xfer_section.push('rack -1');
+
 			xfer_section.push('x-add-roller-advance 100');
 			xfer_section.push(`xfer f${dec_needle} b${dec_needle + 1}`);
+			if (emptyRow.includes(`b${dec_needle + 1}`)) {
+				racking = 0;
+				xfer_section.push('rack 0');
+				xfer_section.push(`xfer b${dec_needle + 1} f${dec_needle + 1}`);
+			}
 		}
+
+		if (racking !== 0) xfer_section.push('rack 0');
 	}
 	if (side === 'right') {
-		xfer_section.push('rack -1');
-		if (!emptyRow.includes(`b${dec_needle}`)) { //new //check //*
+		if (!emptyRow.includes(`b${dec_needle}`) && (!emptyRow.includes(`f${dec_needle - 1}`) || !emptyRow.includes(`b${dec_needle - 1}`))) {
+			racking = -1;
+			xfer_section.push('rack -1');
 			xfer_section.push(`x-add-roller-advance 150`);
 			xfer_section.push(`xfer b${dec_needle} f${dec_needle - 1}`);
+			if (emptyRow.includes(`f${dec_needle - 1}`)) {
+				racking = 0;
+				xfer_section.push('rack 0');
+				xfer_section.push(`xfer f${dec_needle - 1} b${dec_needle - 1}`);
+			}
 		}
-		if (!emptyRow.includes(`b${dec_needle - 1}`)) { //new //check //*
+
+		if (!emptyRow.includes(`b${dec_needle - 1}`) && !emptyRow.includes(`f${dec_needle - 2}`)) {
+			if (racking !== -1) {
+				racking = -1;
+				xfer_section.push('rack -1'); //put rack back to -1
+			}
 			xfer_section.push(`xfer b${dec_needle - 1} f${dec_needle - 2}`);
 		}
-		if (!emptyRow.includes(`f${dec_needle}`)) { //new //check //*
+
+		if (!emptyRow.includes(`f${dec_needle}`) && (!emptyRow.includes(`b${dec_needle - 1}`) || !emptyRow.includes(`f${dec_needle - 1}`))) {
+			racking = 1;
 			xfer_section.push('rack 1');
 			xfer_section.push('x-add-roller-advance 100');
 			xfer_section.push(`xfer f${dec_needle} b${dec_needle - 1}`);
+
+			if (emptyRow.includes(`b${dec_needle - 1}`)) {
+				racking = 0;
+				xfer_section.push('rack 0');
+				xfer_section.push(`xfer b${dec_needle - 1} f${dec_needle - 1}`);
+			}
 		}
+
+		if (racking !== 0) xfer_section.push('rack 0');
 	}
-	xfer_section.push('rack 0');
-	if (emptyRow.length) xfer_section.push('x-carrier-stopping-distance 2.5'); //new //check //*
+
+	if (emptyRow.length) xfer_section.push('x-carrier-stopping-distance 2.5');
 };
 
+
 const dec2DoubleBed = (dec_needle, side) => {
-	if (emptyRow.length) xfer_section.push('x-carrier-stopping-distance 3.5'); //new //check //*
+	let racking = 0;
+
+	if (emptyRow.length) xfer_section.push('x-carrier-stopping-distance 3.5');
 
 	if (side === 'left') {
-		if (!emptyRow.includes(`b${dec_needle + 2}`)) { //new //check //*
-			xfer_section.push('x-add-roller-advance 100');
-			xfer_section.push(`xfer b${dec_needle + 2} f${dec_needle + 2}`);
+		if (!emptyRow.includes(`b${dec_needle + 2}`)) {
+			if (!emptyRow.includes(`f${dec_needle + 2}`) || !emptyRow.includes(`b${dec_needle + 3}`)) {
+				xfer_section.push('x-add-roller-advance 100');
+				xfer_section.push(`xfer b${dec_needle + 2} f${dec_needle + 2}`); // || !emptyRow.includes(`b${dec_needle + 3}`) //!
+			}
 		}
-		if (!emptyRow.includes(`b${dec_needle + 3}`)) { //new //check //* //no
+
+		if (!emptyRow.includes(`b${dec_needle + 3}`) && !emptyRow.includes(`f${dec_needle + 3}`)) { //* //no
 			xfer_section.push(`xfer b${dec_needle + 3} f${dec_needle + 3}`);
 		}
-		xfer_section.push('rack -1');
-		if (!emptyRow.includes(`f${dec_needle}`)) { //new //check //* //no
+
+		if (!emptyRow.includes(`f${dec_needle}`) && !emptyRow.includes(`b${dec_needle + 1}`)) { //* //no
+			racking = -1;
+			xfer_section.push('rack -1');
+
 			xfer_section.push('x-add-roller-advance 150');
-			xfer_section.push(`xfer f${dec_needle} b${dec_needle + 1}`);
+			xfer_section.push(`xfer f${dec_needle} b${dec_needle + 1}`); //TODO: move this if necessary
 		}
-		if (!emptyRow.includes(`f${dec_needle + 1}`)) { //new //check //*
+
+		if (!emptyRow.includes(`f${dec_needle + 1}`) && !emptyRow.includes(`b${dec_needle + 2}`)) {
+			if (racking !== -1) {
+				racking = -1;
+				xfer_section.push('rack -1');
+			}
 			xfer_section.push(`xfer f${dec_needle + 1} b${dec_needle + 2}`);
 		}
-		if (!emptyRow.includes(`f${dec_needle + 2}`) || !emptyRow.includes(`b${dec_needle + 2}`)) { //new //check //*
+
+		if (!emptyRow.includes(`b${dec_needle + 3}`) && (!emptyRow.includes(`f${dec_needle + 2}`) || !emptyRow.includes(`b${dec_needle + 2}`))) {
+			if (racking !== -1) {
+				racking = -1;
+				xfer_section.push('rack -1');
+			}
 			xfer_section.push(`xfer f${dec_needle + 2} b${dec_needle + 3}`);
 		}
-		xfer_section.push('rack 1');
-		if (!emptyRow.includes(`b${dec_needle}`)) { //new //check //*
-			xfer_section.push('x-add-roller-advance 100');
-			xfer_section.push(`xfer b${dec_needle} f${dec_needle + 1}`);
+
+		if (!emptyRow.includes(`b${dec_needle}`)) {
+			if (!emptyRow.includes(`f${dec_needle + 1}`) || !emptyRow.includes(`b${dec_needle + 2}`) || !emptyRow.includes(`b${dec_needle + 1}`)) {
+				racking = 1;
+				xfer_section.push('rack 1');
+
+				xfer_section.push('x-add-roller-advance 100');
+				xfer_section.push(`xfer b${dec_needle} f${dec_needle + 1}`);
+				if (emptyRow.includes(`f${dec_needle + 1}`) && emptyRow.includes(`b${dec_needle + 2}`)) {
+					racking = 0;
+					xfer_section.push('rack 0');
+
+					xfer_section.push(`xfer f${dec_needle + 1} b${dec_needle + 1}`);
+				}
+			}
 		}
-		if (!emptyRow.includes(`b${dec_needle + 1}`) || !emptyRow.includes(`f${dec_needle}`)) { //new //check //?
+
+		if (!emptyRow.includes(`b${dec_needle + 1}`) && (!emptyRow.includes(`f${dec_needle + 2}`) || !emptyRow.includes(`b${dec_needle + 2}`))) {
+			if (racking !== 1) {
+				racking = 1;
+				xfer_section.push('rack 1');
+			}
+
 			xfer_section.push(`xfer b${dec_needle + 1} f${dec_needle + 2}`);
+			if (emptyRow.includes(`f${dec_needle + 2}`)) {
+				racking = 0;
+				xfer_section.push('rack 0');
+				xfer_section.push(`xfer f${dec_needle + 2} b${dec_needle + 2}`);
+			}
 		}
-		xfer_section.push('rack -1');
-		if (!emptyRow.includes(`b${dec_needle}`)) { //new //check //*
-			xfer_section.push('x-add-roller-advance 50');
-			xfer_section.push(`xfer f${dec_needle + 1} b${dec_needle + 2}`);
+
+		if (!emptyRow.includes(`f${dec_needle + 1}`) && (!emptyRow.includes(`b${dec_needle + 2}`) || !emptyRow.includes(`f${dec_needle + 2}`))) {
+			if (emptyRow.includes(`f${dec_needle + 2}`) && emptyRow.includes(`b${dec_needle + 3}`)) { //prevent triple stack
+				racking = -2;
+				xfer_section.push('rack -2');
+
+				xfer_section.push('x-add-roller-advance 50');
+				xfer_section.push(`xfer f${dec_needle + 1} b${dec_needle + 3}`);
+				if (emptyRow.includes(`b${dec_needle + 3}`)) {
+					if (racking !== 0) {
+						racking = 0;
+						xfer_section.push('rack 0');
+					}
+					xfer_section.push(`xfer b${dec_needle + 3} f${dec_needle + 3}`);
+				}
+			} else {
+				racking = -1;
+				xfer_section.push('rack -1');
+
+				xfer_section.push('x-add-roller-advance 50');
+				xfer_section.push(`xfer f${dec_needle + 1} b${dec_needle + 2}`);
+
+				if (emptyRow.includes(`b${dec_needle + 2}`)) {
+					xfer_section.push(`xfer b${dec_needle + 1} f${dec_needle + 2}`);
+				}
+			}
 		}
+
+		if (racking !== 0) xfer_section.push('rack 0');
 	} else if (side === 'right') {
-		if (!emptyRow.includes(`b${dec_needle - 2}`)) { //new //check //*
-			xfer_section.push('x-add-roller-advance 100');
-			xfer_section.push(`xfer b${dec_needle - 2} f${dec_needle - 2}`);
+		if (!emptyRow.includes(`b${dec_needle - 2}`)) {
+			if (!emptyRow.includes(`f${dec_needle - 2}`) || !emptyRow.includes(`b${dec_needle - 3}`)) {
+				xfer_section.push('x-add-roller-advance 100');
+				xfer_section.push(`xfer b${dec_needle - 2} f${dec_needle - 2}`);
+			}
 		}
-		if (!emptyRow.includes(`b${dec_needle - 3}`)) { //new //check //*
+
+		if (!emptyRow.includes(`b${dec_needle - 3}`) && !emptyRow.includes(`f${dec_needle - 3}`)) { //* //no
 			xfer_section.push(`xfer b${dec_needle - 3} f${dec_needle - 3}`);
 		}
-		xfer_section.push('rack 1');
-		if (!emptyRow.includes(`f${dec_needle}}`)) { //new //check //*
+
+		if (!emptyRow.includes(`f${dec_needle}`) && !emptyRow.includes(`b${dec_needle - 1}`)) { //* //no
+			racking = 1;
+			xfer_section.push('rack 1');
+
 			xfer_section.push('x-add-roller-advance 150');
-			xfer_section.push(`xfer f${dec_needle} b${dec_needle - 1}`);
+			xfer_section.push(`xfer f${dec_needle} b${dec_needle - 1}`); //TODO: move this if necessary
 		}
-		if (!emptyRow.includes(`f${dec_needle - 1}`)) { //new //check //*
+
+		if (!emptyRow.includes(`f${dec_needle - 1}`) && !emptyRow.includes(`b${dec_needle - 2}`)) {
+			if (racking !== 1) {
+				racking = 1;
+				xfer_section.push('rack 1');
+			}
 			xfer_section.push(`xfer f${dec_needle - 1} b${dec_needle - 2}`);
 		}
-		if (!emptyRow.includes(`f${dec_needle - 2}`) || !emptyRow.includes(`b${dec_needle - 2}`)) { //new //check //*
+
+		if (!emptyRow.includes(`b${dec_needle - 3}`) && (!emptyRow.includes(`f${dec_needle - 2}`) || !emptyRow.includes(`b${dec_needle - 2}`))) {
+			if (racking !== 1) {
+				racking = 1;
+				xfer_section.push('rack 1');
+			}
 			xfer_section.push(`xfer f${dec_needle - 2} b${dec_needle - 3}`);
 		}
 
-		xfer_section.push('rack -1');
-		if (!emptyRow.includes(`b${dec_needle}`)) { //new //check //*
-			xfer_section.push('x-add-roller-advance 100');
-			xfer_section.push(`xfer b${dec_needle} f${dec_needle - 1}`);
+		if (!emptyRow.includes(`b${dec_needle}`)) {
+			if (!emptyRow.includes(`f${dec_needle - 1}`) || !emptyRow.includes(`b${dec_needle - 2}`) || !emptyRow.includes(`b${dec_needle - 1}`)) {
+				racking = -1;
+				xfer_section.push('rack -1');
+
+				xfer_section.push('x-add-roller-advance 100');
+				xfer_section.push(`xfer b${dec_needle} f${dec_needle - 1}`);
+				if (emptyRow.includes(`f${dec_needle - 1}`) && emptyRow.includes(`b${dec_needle - 2}`)) {
+					racking = 0;
+					xfer_section.push('rack 0');
+					xfer_section.push(`xfer f${dec_needle - 1} b${dec_needle - 1}`);
+				}
+			}
 		}
-		if (!emptyRow.includes(`b${dec_needle - 1}`) || !emptyRow.includes(`f${dec_needle}`)) { //no
+
+		if (!emptyRow.includes(`b${dec_needle - 1}`) && (!emptyRow.includes(`f${dec_needle - 2}`) || !emptyRow.includes(`b${dec_needle - 2}`))) {
+			if (racking !== -1) {
+				racking = -1;
+				xfer_section.push('rack -1');
+			}
 			xfer_section.push(`xfer b${dec_needle - 1} f${dec_needle - 2}`);
+			if (emptyRow.includes(`f${dec_needle - 2}`)) {
+				racking = 0;
+				xfer_section.push('rack 0');
+				xfer_section.push(`xfer f${dec_needle - 2} b${dec_needle - 2}`);
+			}
 		}
-		xfer_section.push('rack 1');
-		if (!emptyRow.includes(`b${dec_needle}`)) { //new //check //*
-			xfer_section.push('x-add-roller-advance 50');
-			xfer_section.push(`xfer f${dec_needle - 1} b${dec_needle - 2}`);
+
+		if (!emptyRow.includes(`f${dec_needle - 1}`) && (!emptyRow.includes(`b${dec_needle - 2}`) || !emptyRow.includes(`f${dec_needle - 2}`))) {
+			if (emptyRow.includes(`f${dec_needle - 2}`) && emptyRow.includes(`b${dec_needle - 3}`)) { //prevent triple stack
+				racking = 2;
+				xfer_section.push('rack 2');
+
+				xfer_section.push('x-add-roller-advance 50');
+				xfer_section.push(`xfer f${dec_needle - 1} b${dec_needle - 3}`);
+				if (emptyRow.includes(`b${dec_needle - 3}`)) {
+					if (racking !== 0) {
+						racking = 0;
+						xfer_section.push('rack 0');
+					}
+					xfer_section.push(`xfer b${dec_needle - 3} f${dec_needle - 3}`);
+				}
+			} else {
+				racking = 1;
+				xfer_section.push('rack 1');
+
+				xfer_section.push('x-add-roller-advance 50');
+				xfer_section.push(`xfer f${dec_needle - 1} b${dec_needle - 2}`);
+				if (emptyRow.includes(`b${dec_needle - 2}`)) {
+					xfer_section.push(`xfer b${dec_needle - 1} f${dec_needle - 2}`);
+				}
+			}
 		}
+
+		if (racking !== 0) xfer_section.push('rack 0');
 	}
-	xfer_section.push('rack 0');
-	if (emptyRow.length) xfer_section.push('x-carrier-stopping-distance 2.5'); //new //check
-};
+
+	if (emptyRow.length) xfer_section.push('x-carrier-stopping-distance 2.5');
+}
+
 
 //---------------------------------
 //--- PROTO BIND-OFF FUNCTION ---//
@@ -1172,7 +1342,8 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
 			}
 		} else if (!double_bed) xfer_section.push(`xfer b${xfer_needle-1} f${xfer_needle-1}`); //new //check
 	}
-};
+}
+
 
 //-----------------------------
 //--- PROTO INC FUNCTIONS ---//
@@ -1239,51 +1410,52 @@ const inc1DoubleBed = (Xside_needle, side, inc_carrier, arr) => { //TODO: make i
 			xfer_section.push(`xfer b${Xside_needle} f${Xside_needle - 1}`);
 			xfer_section.push('rack 0');
 			xfer_section.push('x-add-roller-advance -100');
-			xfer_section.push(`miss + f${Xside_needle} ${left_bindC}`); ////ensures order of xfers that is least likely to drop stitches
+			xfer_section.push(`miss + f${Xside_needle} ${inc_carrier}`); // ensures/forces order of xfers that is least likely to drop stitches
 			xfer_section.push(`xfer f${Xside_needle} b${Xside_needle}`);
 			xfer_section.push(`xfer f${Xside_needle - 1} b${Xside_needle - 1}`);
 			xfer_section.push('rack -1');
 			xfer_section.push(`xfer b${Xside_needle} f${Xside_needle - 1}`);
 			twist = 1;
 			xfer_section.push('rack 0');
+			xfer_section.push(`miss - f${Xside_needle-1} ${inc_carrier}`); //miss carrier out of the way //new //TODO: test this //changed left_bindC to inc_carrier //check //?
 		} else if (inc_method === 'split') {
 			arr.push('rack 1');
 			arr.push(`split + f${Xside_needle} b${Xside_needle-1} ${inc_carrier}`);
 			arr.push('rack 0');
 			arr.push(`split + b${Xside_needle-1} f${Xside_needle-1} ${inc_carrier}`);
-			arr.push(`miss - f${Xside_needle-1} ${inc_carrier}`); //miss back out of the way //new
+			arr.push(`miss - f${Xside_needle-1} ${inc_carrier}`); //miss carrier out of the way
 		} else { //twisted-stitch
 			twist = 0;
 		}
 		LtwistedF = true;
 		LtwistedB = true;
-	} else if (side === 'right') { //remove //? //*
-	// } else if (side === 'right' || (side === 'both' && inc_method === 'split')) { //* //?
+	} else if (side === 'right') {
 		if (inc_method === 'xfer') {
 			xfer_section.push('rack 1');
 			xfer_section.push(`xfer b${Xside_needle} f${Xside_needle + 1}`);
 			xfer_section.push('rack 0');
 			xfer_section.push('x-add-roller-advance -100');
-			xfer_section.push(`miss - f${Xside_needle} ${right_bindC}`); ////ensures order of xfers that is least likely to drop stitches
+			xfer_section.push(`miss - f${Xside_needle} ${inc_carrier}`); // ensures/forces order of xfers that is least likely to drop stitches
 			xfer_section.push(`xfer f${Xside_needle} b${Xside_needle}`);
 			xfer_section.push(`xfer f${Xside_needle + 1} b${Xside_needle + 1}`);
 			xfer_section.push('rack 1');
 			xfer_section.push(`xfer b${Xside_needle} f${Xside_needle + 1}`);
 			twist = 1;
 			xfer_section.push('rack 0');
+			xfer_section.push(`miss + f${Xside_needle+1} ${inc_carrier}`); //miss carrier out of the way //new //TODO: test this //changed right_bindC to inc_carrier //check //?
 		} else if (inc_method === 'split') {
 			arr.push('rack -1');
 			arr.push(`split - f${Xside_needle} b${Xside_needle+1} ${inc_carrier}`);
 			arr.push('rack 0');
 			arr.push(`split - b${Xside_needle+1} f${Xside_needle+1} ${inc_carrier}`);
-			arr.push(`miss + f${Xside_needle+1} ${inc_carrier}`); //miss back out of the way //new
+			arr.push(`miss + f${Xside_needle+1} ${inc_carrier}`); //miss carrier out of the way
 		} else {
 			twist = 0;
 		}
 		RtwistedF = true;
 		RtwistedB = true;
 	// } else if (side === 'both') { //TODO: add option for inc by split for here //*
-	} else if (side === 'both' && inc_method !== 'split') { //* //?
+	} else if (side === 'both' && inc_method !== 'split') {
 		LtwistedF = true;
 		LtwistedB = true;
 		RtwistedF = true;
@@ -1301,6 +1473,8 @@ const inc1DoubleBed = (Xside_needle, side, inc_carrier, arr) => { //TODO: make i
 const inc2DoubleBed = (Xside_needle, side, inc_carrier, arr) => { //TODO: fix this for split
 	if (side === 'left') {
 		if (inc_method === 'xfer') {
+			xfer_section.push(`miss - f${Xside_needle - 2} ${inc_carrier}`); //miss carrier out of the way //TODO: check //new //move to end //?
+
 			xfer_section.push('rack -1');
 			xfer_section.push(`xfer b${Xside_needle} f${Xside_needle - 1}`);
 			xfer_section.push('rack 1');
@@ -1326,6 +1500,8 @@ const inc2DoubleBed = (Xside_needle, side, inc_carrier, arr) => { //TODO: fix th
 			arr.push(`split + f${Xside_needle-1} b${Xside_needle-2} ${inc_carrier}`);
 			arr.push('rack 0');
 			arr.push(`split + b${Xside_needle-2} f${Xside_needle-2} ${inc_carrier}`);
+
+			arr.push(`miss - f${Xside_needle-2} ${inc_carrier}`); //miss carrier out of the way
 		} else {
 			twist = 0;
 		}
@@ -1333,6 +1509,8 @@ const inc2DoubleBed = (Xside_needle, side, inc_carrier, arr) => { //TODO: fix th
 		LtwistedB = true;
 	} else if (side === 'right') {
 		if (inc_method === 'xfer') {
+			xfer_section.push(`miss + f${Xside_needle + 2} ${inc_carrier}`); //miss carrier out of the way //TODO: check //new //move to end //?
+
 			xfer_section.push('rack 1');
 			xfer_section.push(`xfer b${Xside_needle} f${Xside_needle + 1}`);
 			xfer_section.push('rack -1');
@@ -1358,15 +1536,16 @@ const inc2DoubleBed = (Xside_needle, side, inc_carrier, arr) => { //TODO: fix th
 			arr.push(`split - f${Xside_needle+1} b${Xside_needle+2} ${inc_carrier}`);
 			arr.push('rack 0');
 			arr.push(`split - b${Xside_needle+2} f${Xside_needle+2} ${inc_carrier}`);
+
+			arr.push(`miss + f${Xside_needle+2} ${inc_carrier}`); //miss carrier out of the way
 		} else {
 			twist = 0;
 		}
 		RtwistedF = true;
 		RtwistedB = true;
 	}
-	// xfer_section.push('rack 0'); //remove //? //*
 
-	if (inc_method === 'split') { //* //?
+	if (inc_method === 'split') {
 		LtwistedF = false, LtwistedB = false, RtwistedF = false, RtwistedB = false;
 		twist = undefined;
 	} else xfer_section.push('rack 0');
