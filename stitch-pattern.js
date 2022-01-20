@@ -152,17 +152,17 @@ for (let i = 0; i < stitchPatterns.length; ++i) {
 				stitchPatterns[i].options.overlap = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many stitches should overlap between the bubbles? `)));
 			} else if (stitchPatterns[i].name === 'Lace') {
 				stitchPatterns[i].options.laceRows = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many rows between xfers to form new lace holes? `)));
-				stitchPatterns[i].options.spaceBtwHoles = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many knit stitches between lace holes? `)));
-				stitchPatterns[i].options.offset = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many needles to offset the placement of lace holes relative to the prior lace formation pass? `)));
+				stitchPatterns[i].options.stitchesBtwHoles = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many knit stitches between lace holes? `)));
+				stitchPatterns[i].options.holeOffset = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many needles to offset the placement of lace holes relative to the prior lace formation pass? `)));
 				stitchPatterns[i].options.offsetReset = Number(readlineSync.questionInt(chalk.blue.bold(`\nAfter how many rows should the offset reset? (input 0 to have the reset be automatic) `)));
 			} else if (stitchPatterns[i].name === 'Garter') {
 				stitchPatterns[i].options.patternRows = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many garter rows (switching between knits and purls)? `)));
 			} else if (stitchPatterns[i].name === 'Rib') {
-				let frontWidth = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many front needles in sequence? (e.g. '2'): `)));
+				let frontSequence = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many front needles in sequence? (e.g. '2'): `)));
 				// stitchPatterns[i].options.frontWidth = 'f'.repeat(rib_f);
-				let backWidth = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many back needles in sequence? (e.g. '2'): `)));
+				let backSequence = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many back needles in sequence? (e.g. '2'): `)));
 				// stitchPatterns[i].options.backWidth = 'b'.repeat(rib_b);
-				stitchPatterns[i].options.sequence = 'f'.repeat(frontWidth) + 'b'.repeat(backWidth);
+				stitchPatterns[i].options.sequence = 'f'.repeat(frontSequence) + 'b'.repeat(backSequence);
 			}
 		} else stitchPatterns[i].options = undefined;
 	} else stitchPatterns[i].options = undefined;

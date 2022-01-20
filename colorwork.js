@@ -92,7 +92,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 	if (stitchOnly && stData.length === 1 && stData[0].name === 'Lace') { //new //check
 		main_stitch_number = stitch_number + 3;
 		if (main_stitch_number > 9) main_stitch_number = 9;
-		if (main_stitch_number != stitch_number) console.log(chalk.black.bgYellow('! WARNING:') + ` Increased main stitch number from ${stitch_number} to ${main_stitch_number} since entire piece is lace, which requires a larger stitch number.`);
+		if (main_stitch_number != stitch_number) console.log(chalk.black.bgYellow('! WARNING:'), ` Increased main stitch number from ${stitch_number} to ${main_stitch_number} since entire piece is lace, which requires a larger stitch number.`);
 	}
 
 	let reverse = ((back_style === 'Minimal' || back_style === 'Secure') ? false : true);
@@ -101,7 +101,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 		// reverse = false;
 		if (color_count < 4) {
 			back_style = 'Minimal';
-			console.log(chalk.black.bgYellow('! WARNING:') + ` Changed back style from 'Secure' to 'Minimal' since using less than 4 colors.`);
+			console.log(chalk.black.bgYellow('! WARNING:'), ` Changed back style from 'Secure' to 'Minimal' since using less than 4 colors.`);
 		} else {
 			edge_L.push(3, 1, 2);
 			
@@ -773,6 +773,10 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 				for (let p = 0; p < ogPatsLen; ++p) {
 					let patCopy,
 						patCopy1;
+
+					let carrierInRow = rows[row_count - 1].some(pass => pass[0][1] == patterns[p].carrier); //new
+					let bringInFrom = patterns[p].bringInFrom; // patterns[p].hasOwnProperty('bringInFrom') //beep 
+					delete patterns[p].bringInFrom; //for now, so only the first occurence has the property //beep
 					
 					for (let pn = 0; pn < patterns[p].rows[row_count].length; ++pn) {
 						if (pn < (patterns[p].rows[row_count].length - 1)) {
@@ -782,11 +786,19 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 									
 									let otherNs = patCopy1.rows[row_count].splice(pn + 1);
 									patCopy = JSON.parse(JSON.stringify(patterns[p])); //for deep copy
+
+									if (!carrierInRow) patCopy.bringInFrom = patCopy1.rows[row_count][patCopy1.rows[row_count].length-1]+1 //TODO: check
+
 									patCopy.rows[row_count] = otherNs;
 								} else {
 									let otherNs = patCopy.rows[row_count].splice(patCopy.rows[row_count].indexOf(patterns[p].rows[row_count][pn + 1]));
+
 									patterns.push(patCopy);
+
 									patCopy = JSON.parse(JSON.stringify(patCopy)); //for deep copy
+
+									if (!carrierInRow) patCopy.bringInFrom = patCopy.rows[row_count][patCopy.rows[row_count].length-1]+1 //TODO: check
+
 									patCopy.rows[row_count] = otherNs;
 								}
 							}
@@ -794,7 +806,9 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 							patterns.push(patCopy);
 							patterns[p] = patCopy1;
 						}
-					}	
+					}
+
+					if (bringInFrom !== undefined) patterns[p].bringInFrom = bringInFrom; //new //*
 				}
 
 				for (let p = 0; p < patterns.length; ++p) {
@@ -890,28 +904,48 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 					let patCopy,
 						patCopy1;
 					
+					let carrierInRow = rows[row_count - 1].some(pass => pass[0][1] == patterns[p].carrier); //new
+					let bringInFrom = patterns[p].bringInFrom; // patterns[p].hasOwnProperty('bringInFrom')
+					delete patterns[p].bringInFrom; //for now, so only the first occurence has the property
+					
 					for (let pn = 0; pn < patterns[p].rows[row_count].length; ++pn) {
 						if (pn < (patterns[p].rows[row_count].length - 1)) {
 							if (patterns[p].rows[row_count][pn + 1] - patterns[p].rows[row_count][pn] > 1) { //gap
 								if (!patCopy1) { //TODO: deal with xfers if necessary
 									patCopy1 = JSON.parse(JSON.stringify(patterns[p])); //for deep copy
 									let otherNs = patCopy1.rows[row_count].splice(pn + 1);
+
+									if (!carrierInRow) patCopy1.bringInFrom = otherNs[0]-1 //TODO: check
+
 									patCopy = JSON.parse(JSON.stringify(patterns[p])); //for deep copy
+
 									patCopy.rows[row_count] = otherNs;
 								} else {
 									let otherNs = patCopy.rows[row_count].splice(patCopy.rows[row_count].indexOf(patterns[p].rows[row_count][pn + 1]));
+
+									if (!carrierInRow) patCopy.bringInFrom = otherNs[0]-1 //TODO: check
+
 									patterns.push(patCopy);
 									patCopy = JSON.parse(JSON.stringify(patCopy)); //for deep copy
+
 									patCopy.rows[row_count] = otherNs;
 								}
 							}
 						} else {
 							if (patCopy1) {
+								if (bringInFrom !== undefined) patCopy.bringInFrom = bringInFrom; //last of the copies since pass is neg //TODO: //check //new
+								else delete patCopy.bringInFrom; //incase added in above code
+
 								patterns.push(patCopy);
 								patterns[p] = patCopy1; //new //check
-							}
+							} else if (bringInFrom !== undefined) patterns[p].bringInFrom = bringInFrom; //new //*
 						}
-					}	
+					}
+
+					if (bringInFrom !== undefined) { //new //v
+						if (patCopy) patterns[patterns.length-1].bringInFrom = bringInFrom; //last of the copies since pass is neg //TODO: //check //new //beep
+						else patterns[p].bringInFrom = bringInFrom;
+					} //^
 				}
 
 				for (let p = 0; p < patterns.length; ++p) {

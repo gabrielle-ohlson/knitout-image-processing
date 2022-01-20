@@ -563,14 +563,14 @@ function generateBubbles(min, max, dir, carrier) { //TODO: test in bubbles need 
 //--------------
 function generateLace(min, max, dir, carrier) { //TODO: figure out what to do about avoiding all... maybe have it tuck over any empty needles?
 	let laceRows = (options ? options.laceRows : 2);
-	let spaceBtwHoles = (options ? options.spaceBtwHoles : 1);
-	let offset = (options ? options.offset : 1);
+	let stitchesBtwHoles = (options ? options.stitchesBtwHoles : 1);
+	let offset = (options ? options.holeOffset : 1);
 	let offsetReset = (options ? options.offsetReset : 0);
 
 	let xferPasses = row_count - ((laceRows-1)*(row_count/laceRows));
 
 	let mod = offset*row_count;
-	if (mod > spaceBtwHoles || (offsetReset !== 0 && (xferPasses+1) % offsetReset == 0)) mod = 0;
+	if (mod > stitchesBtwHoles || (offsetReset !== 0 && (xferPasses+1) % offsetReset == 0)) mod = 0;
 
 	const POSLACE = () => {
 		for (let n = min; n <= max; ++n) {
@@ -595,13 +595,13 @@ function generateLace(min, max, dir, carrier) { //TODO: figure out what to do ab
 			let rack = (xferPasses % 2 == 0 ? 1 : -1);
 
 			for (let n = min; n <= max; ++n) {
-				if ((n - min) % (spaceBtwHoles+1) === mod && n !== min && n !== max) generated.push(`xfer f${n} b${n}`);
+				if ((n - min) % (stitchesBtwHoles+1) === mod && n !== min && n !== max) generated.push(`xfer f${n} b${n}`);
 			}
 
 			generated.push(`rack ${rack}`);
 
 			for (let n = min; n <= max; ++n) {
-				if ((n - min) % (spaceBtwHoles+1) === mod && n !== min && n !== max) generated.push(`xfer b${n} f${n+rack}`);
+				if ((n - min) % (stitchesBtwHoles+1) === mod && n !== min && n !== max) generated.push(`xfer b${n} f${n+rack}`);
 			}
 
 			generated.push('rack 0');
