@@ -39,7 +39,11 @@ shape-codes/
 
 #exclude user-generated prompt-answers (1: don't exlcude parent sub-directory 2: exclude files in parent sub-dir 3 & 4: don't exclude specific files
 !/prompt-answers/
-/prompt-answers/*
+# /prompt-answers/*
+# prompt-answers/*
+# !/prompt-answers/knitify/
+prompt-answers/knitify/*
+prompt-answers/shapeify/*
 !/prompt-answers/knitify/answers.json
 !/prompt-answers/shapeify/answers.json
 
@@ -49,3 +53,7 @@ knit_motif.png
 
 *-debug.js
 *-bug.js
+
+in-stitch-pattern-images/*
+
+!/in-stitch-pattern-images/example.jpg
