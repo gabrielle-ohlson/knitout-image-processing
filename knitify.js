@@ -523,13 +523,25 @@ resolvePromises()
 			}
 		}
 
+		let single_color = false;
 		for (let i = 0; i < jacquard_passes.length; ++i) {
-			let single_color = false;
-
 			let back_mod;
 			passes_per_row[row_count - 1] < 6 && back_style === 'Secure' ? (back_mod = passes_per_row[row_count - 1]) : (back_mod = 5);
 			 
 			if (i === 0 || i === prev_row + passes_per_row[row_count - 1]) { //first pass of the row
+				if (passes_per_row[row_count+1] && jacquard_passes[i + passes_per_row[row_count+1]-1][0].length === 0) {
+					if (!single_color && needlesToAvoid.length) { //recently switched from multiple colors to one; xfer any needlesToAvoid to front bed
+						knitout.push(';transfer back bed needles since using single color now');
+						for (let n = 0; n < needlesToAvoid.length; ++n) {
+							knitout.push(`xfer b${needlesToAvoid[n]} f${needlesToAvoid[n]}`);
+						}
+					}
+
+					single_color = true;
+
+				} else single_color = false;
+				// single_color = jacquard_passes[i + passes_per_row[row_count+1]-1][0].length === 0;
+
 				if (i !== 0) { //new
 					if (passes_per_row[row_count - 1] === 6) {
 						extra_back6 < 4 ? ++extra_back6 : (extra_back6 = 0);
@@ -641,11 +653,11 @@ resolvePromises()
 			}
 			
 			i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
-
+			
 			if (jacquard_passes[i][0].length > 0) {
 				carrier = jacquard_passes[i][0][1];
 			} else {
-				single_color = true;
+				// single_color = true;
 				carrier = jacquard_passes[i - 1][0][1];
 				if (carrier === undefined) carrier = jacquard_passes[i - 2][0][1]; //TODO: make this work for birdseye too
 			}
