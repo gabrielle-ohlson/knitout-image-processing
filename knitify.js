@@ -270,6 +270,10 @@ resolvePromises()
 		pieceWidth = colors_arr[0].length;
 		machine.includes('kniterate') ? (needle_bed = 253) : (needle_bed = 541); ////one extra so not counting from 0
 
+		let carrierColors = fs.readFileSync('colorsData.txt', 'utf8');
+
+		fs.unlinkSync('colorsData.txt');
+
 		if (stitchOnly && stData.length === 1 && stData[0].name === 'Lace') { //new //check
 			main_stitch_number = stitch_number + 3;
 			if (main_stitch_number > 9) main_stitch_number = 9;
@@ -319,7 +323,9 @@ resolvePromises()
 		
 		//new //check //v
 		//TODO: add option to specify bind off carrier
-		if (!loadAnswers) { //new //*
+		if (!loadAnswers) {
+			console.log(chalk`{white.bold \nYou may choose from the following list of existing carriers (along with the hex-code for the corresponding color), or specify a new carrier (if enough are left over).\nCarriers used in the motif thus far:}{white ${carrierColors}}`); //new //*
+
 			caston_carrier = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step and use the default carrier [background color])} {blue.bold Which carrier would you like to use for the cast-on? }`, {
 				defaultInput: -1,
 				limit: function (input) {
@@ -525,6 +531,8 @@ resolvePromises()
 
 		let single_color = false;
 		for (let i = 0; i < jacquard_passes.length; ++i) {
+			let placement_pass = false;
+
 			let back_mod;
 			passes_per_row[row_count - 1] < 6 && back_style === 'Secure' ? (back_mod = passes_per_row[row_count - 1]) : (back_mod = 5);
 			 
@@ -657,6 +665,7 @@ resolvePromises()
 			if (jacquard_passes[i][0].length > 0) {
 				carrier = jacquard_passes[i][0][1];
 			} else {
+				placement_pass = true; //new //*
 				// single_color = true;
 				carrier = jacquard_passes[i - 1][0][1];
 				if (carrier === undefined) carrier = jacquard_passes[i - 2][0][1]; //TODO: make this work for birdseye too
@@ -842,7 +851,7 @@ resolvePromises()
 				// 	// if (tuckAvoid[Number(carrier)%2].includes(x)) return;
 				// } //^
 
-				if (single_color && double_bed) { //* //? //check //come back!
+				if (placement_pass && double_bed) { //* //? //check //come back!
 					// knitout.push(`knit ${dir} b${x} ${carrier}`);
 					knitout.push(notFrontOp); //new //*
 					back_needles.push(x); //check //remove //? or keep? //TODO: maybe add this for Secure/Minimal?

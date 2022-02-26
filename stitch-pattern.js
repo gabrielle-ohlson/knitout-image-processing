@@ -39,7 +39,7 @@ let hexColors = {
 
 let carrierColors = fs.readFileSync('colorsData.txt', 'utf8');
 
-fs.unlinkSync('colorsData.txt');
+// fs.unlinkSync('colorsData.txt');
 
 // if (fs.existsSync('./out-colorwork-images/pattern_motif.png')) fs.unlinkSync('./out-colorwork-images/pattern_motif.png'); //remove
 
@@ -163,6 +163,8 @@ for (let i = 0; i < stitchPatterns.length; ++i) {
 				let backSequence = Number(readlineSync.questionInt(chalk.blue.bold(`\nHow many back needles in sequence? (e.g. '2'): `)));
 				// stitchPatterns[i].options.backWidth = 'b'.repeat(rib_b);
 				stitchPatterns[i].options.sequence = 'f'.repeat(frontSequence) + 'b'.repeat(backSequence);
+
+				stitchPatterns[i].options.stitchNumber = Number(readlineSync.questionInt(chalk.blue.bold(`\nWhat stitch number? (e.g. '5'): `)));
 			}
 		} else stitchPatterns[i].options = undefined;
 	} else stitchPatterns[i].options = undefined;

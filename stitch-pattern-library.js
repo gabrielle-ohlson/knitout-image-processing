@@ -49,6 +49,8 @@ function extraCarrierPass() {
 function generateRib(min, max, dir, carrier, currNs, prevNs, nextNs, frill) { //rib will need to be multiple colors, i guess //TODO: test frill
 	let sequence = (options ? options.sequence : 'fb'); //*
 
+	let ribStitch = (options ? options.stitchNumber : Math.round(Number(stitch_number) * 0.8));
+
 	let f_width = sequence.match(/f/gi).length;
 	let b_width = sequence.match(/b/gi).length;
 
@@ -204,7 +206,7 @@ function generateRib(min, max, dir, carrier, currNs, prevNs, nextNs, frill) { //
 		}
 
 		// calculate rib stitch number based on actual stitch number
-		generated.push(`x-speed-number ${speed_number}`, `x-roller-advance ${roller_advance}`, `x-stitch-number ${Math.ceil(Number(stitch_number) / 2)}`);
+		generated.push(`x-speed-number ${speed_number}`, `x-roller-advance ${roller_advance}`, `x-stitch-number ${ribStitch}`);
 	
 		dir === '-' ? NEGRIB(min, max) : POSRIB(min, max);
 
