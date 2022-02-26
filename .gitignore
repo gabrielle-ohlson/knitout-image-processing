@@ -57,3 +57,20 @@ knit_motif.png
 in-stitch-pattern-images/*
 
 !/in-stitch-pattern-images/example.jpg
+
+# COLORWORK:
+# grey: d2d2d2
+# pink: db6bae
+# green: 4df577
+# navy: 282a36
+
+# purple: d6abff
+
+# STITCH PATTERNS: (carrier 3: 4df577) 4x4 rib
+# 1. red
+# 2. green
+# 3. #c1c1c1
+# 4. #00ffff
+# 5. blue
+
+# caston: carrier 3: 4df577

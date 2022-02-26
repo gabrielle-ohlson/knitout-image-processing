@@ -690,6 +690,7 @@ for (let i = 0; i < in_file.length; ++i) {
 	pass_loop: for (let p = 0; p < in_file[i].length; ++p) {
 		let op_arr = in_file[i][p].split(' ');
 		let type = op_arr[0];
+		
 		if (type.includes(';') || type.includes('out')) { //TODO: maybe push comments
 			if (type === ';empty:') { //come back!
 				let passEmptyNeedles = op_arr.filter(el => el.charAt(0) === 'f' || el.charAt(0) === 'b');
@@ -702,12 +703,13 @@ for (let i = 0; i < in_file.length; ++i) {
 			continue pass_loop;
 		}
 
-		if (shapeifyIgnore || type.includes('x-') || (type === 'rack')) {
+		// if (shapeifyIgnore || type.includes('x-') || (type === 'rack')) {
+			if (shapeifyIgnore || type.includes('x-') || type === 'rack' || type === 'pause' || type === 'xfer' || type === 'drop' || type.charAt[0] === ';') { //test //beep //new
 			pass.push(in_file[i][p]);
 			continue pass_loop;
 		}
 		
-		let extension = false;
+		let extension = false; //TODO: remove because irrelevant now
 
 		if ((type.charAt(0) === 'x' &&  type.charAt(1) === '-') || type === 'pause' || type === 'rack') {
 			if (pass.length === 0 || pass.every(el => el.includes('x-') || el.includes('rack') || el.charAt(0) === ';' || el.includes('pause'))) {
@@ -2322,7 +2324,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 							if (back_passLpos[c][2] === 2) mod = 3;
 							if (bpBed === 'f') mod = 1;
 
-							console.log('adding back pass.'); //debug
+							console.log(`adding (+) back pass for carrier ${back_passLpos[c][1]} (@ line 2327).`); //debug
 							let emptyOffset = false;
 
 							for (let n = Xleft_needle; n <= Xright_needle; ++n) {
@@ -2564,7 +2566,9 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 						}
 					}
 
-					if (rows[i][p][0].includes(';xfer')) {
+					// if (rows[i][p][0].includes(';xfer')) { //beep//beep
+					if (rows[i][p].some(ln => ln.includes('xfer'))) { //beep//beep
+						console.log('debug:', rows[i][p][0], i, p); //remove //debug //beep
 						++insertL8rP;
 					} else {
 						if (insertLl8r) {
@@ -2681,7 +2685,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 							if (back_passRneg[c][2] === 2) mod = 4;
 							if (bpBed === 'f') mod = 1;
 
-							console.log('adding back pass.'); //debug
+							console.log(`adding (-) back pass for carrier ${back_passRneg[c][1]} (@ line 2688).`); //debug
 							let emptyOffset = false;
 
 							for (let n = short_Xright_needle+insertRightX; n >= short_Xleft_needle+insertLeftX; --n) {
@@ -2915,7 +2919,12 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				if (insertl8r_arr.length && ((insertLl8r && cookie_carrier == left_bindC) || (insertRl8r && cookie_carrier == right_bindC))) { //*
 					insertL8rP = p; //new
 
-					if (rows[i][p][0].includes(';xfer')) ++insertL8rP; //TODO: && insertL8rP !== rows[i].length-1
+					if (rows[i][p].some(el => el.includes('xfer'))) { //beep!
+						console.log('!debug', rows[i][p], i, p); //remove //debug
+						++insertL8rP;
+					}
+
+					// if (rows[i][p][0].includes(';xfer')) ++insertL8rP; //TODO: && insertL8rP !== rows[i].length-1
 					else {						
 						if (insertLl8r && backpass_Cs.includes(cookie_carrier)) insert_arr.push(insertl8r_arr, cookie);
 						else insert_arr.push(cookie, insertl8r_arr); 
@@ -2974,22 +2983,25 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				}
 			}
 			let bindoff_pass;
+			let bindoff_p_C; //new //beep
 			let bind_chosen = false;
 
 			bindoffC: for (let p = rows[first_short_row].length - 1; p >= 0; --p) {
-				if (rows[first_short_row][p].some((el) => el.includes(' - ')) && !bind_chosen) {
+				if (rows[first_short_row][p].some((el) => el.includes('knit - ')) && !bind_chosen) { //new //new //beep//beep
 					bind_chosen = true;
 
 					let lineIncludesCarrier;
 
 					findTheLine: for (let ln = 0; ln < rows[first_short_row][p].length; ++ln) {
-						if (rows[first_short_row][p][ln].includes(' + ') || rows[first_short_row][p][ln].includes(' - ')) { //TODO: maybe make if isn't comment too
+						if (rows[first_short_row][p][ln].includes('knit + ') || rows[first_short_row][p][ln].includes('knit - ')) { //TODO: maybe make if isn't comment too //beep//beep //new knit 
 							lineIncludesCarrier = rows[first_short_row][p][ln];
 							break findTheLine;
 						}
 					}
 
-					final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === lineIncludesCarrier.charAt(lineIncludesCarrier.length - 1))].SIDE = 'left';
+					bindoff_p_C = lineIncludesCarrier.charAt(lineIncludesCarrier.length - 1); //new //beep
+
+					final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === bindoff_p_C)].SIDE = 'left';
 					bindoff_pass = p; //keeps redefining until end, so ends up being final match
 					continue bindoffC;
 				} else if (bind_chosen) {
@@ -3004,51 +3016,57 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 						}
 					}
 
-					if (rows[first_short_row][p].some((el) => el.includes(' - '))) {
+					if (rows[first_short_row][p].some((el) => el.includes('knit - '))) { //beep//beep
 						final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === srC)].SIDE = 'left';
-					} else if (rows[first_short_row][p].some((el) => el.includes(' + '))) {
+					} else if (rows[first_short_row][p].some((el) => el.includes('knit + '))) { //beep//beep
 						final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === srC)].SIDE = 'right';
 					}
 				}
 			}
+
+			console.log('final_carrier_pos:', JSON.stringify(final_carrier_pos)); //remove //debug
 			let bp_bindoff = [];
 			if (bindoff_pass === undefined) {
 				let passIdx = 0;
 
 				checkForXferPass: for (let p = 0; p < rows[first_short_row].length; ++p) {
-					if (rows[first_short_row][p][0].includes(';xfer')) passIdx += 1;
+					if (rows[first_short_row][p].some(el => el.includes('xfer'))) { //beep//beep
+						console.log('!!debug!!', rows[first_short_row][p], first_short_row, p); //remove //debug
+						passIdx += 1;
+					}
+					// if (rows[first_short_row][p][0].includes(';xfer')) passIdx += 1;
 					else break checkForXferPass;
 				}
 				let sr1 = rows[first_short_row][passIdx];
-				let sr1C;
+				// let sr1C;
 				findC: for (let ln = 0; ln < sr1.length; ++ln) {
 					let info = sr1[ln].split(' ');
 					if (info[0] === 'knit' || info[0] === 'tuck') {
-						sr1C = info[3];
+						bindoff_p_C = info[3];
 						break findC;
 					}
 				}
 
-				bp_bindoff.push(`;pass: back ;-;${sr1C};${Xright_needle};${Xleft_needle}`);
+				bp_bindoff.push(`;pass: back ;-;${bindoff_p_C};${Xright_needle};${Xleft_needle}`);
 				let mod = 3;
 				if (bpBed === 'f') mod = 1;
 
-				console.log('adding back pass.'); //debug
+				console.log(`adding (-) back pass for carrier ${bindoff_p_C} (@ line 3054).`); //debug
 				let emptyOffset = false;
 
 				for (let n = Xright_needle; n >= Xleft_needle; --n) {
 					if (!patternEmptyNeedles[r + 1] || !patternEmptyNeedles[r + 1].includes(`${bpBed}${n}`)) {
 						if (n === Xright_needle || n === Xleft_needle) {
-							bp_bindoff.push(`knit - ${bpBed}${n} ${sr1C}`);
+							bp_bindoff.push(`knit - ${bpBed}${n} ${bindoff_p_C}`);
 						} else if (n % mod === 0 || emptyOffset) {
-							bp_bindoff.push(`knit - ${bpBed}${n} ${sr1C}`);
+							bp_bindoff.push(`knit - ${bpBed}${n} ${bindoff_p_C}`);
 						}
 						emptyOffset = false;
 					} else emptyOffset = true;
 				}
 				bindoff_pass = passIdx;
 
-				final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === sr1C)].SIDE = 'left';
+				final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === bindoff_p_C)].SIDE = 'left';
 			}
 			shaped_rows.push(';short row section');
 			shaped_rows.push(`;row: ${first_short_row}`); //new //check
@@ -3057,7 +3075,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			let carriers_defined = false;
 			let shortrow_colors = carriers.filter((el) => !short_row_carriers.includes(el));
 			if (!errors) {
-				if (shortrow_colors.length < 3 && !carriers.includes(draw_thread)) { //TODO: make back pass an extra seed pass instead to comply with pattern
+				if (shortrow_colors.length < 3 && !carriers.includes(draw_thread)) { //TODO: make sure shouldn't check for bindoff_p_C here //TODO: make back pass an extra seed pass instead to comply with pattern
 					if (shortrow_colors.length === 1) {
 						let carrier_idx = new_carriers.indexOf(shortrow_colors[0]);
 						short_row_carriers.splice(short_row_carriers.indexOf(draw_thread), 1);
@@ -3065,6 +3083,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 						carriers_defined = true;
 					} else {
 						let left_carrier = findCarrierOnSide('left', first_short_row, bindoff_pass);
+						// let left_carrier = findCarrierOnSide('left', first_short_row, bindoff_pass+1); //remove //debug //beep! //?
 
 						if (left_carrier !== undefined) {
 							let carrier_idx = new_carriers.indexOf(left_carrier);
@@ -3078,11 +3097,15 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 					short_row_carriers.splice(short_row_carriers.indexOf(draw_thread), 1);
 				}
 			}
+
+			console.log('find 4:', findCarrierSide('4', first_short_row, bindoff_pass)); //remove //debug
 			if (!carriers_defined) {
+				// if (bindoff_pass !== undefined && short_row_carriers.includes(el)) 
+
 				new_carriers = new_carriers.filter((el) => !short_row_carriers.includes(el));
 
 				for (let i = 0; i < tracked_carriers.length; ++i) {
-					if (findCarrierSide(tracked_carriers[i], first_short_row, bindoff_pass) === 'right' && new_carriers.includes(tracked_carriers[i])) {
+					if (findCarrierSide(tracked_carriers[i], first_short_row, bindoff_pass+1) === 'right' && new_carriers.includes(tracked_carriers[i]) && tracked_carriers[i] !== bindoff_p_C) { //bindoff_pass+1 //? //new //*
 						let carrier_idx = new_carriers.indexOf(tracked_carriers[i]);
 						let replacement_carrier = short_row_carriers.splice(carrier_idx, 1, tracked_carriers[i]);
 						new_carriers.splice(carrier_idx, 1, replacement_carrier);
@@ -3107,6 +3130,8 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 					new_carriers.splice(splice_start, new_carriers.length - splice_start);
 				}
 			}
+
+			console.log('new_carriers:', new_carriers, 'short_row_carriers:', short_row_carriers); //remove //debug //beep
 			
 			//TODO: add in something similar for if more than 3 carriers ARE used in body (but only 3 in shortrowsection so OK), to make it so if it ends up on left, add in extra pass to make it end up on right
 			xtra_neg_carriers = xtra_neg_carriers.filter((c) => short_row_carriers.includes(c) || new_carriers.includes(c));
@@ -3126,12 +3151,12 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			let bp_count = 3;
 
 			for (let c = 0; c < tracked_carriers.length; ++c) { //TODO: make this only for color carriers
-				if (new_carriers.includes(tracked_carriers[c]) && findCarrierSide(tracked_carriers[c], first_short_row, bindoff_pass) === 'right') {
+				if (new_carriers.includes(tracked_carriers[c]) && findCarrierSide(tracked_carriers[c], first_short_row, bindoff_pass) === 'right' && tracked_carriers[c] !== bindoff_p_C) { //bindoff_pass+1 //?
 					shaped_rows.push(`;pass: back ;-;${tracked_carriers[c]};${Xright_needle};${Xleft_needle}`);
 					let mod = bp_count;
 					if (bpBed === 'f') mod = 1;
 
-					console.log('adding back pass.'); //debug
+					console.log(`adding (-) back pass for carrier ${tracked_carriers[c]} (@ line 3159).`); //debug
 					let emptyOffset = false;
 
 					for (let n = Xright_needle; n >= Xleft_needle; --n) {
@@ -3150,7 +3175,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 					let mod = bp_count;
 					if (bpBed === 'f') mod = 1;
 
-					console.log('adding back pass.'); //debug
+					console.log(`adding (+) back pass for carrier ${tracked_carriers[c]} (@ line 3178).`); //debug
 					let emptyOffset = false;
 
 					for (let n = Xleft_needle; n <= Xright_needle; ++n) {
@@ -3180,7 +3205,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				let mod = 3;
 				if (bpBed === 'f') mod = 1;
 
-				console.log('adding back pass.'); //debug
+				console.log(`adding (+) back pass for carrier ${bpBindC} (@ line 3208).`); //debug
 				let emptyOffset = false;
 
 				for (let n = Xleft_needle; n <= Xright_needle; ++n) {
@@ -3216,19 +3241,22 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			}
 			cookieCutter(Xleft_needle, Xright_needle, carriers, carriers);
 			shaped_rows.push(cookie);
-
+			
 			let left_carriers = [];
+			// let left_carriers = [bindoff_carrier];
 			let right_carriers = [];
-
+			
+			console.log('first_short_row:', first_short_row, 'bindoff_pass:', bindoff_pass); //remove //debug //beep
 			find_dir: for (let y = first_short_row; y < rows.length; ++y) {
 				if (left_carriers.length + right_carriers.length === new_carriers.length) break find_dir;
 				parse_pass: for (let i = 0; i < rows[y].length; ++i) {
 					if (y === first_short_row) {
 						if (bp_bindoff.length > 0 && bindoff_pass > i) {
 							continue parse_pass;
-						} else if (bindoff_pass >= i) continue parse_pass;
-					}
-					if (rows[y][i].some((el) => el.includes(' - '))) {
+						} else if (bindoff_pass >= i) continue parse_pass; //go back! //?
+					} //else if (bindoff_pass >= i) continue parse_pass;
+					// if (rows[y][i].some((el) => el.includes(' - '))) {
+					if (rows[y][i].some((el) => el.includes('knit - '))) { //TODO: check //beep //new
 						let opC;
 
 						findLastKnitC: for (let o = rows[y][i].length - 1; o >= 0; --o) {
@@ -3243,11 +3271,12 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 								if (!back_passLpos.some(el => el[1] == opC)) back_passLpos.push([y, opC, back_passLpos.length]);
 							} else {
 								if (!back_passLpos.some(el => el[1] == new_carriers[short_row_carriers.indexOf(opC)])) back_passLpos.push([y, new_carriers[short_row_carriers.indexOf(opC)], back_passLpos.length]);
-							}
+							} //beep
 
 							left_carriers.push(opC);
 						}
-					} else if (rows[y][i].some((el) => el.includes(' + '))) {
+					// } else if (rows[y][i].some((el) => el.includes(' + '))) {
+					} else if (rows[y][i].some((el) => el.includes('knit + '))) { //new //check //beep
 						let opC;
 
 						findLastKnitC: for (let o = rows[y][i].length - 1; o >= 0; --o) {
@@ -3259,7 +3288,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 
 						if (!left_carriers.includes(opC) && !right_carriers.includes(opC)) {
 							if (short_row_carriers.includes(opC)) {
-								if (!back_passRneg.some(el => el[1] == opC)) back_passRneg.push([y, opC, back_passRneg.length]); //beep
+								if (!back_passRneg.some(el => el[1] == opC)) back_passRneg.push([y, opC, back_passRneg.length]);
 							} else {
 								if (!back_passRneg.some(el => el[1] == short_row_carriers[new_carriers.indexOf(opC)])) back_passRneg.push([y, short_row_carriers[new_carriers.indexOf(opC)], back_passRneg.length]);
 							}	
@@ -3268,6 +3297,8 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 					}
 				}
 			}
+
+			console.log('left:', left_carriers, 'right:', right_carriers); //remove //debug //beep
 			
 			for (let c = 0; c < new_carriers.length; ++c) {
 				if (carriers.includes(new_carriers[c]) && shortrow_colors.includes(new_carriers[c])) {
@@ -3315,7 +3346,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 								if (back_passLpos[c][2] === 2) mod = 3;
 								if (bpBed === 'f') mod = 1;
 
-								console.log('adding back pass.'); //debug
+								console.log(`adding (+) back pass for carrier ${back_passLpos[c][1]} (@ line 3349).`); //debug
 								let emptyOffset = false;
 
 								for (let n = Xleft_needle; n <= Xright_needle; ++n) {
@@ -3360,7 +3391,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 								if (back_passRneg[c][2] === 2) mod = 4;
 								if (bpBed === 'f') mod = 1;
 
-								console.log('adding back pass.'); //debug
+								console.log(`adding (-) back pass for carrier ${back_passRneg[c][1]} (@ line 3394).`); //debug
 								let emptyOffset = false;
 
 								for (let n = short_Xright_needle; n >= short_Xleft_needle; --n) {
