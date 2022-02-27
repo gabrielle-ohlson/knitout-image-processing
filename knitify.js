@@ -76,12 +76,14 @@ if (fs.existsSync('./prompt-answers/knitify/answers.json')) {
 	main_stitch_number = stitch_number;
 	speed_number = Number(promptAnswers['speed_number']);
 	let wasteSettings = promptAnswers['wasteSettings']; //TODO: check about null
-	if (wasteSettings.length) {
+
+	if (Object.keys(wasteSettings).length) {
 		waste_stitch = Number(wasteSettings['waste_stitch']);
 		waste_speed = Number(wasteSettings['waste_speed']);
 		waste_roller = Number(wasteSettings['waste_roller']);
 		waste_rows = Number(wasteSettings['waste_rows']);
 	}
+
 	back_style = promptAnswers['back_style'];
 	//TODO: stitch pattern answers
 	stData = promptAnswers['stData']; //?
