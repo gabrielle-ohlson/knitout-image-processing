@@ -1895,7 +1895,7 @@ resolvePromises()
 					bindoff.push('rack 0');
 					if (x !== xfer_needle) {
 						if (x > xfer_needle + 3) {
-							if ((x-xfer_needle) === 30) bindoff.push('x-add-roller-advance -500'); //new //TODO: //check on machine
+							if ((x-xfer_needle) === 30) bindoff.push('x-add-roller-advance -100'); //new //TODO: //check on machine
 							else bindoff.push('x-add-roller-advance -50'); ////to have 0 roller-advance for tuck
 						}
 						bindoff.push(`drop b${x - 1}`);
@@ -1926,7 +1926,7 @@ resolvePromises()
 					bindoff.push('rack 0');
 					if (x !== xfer_needle + count - 1) {
 						if (x < xfer_needle + count - 4) {
-							if (((xfer_needle + count)-x) === 30) bindoff.push('x-add-roller-advance -500'); //new //TODO: //check on machine //TODO: maybe just have all of them be -500 (or -200) after this point? or maybe start -20 after 10?
+							if (((xfer_needle + count)-x) === 30) bindoff.push('x-add-roller-advance -100'); //new //TODO: //check on machine //TODO: maybe just have all of them be -500 (or -200) after this point? or maybe start -20 after 10?
 							else bindoff.push('x-add-roller-advance -50');
 						}
 						bindoff.push(`drop b${x + 1}`);

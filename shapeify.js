@@ -1196,10 +1196,10 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
 				xfer_section.push('rack 0');
 				if (x !== xfer_needle) {
 					if (x > xfer_needle + 3) {
-						if (bindoff_time && x > xfer_needle + 20) {
-							if (x === xfer_needle+21) xfer_section.push('x-roller-advance 10'); //new //check
-							xfer_section.push('x-add-roller-advance -300'); //+10 & -200 instead //?
-						}
+						if (bindoff_time && x === xfer_needle + 30) xfer_section.push('x-add-roller-advance -100'); //new //check
+						// if (bindoff_time && x > xfer_needle + 20) {
+						// 	if (x === xfer_needle+21) xfer_section.push('x-roller-advance 10'); //new //check
+						// 	// xfer_section.push('x-add-roller-advance -300'); //+10 & -200 instead //?
 						else xfer_section.push('x-add-roller-advance -50');
 					}
 					xfer_section.push(`drop b${x - 1}`);
@@ -1232,10 +1232,11 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
 				xfer_section.push('rack 0');
 				if (x !== xfer_needle + count - 1) {
 					if (x < xfer_needle + count - 4) {
-						if (bindoff_time && x < xfer_needle + count - 21) {
-							if (x === xfer_needle+count-22) xfer_section.push('x-roller-advance 10'); //new //check
-							xfer_section.push('x-add-roller-advance -300'); //-11 & -200 instead //?
-						}
+						if (x === xfer_needle+count-30) xfer_section.push('x-add-roller-advance -100'); //new //check
+						// if (bindoff_time && x < xfer_needle + count - 21) {
+						// 	if (x === xfer_needle+count-22) xfer_section.push('x-roller-advance 10'); //new //check
+						// 	// xfer_section.push('x-add-roller-advance -300'); //-11 & -200 instead //?
+						// }
 						else xfer_section.push('x-add-roller-advance -50');
 					}
 					xfer_section.push(`drop b${x + 1}`);
