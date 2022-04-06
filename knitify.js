@@ -1895,11 +1895,14 @@ resolvePromises()
 					bindoff.push('rack 0');
 					if (x !== xfer_needle) {
 						if (x > xfer_needle + 3) {
-							if ((x-xfer_needle) === 30) bindoff.push('x-add-roller-advance -100'); //new //TODO: //check on machine
-							else bindoff.push('x-add-roller-advance -50'); ////to have 0 roller-advance for tuck
+							if ((x-xfer_needle) < 60) bindoff.push('x-add-roller-advance -50'); //TODO: try this
+							else if ((x-xfer_needle) === 60) bindoff.push('x-roller-advance 0');
+							// if ((x-xfer_needle) === 80) bindoff.push('x-add-roller-advance -100'); //new //TODO: //check on machine //30 //?
+							// else bindoff.push('x-add-roller-advance -50'); ////to have 0 roller-advance for tuck
 						}
 						bindoff.push(`drop b${x - 1}`);
 					}
+					if ((x-xfer_needle) >= 60) bindoff.push('x-add-roller-advance 50'); //TODO: try this
 					bindoff.push(`knit + b${x + 1} ${bindoff_carrier}`);
 					if (x < xfer_needle + count - 2) bindoff.push(`tuck - b${x} ${bindoff_carrier}`);
 					if (x === xfer_needle + 3) bindoff.push(`drop b${xfer_needle - 1}`); ////don't drop fix tuck until 3 bindoffs (& let it form a loop for extra security) //check 3
@@ -1926,11 +1929,14 @@ resolvePromises()
 					bindoff.push('rack 0');
 					if (x !== xfer_needle + count - 1) {
 						if (x < xfer_needle + count - 4) {
-							if (((xfer_needle + count)-x) === 30) bindoff.push('x-add-roller-advance -100'); //new //TODO: //check on machine //TODO: maybe just have all of them be -500 (or -200) after this point? or maybe start -20 after 10?
-							else bindoff.push('x-add-roller-advance -50');
+							if (((xfer_needle + count)-x) < 60) bindoff.push('x-add-roller-advance -50'); //TODO: try this
+							else if (((xfer_needle + count)-x) === 60) bindoff.push('x-roller-advance 0');
+							// if (((xfer_needle + count)-x) === 80) bindoff.push('x-add-roller-advance -100'); //new //TODO: //check on machine //TODO: maybe just have all of them be -500 (or -200) after this point? or maybe start -20 after 10? //30 //?
+							// else bindoff.push('x-add-roller-advance -50');
 						}
 						bindoff.push(`drop b${x + 1}`);
 					}
+					if (((xfer_needle + count)-x) >= 60) bindoff.push('x-add-roller-advance 50'); //TODO: try this
 					bindoff.push(`knit - b${x - 1} ${bindoff_carrier}`);
 					if (x > xfer_needle + 1) bindoff.push(`tuck + b${x} ${bindoff_carrier}`);
 					if (x === xfer_needle + count - 4) bindoff.push(`drop b${xfer_needle + count}`); ////don't drop fix tuck until 3 bindoffs (& let it form a loop for extra security) //check 4

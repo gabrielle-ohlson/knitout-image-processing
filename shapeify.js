@@ -1196,7 +1196,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
 				xfer_section.push('rack 0');
 				if (x !== xfer_needle) {
 					if (x > xfer_needle + 3) {
-						if (bindoff_time && x === xfer_needle + 30) xfer_section.push('x-add-roller-advance -100'); //new //check
+						if (bindoff_time && x === xfer_needle + 80) xfer_section.push('x-add-roller-advance -100'); //new //check //30 //?
 						// if (bindoff_time && x > xfer_needle + 20) {
 						// 	if (x === xfer_needle+21) xfer_section.push('x-roller-advance 10'); //new //check
 						// 	// xfer_section.push('x-add-roller-advance -300'); //+10 & -200 instead //?
@@ -1232,7 +1232,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
 				xfer_section.push('rack 0');
 				if (x !== xfer_needle + count - 1) {
 					if (x < xfer_needle + count - 4) {
-						if (x === xfer_needle+count-30) xfer_section.push('x-add-roller-advance -100'); //new //check
+						if (x === xfer_needle+count-80) xfer_section.push('x-add-roller-advance -100'); //new //check //30 //?
 						// if (bindoff_time && x < xfer_needle + count - 21) {
 						// 	if (x === xfer_needle+count-22) xfer_section.push('x-roller-advance 10'); //new //check
 						// 	// xfer_section.push('x-add-roller-advance -300'); //-11 & -200 instead //?
@@ -2017,45 +2017,193 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 	xtype = undefined; //reset for now in case no xfers
 
 	if (r !== 0) {
-		insertLl8r = insertRl8r = true;
+		insertLl8r = false;
+		insertRl8r = false;
+		// insertLl8r = insertRl8r = true;
 
-		let lastKnitLn;
-		findKnitPass: for (let i = 0; i < rows[r].length; ++i) { //first pass
-			lastKnitLn = rows[r][i].slice().reverse().find(ln => ln.includes('knit '));
-			if (lastKnitLn) {
-				break findKnitPass;
+		// let lastKnitLn;
+		// findKnitPass: for (let i = 0; i < rows[r].length; ++i) { //first pass
+		// 	lastKnitLn = rows[r][i].slice().reverse().find(ln => ln.includes('knit '));
+		// 	if (lastKnitLn) {
+		// 		break findKnitPass;
+		// 	}
+		// }
+
+		// let default_bindC = lastKnitLn.charAt(lastKnitLn.length - 1);
+
+		left_bindC = undefined;
+		right_bindC = undefined;
+
+		// left_bindC = right_bindC = lastKnitLn.charAt(lastKnitLn.length - 1);
+
+		// Object.defineProperties(prevRowPassInfo, {
+		// 	'findNeg': { get: function() { return Object.values(this).filter(info => info[info.length-1].direction === '-'); } },
+		// 	'findPos': { get: function() { return Object.values(this).filter(info => info.some(el => el.direction === '+')); } }
+		// 	// 'findPos': { set: function(x) { this.a = x / 2; } }
+		// });
+		// let currRowPassInfo = rows[r].flat().find(ln => ln.includes(';pass: '));
+
+		let prevRowPassInfo = rows[r-1].flat().filter(ln => ln.includes(';pass: '));
+
+		left_bindC = prevRowPassInfo.reverse().find(ln => ln.includes(';-;'));
+
+		right_bindC = prevRowPassInfo.reverse().find(ln => ln.includes(';+;'));
+
+		if (left_bindC) {
+			left_bindC = left_bindC.split(';')[3];
+			let bindC_passes = prevRowPassInfo.filter(ln => ln.split(';')[3] == left_bindC);
+
+			if (!bindC_passes[bindC_passes.length - 1].includes(';-;')) {
+				left_bindC = undefined;
+				insertLl8r = true;
 			}
+			// if (prevRowPassInfo.filter(ln => ln.includes(`;-;${left_bindC}`)).length > 1) insertLl8r = true;
+		} else insertLl8r = true;
+
+		if (right_bindC) {
+			right_bindC = right_bindC.split(';')[3];
+
+			if (insertLl8r) left_bindC = right_bindC; //if insertLl8r = true, we know that right_bindC is correct
+			else {
+				let bindC_passes = prevRowPassInfo.filter(ln => ln.split(';')[3] == right_bindC);
+
+				if (!bindC_passes[bindC_passes.length - 1].includes(';+;')) {
+					right_bindC = left_bindC;
+					insertRl8r = true;
+				}
+			// if (prevRowPassInfo.filter(ln => ln.includes(`;-;${left_bindC}`)).length > 1) insertLl8r = true;
+			}
+		} else {
+			right_bindC = left_bindC;
+			insertRl8r = true;
 		}
 
-		left_bindC = right_bindC = lastKnitLn.charAt(lastKnitLn.length - 1);
+		// if (insertLl8r) {
+		// 	let insertL8rInfo = currRowPassInfo.reverse().find(ln => ln.includes(';-;')); //first occurrence will be the correct direction
 
-		for (let i = 0; i < rows[r - 1].length; ++i) {
-			if (rows[r - 1][i].some((el) => el.includes(' - '))) {
-				findKnit: for (let ln = rows[r - 1][i].length - 1; ln >= 0; --ln) {
-					let ln_op = rows[r - 1][i][ln];
-					if (ln_op.includes('knit ')) {
-						left_bindC = ln_op.charAt(ln_op.length - 1);
-						break findKnit;
-					}
-				}
+		// 	insertL8rP = currRowPassInfo.indexOf(insertL8rInfo);
+		// 	left_bindC = insertL8rInfo.split(';')[2];
+		// } else if (insertRl8r) {
+		// 	let insertL8rInfo = currRowPassInfo.reverse().find(ln => ln.includes(';+;')); //first occurrence will be the correct direction
 
-				insertLl8r = false; 
+		// 	insertL8rP = currRowPassInfo.indexOf(insertL8rInfo);
+		// 	right_bindC = insertL8rInfo.split(';')[2];
+		// }
 
-				if (insertRl8r === false && left_bindC === right_bindC) insertRl8r = true;
-			} else if (rows[r - 1][i].some((el) => el.includes(' + '))) {
-				findKnit: for (let ln = rows[r - 1][i].length - 1; ln >= 0; --ln) {
-					let ln_op = rows[r - 1][i][ln];
-					if (ln_op.includes('knit ')) {
-						right_bindC = ln_op.charAt(ln_op.length - 1);
-						break findKnit;
-					}
-				}
 
-				insertRl8r = false;
 
-				if (insertLl8r === false && left_bindC === right_bindC) insertLl8r = true;
-			}
-		}
+
+		// function getRowInfo(rowIdx) {
+		// 	let rowPassInfo = {};
+
+		// 	Object.defineProperties(rowPassInfo, {
+		// 		'findNeg': { get: function() { return Object.entries(this).find(info => info[1][info[1].length-1].direction === '-'); } },
+		// 		'findPos': { get: function() { return Object.entries(this).find(info => info[1][info[1].length-1].direction === '+'); } }
+		// 		// 'findPos': { get: function() { return Object.values(this).find(info => info[info.length-1].direction === '+'); } },
+		// 		// 'findPos': { set: function(x) { this.a = x / 2; } }
+		// 	});
+
+		// 	for (let p = 0; p < rows[rowIdx].length; ++p) {
+		// 		findDirCarrier: for (let ln = 0; ln < rows[rowIdx][p].length; ++ln) {
+		// 			let info = rows[rowIdx][p][ln].split(' ');
+		// 			if (info[0] === ';pass:') { // ;pass: 1079 ;+;2;157;205
+		// 				info = info[2].split(';');
+		// 				if (!info[2] in rowPassInfo) rowPassInfo[info[2]] = [];
+		// 				rowPassInfo[info[2]].push({'passIdx': p, 'direction': info[1]});
+		// 				// prevRowPassInfo.push([info[1], info[2]]);
+		// 				break findDirCarrier;
+		// 			} else if (info[0] === 'knit') {
+		// 				if (!info[3] in rowPassInfo) rowPassInfo[info[3]] = [];
+		// 				rowPassInfo[info[3]].push({'passIdx': p, 'direction': info[1]});
+		// 				// prevRowPassInfo.push([info[1], info[3]]);
+		// 				break findDirCarrier;
+		// 			}
+		// 		}
+		// 	}
+
+		// 	return rowPassInfo;
+		// }
+
+		// // let currRowPassInfo = {};
+		// let prevRowPassInfo = getRowInfo(r-1);
+
+		// left_bindC = prevRowPassInfo.findNeg;
+		// let posPassInfo = prevRowPassInfo.findPos;
+		// if (left_bindC) left_bindC = left_bindC.
+
+
+
+		// let negCs = prevRowPassInfo.findNeg;
+
+		// left_bind_C = prevRowPassInfo.
+		// // let left_C_passes = rows[r-1].filter(pass => pass.some(ln => ln.includes('knit - ')));
+
+		// if (left_C_passes.length > 1) {
+
+		// } else left_bindC = left_C_passes[0].find(ln => ln.includes('knit - ')).split(' ')[3];
+
+		// let left_bindC_pass = rows[r-1].find(pass => pass.some(ln => ln.includes('knit - ')));
+
+		// if (left_bindC_pass) left_bindC = left_bindC_pass.find(ln => ln.includes('knit - ')).split(' ')[3];
+		// else insertLl8r = true;
+		// // {
+		// // 	left_bindC = rows[r].find(pass => pass.some(ln => ln.includes('knit - ')));
+
+		// // 	if (left_bindC) {
+		// // 		left_bindC = left_bindC.split(' ')[3];
+
+		// // 		insertLl8r = true;
+		// // 	} else { //TODO: have it do a back pass before
+		// // 		console.log('will need back pass for left_bindC.'); //debug 
+		// // 	}
+		// // }
+
+		// // if (left_bindC) left_bindC = left_bindC.split(' ')[3];
+		// let right_bindC_pass = rows[r-1].find(pass => pass.some(ln => ln.includes('knit + ')));
+
+		// if (right_bindC_pass) {
+		// 	right_bindC = right_bindC_pass.find(ln => ln.includes('knit + ')).split(' ')[3];
+
+		// 	if (insertLl8r) {
+		// 		left_bindC = right_bindC;
+
+		// 		let bindC_passes = rows[r-1].filter(pass => pass.some(ln => ln.includes('knit ') && ln.includes(` ${right_bindC}`)));
+
+		// 		if (bindC_passes.length > 1) insertL8rP = rows[r-1].indexOf(bindC_passes[0]); //new //* //insert after first pass with this carrier to ensure direction is correct
+		// 		else insertL8rP = rows[r-1].length - 1;
+		// 	}
+		// } else {
+		// 	insertRl8r = true;
+		// 	right_bindC = left_bindC; // will end up on right side
+		// }
+
+		// for (let i = 0; i < rows[r - 1].length; ++i) {
+		// 	if (!left_bindC && rows[r - 1][i].some((el) => el.includes('knit - '))) { //new //knit -
+		// 		findKnit: for (let ln = rows[r - 1][i].length - 1; ln >= 0; --ln) {
+		// 			let ln_op = rows[r - 1][i][ln];
+		// 			if (ln_op.includes('knit ')) {
+		// 				left_bindC = ln_op.charAt(ln_op.length - 1);
+		// 				break findKnit;
+		// 			}
+		// 		}
+
+		// 		// insertLl8r = false; 
+
+		// 		// if (insertRl8r === false && left_bindC === right_bindC) insertRl8r = true;
+		// 	} else if (rows[r - 1][i].some((el) => el.includes('knit + '))) { //new //knit
+		// 		findKnit: for (let ln = rows[r - 1][i].length - 1; ln >= 0; --ln) {
+		// 			let ln_op = rows[r - 1][i][ln];
+		// 			if (ln_op.includes('knit ')) {
+		// 				right_bindC = ln_op.charAt(ln_op.length - 1);
+		// 				break findKnit;
+		// 			}
+		// 		}
+
+		// 		insertRl8r = false;
+
+		// 		if (insertLl8r === false && left_bindC === right_bindC) insertLl8r = true;
+		// 	}
+		// }
 	} else {
 		xfer_row_interval = shaping_arr[0].ROW;
 	}
@@ -2096,6 +2244,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 		if (xtype === 'inc' && !double_bed) {
 			cleanInc(r);
 		}
+		shaped_rows.push(`;shaping for row ${r+1}`);
 		insertXferPasses(XleftN, XrightN, xtype, r);
 		shaped_rows.push(xfer_section);
 		xfer_section = [];
@@ -2307,18 +2456,56 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 		}
 	}
 
+	// let insertL8rP;
+	let insertLShift = 0, insertRShift = 0;
+
+	if (insertLl8r) {
+		if (insertLinc) insertLShift = insertLinc;
+		else if (xtype == 'dec' && left_xfer_count > 2) insertLShift = -left_xfer_count;
+		// else insertLl8r = false; //new //check
+		// insertLShift = (insertLinc ? insertLinc : -left_xfer_count);
+	} else if (insertRl8r) {
+		if (insertRinc) insertRShift = -insertRinc;
+		else if (xtype == 'dec' && right_xfer_count > 2) insertRShift = right_xfer_count;
+		// else insertRl8r = false; //new //check
+		// insertRShift = (insertRinc ? -insertRinc : right_xfer_count);
+	}
+
 
 	if (!warning) {
 		for (let i = r; i < r + xfer_row_interval; ++i) {
 			shaped_rows.push(`;row: ${i+1}`); //new //check
 
-			let insertL8rP = 0;
+			let insertL8rP;
 			for (let p = 0; p < rows[i].length; ++p) {
+				let pass_carrier = (rows[i][p][0].includes(';pass: ') ? rows[i][p][0].split(';')[3] : undefined);
+
+				// rows[i][p][1].charAt(rows[i][p][1].length - 1));
+
+				// let pass_carrier = (rows[i][p][0].includes(';pass: ') ? rows[i][p][0].charAt(rows[i][p][0].length - 1) : rows[i][p][1].charAt(rows[i][p][1].length - 1));
+
+				if (insertL8rP === undefined && (insertLl8r && pass_carrier == left_bindC) || (insertRl8r && pass_carrier === right_bindC)) insertL8rP = p; //new //* //beep
+
+				if (!pass_carrier) {
+					pass_carrier = rows[i][p].find(ln => ln.includes('knit '));
+
+					if (pass_carrier) pass_carrier = pass_carrier.split(' ')[3];
+				}
+
 				if (shortrow_time && back_passLpos.length > 0) {
-					let pass_carrier = (rows[i][p][0].includes(';pass: ') ? rows[i][p][0].charAt(rows[i][p][0].length - 1) : rows[i][p][1].charAt(rows[i][p][1].length - 1));
+					// let pass_carrier = (rows[i][p][0].includes(';pass: ') ? rows[i][p][0].split(';')[3] : undefined);
+
+					// if (insertL8rP === undefined && (insertLl8r && pass_carrier == left_bindC) || (insertRl8r && pass_carrier === right_bindC)) insertL8rP = p; //new //* //beep
+
+					// if (!pass_carrier) {
+					// 	pass_carrier = rows[i][p].find(ln => ln.includes('knit '));
+
+					// 	if (pass_carrier) pass_carrier = pass_carrier.split(' ')[3];
+					// }
+
 					let leftover_carriers = [...back_passLpos];
 					for (let c = 0; c < back_passLpos.length; ++c) {
-						if (i === back_passLpos[c][0] && (pass_carrier === back_passLpos[c][1] || pass_carrier === short_row_carriers[new_carriers.indexOf(back_passLpos[c][1])])) {
+						if (i === back_passLpos[c][0] && (pass_carrier == back_passLpos[c][1] || pass_carrier == short_row_carriers[new_carriers.indexOf(back_passLpos[c][1])])) {
 							shaped_rows.push(`;pass: back ;+;${back_passLpos[c][1]};${Xleft_needle};${Xright_needle}`);
 							let mod = 4;
 							if (back_passLpos[c][2] === 1) mod = 5;
@@ -2344,7 +2531,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 					back_passLpos = leftover_carriers;
 				}
 				cookie = rows[i][p];
-				cookieCutter(Xleft_needle, Xright_needle, short_row_carriers, new_carriers, p);
+				cookieCutter(Xleft_needle+insertLShift, Xright_needle+insertRShift, short_row_carriers, new_carriers, p);
 
 				if (xtype === 'inc' && twist !== undefined) {
 					let pass_roller_advance, twist_roller;
@@ -2555,44 +2742,52 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 						}
 					}
 				}
+
+				shaped_rows.push(cookie);
 				
 				if (p === insertL8rP && insertl8r_arr.length) {
-					if (p === 0) {
-						if (insertLl8r) {
-							insertLeft = (insertLinc ? insertLinc : -left_xfer_count);
-							insertRight = 0;
-						} else {
-							insertRight = (insertRinc ? -insertRinc : right_xfer_count);
-							insertLeft = 0;
-						}
-					}
+					shaped_rows.push(insertl8r_arr);
+					insertl8r_arr = [];
+
+					insertLShift = 0;
+					insertRShift = 0;
+
+					// if (p === 0) {
+					// 	if (insertLl8r) {
+					// 		insertLeft = (insertLinc ? insertLinc : -left_xfer_count);
+					// 		insertRight = 0;
+					// 	} else {
+					// 		insertRight = (insertRinc ? -insertRinc : right_xfer_count);
+					// 		insertLeft = 0;
+					// 	}
+					// }
 
 					// if (rows[i][p][0].includes(';xfer')) { //beep//beep
-					if (rows[i][p].some(ln => ln.includes('xfer'))) { //beep//beep
-						console.log('debug:', rows[i][p][0], i, p); //remove //debug //beep
-						++insertL8rP;
-					} else {
-						if (insertLl8r) {
-							bind_nextL = true;
-							cookie = rows[i][p]; //reset it
-							cookieCutter(Xleft_needle+insertLeft, Xright_needle, short_row_carriers, new_carriers, p);
+				// 	if (rows[i][p].some(ln => ln.includes('xfer'))) { //beep//beep
+				// 		console.log('debug:', rows[i][p][0], i, p); //remove //debug //beep
+				// 		++insertL8rP;
+				// 	} else {
+				// 		if (insertLl8r) {
+				// 			// bind_nextL = true;
+				// 			cookie = rows[i][p]; //reset it
+				// 			cookieCutter(Xleft_needle+insertLeft, Xright_needle, short_row_carriers, new_carriers, p);
 
-							insertLeft = 0;
-							bind_nextL = false;
-						} else if (insertRl8r) {
-							bind_nextR = true;
-							cookie = rows[i][p]; //reset it
-							cookieCutter(Xleft_needle, Xright_needle+insertRight, short_row_carriers, new_carriers, p);
+				// 			insertLeft = 0;
+				// 			bind_nextL = false;
+				// 		} else if (insertRl8r) {
+				// 			bind_nextR = true;
+				// 			cookie = rows[i][p]; //reset it
+				// 			cookieCutter(Xleft_needle, Xright_needle+insertRight, short_row_carriers, new_carriers, p);
 
-							insertRight = 0;
-							bind_nextR = false;
-						}
-						shaped_rows.push(cookie, insertl8r_arr);
-						insertl8r_arr = [];
-					}
-				} else {
-					shaped_rows.push(cookie);
+				// 			insertRight = 0;
+				// 			bind_nextR = false;
+				// 		}
+				// 		shaped_rows.push(cookie, insertl8r_arr);
+				// 		insertl8r_arr = [];
+				// 	}
 				}
+				
+				// shaped_rows.push(cookie);
 			}
 		}
 	} else {
@@ -2633,51 +2828,75 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				}
 			}
 
-			if (shortrow_time && Math.abs(first_short_row-r) === 1) {
-				let c_keys = Object.keys(carrier_track[left_bindC]);
-				let most_recent = c_keys.reverse().find(el => Number(el) <= first_short_row);
+			if (back_passRneg.length && back_passRneg.some(el => el[0] === r && el[1] == left_bindC)) {
+				insertLl8r = true; //new //check
+			}
+
+			// if (shortrow_time && Math.abs(first_short_row-r) === 1) {
+			// 	let c_keys = Object.keys(carrier_track[left_bindC]);
+			// 	let most_recent = c_keys.reverse().find(el => Number(el) <= first_short_row);
 				
-				let bindC_side = carrier_track[left_bindC][most_recent].side;
+			// 	let bindC_side = carrier_track[left_bindC][most_recent].side;
 
-				if (bindC_side !== 'left') insertLl8r = true;
+			// 	if (bindC_side !== 'left') insertLl8r = true;
 
-				//now again for right side
-				c_keys = Object.keys(carrier_track[right_bindC]);
-				most_recent = c_keys.reverse().find(el => Number(el) <= first_short_row);
+			// 	//now again for right side
+			// 	c_keys = Object.keys(carrier_track[right_bindC]);
+			// 	most_recent = c_keys.reverse().find(el => Number(el) <= first_short_row);
 
-				bindC_side = carrier_track[right_bindC][most_recent].side;
+			// 	bindC_side = carrier_track[right_bindC][most_recent].side;
 
-				if (bindC_side !== 'right') insertRl8r = true;
-			} 
+			// 	if (bindC_side !== 'right') insertRl8r = true;
+			// } 
 
 			if (xtype === 'inc' && !double_bed) cleanInc(r); //?
+
+			insert_arr.push(`;shaping for short row ${r+1}`);
 			
 			insertXferPasses(XleftN, XrightN, xtype, r);
-
+			
 			insert_arr.push(xfer_section);
 			xfer_section = [];
 		}
 		xtype === 'dec' ? (short_Xleft_needle += left_xfer_count) : (short_Xleft_needle -= left_xfer_count);
 		xtype === 'dec' ? (short_Xright_needle -= right_xfer_count) : (short_Xright_needle += right_xfer_count);
+
+		let insertLShift = 0, insertRShift = 0; //TODO: maybe add this logic to main/left side
+
+		if (insertLl8r) {
+			if (insertLinc) insertLShift = insertLinc;
+			else if (xtype == 'dec' && left_xfer_count > 2) insertLShift = -left_xfer_count;
+			// else insertLl8r = false; //new //check
+			// insertLShift = (insertLinc ? insertLinc : -left_xfer_count);
+		} else if (insertRl8r) {
+			if (insertRinc) insertRShift = -insertRinc;
+			else if (xtype == 'dec' && right_xfer_count > 2) insertRShift = right_xfer_count;
+			// else insertRl8r = false; //new //check
+			// insertRShift = (insertRinc ? -insertRinc : right_xfer_count);
+		}
+		
 		for (let i = r; i < r + xfer_row_interval; ++i) {
-			let insertL8rP = 0;
+			let insertL8rP;
 
 			let backpass_Cs = [];
 
 			for (let p = 0; p < rows[i].length; ++p) {
-				let insertLeftX = 0, insertRightX = 0; //TODO: maybe add this logic to main/left side
-				
-				if (insertl8r_arr.length) {
-					if (insertLl8r) insertLeftX = (insertLinc ? insertLinc : -left_xfer_count);
-					else insertRightX = (insertRinc ? -insertRinc : right_xfer_count);
+				let pass_carrier = (rows[i][p][0].includes(';pass: ') ? rows[i][p][0].split(';')[3] : undefined);
+
+				if (insertL8rP === undefined && (insertLl8r && pass_carrier == left_bindC) || (insertRl8r && pass_carrier === right_bindC)) insertL8rP = p;
+
+				if (!pass_carrier) {
+					pass_carrier = rows[i][p].find(ln => ln.includes('knit '));
+
+					if (pass_carrier) pass_carrier = pass_carrier.split(' ')[3];
 				}
 
+
 				if (back_passRneg.length) {
-					let pass_carrier = (rows[i][p][0].includes(';pass: ') ? rows[i][p][0].charAt(rows[i][p][0].length - 1) : rows[i][p][1].charAt(rows[i][p][1].length - 1));
 					let leftover_carriers = [...back_passRneg];
 
 					for (let c = 0; c < back_passRneg.length; ++c) {
-						if (i === back_passRneg[c][0] && (pass_carrier === back_passRneg[c][1] || pass_carrier === new_carriers[short_row_carriers.indexOf(back_passRneg[c][1])])) {
+						if (i === back_passRneg[c][0] && (pass_carrier == back_passRneg[c][1] || pass_carrier == new_carriers[short_row_carriers.indexOf(back_passRneg[c][1])])) {
 							backpass_Cs.push(back_passRneg[c][1]);
 
 							insert_arr.push(`;pass: back ;-;${back_passRneg[c][1]};${short_Xright_needle};${short_Xleft_needle}`);
@@ -2689,16 +2908,22 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 							console.log(`adding (-) back pass for carrier ${back_passRneg[c][1]} (@ line 2688).`); //debug
 							let emptyOffset = false;
 
-							for (let n = short_Xright_needle+insertRightX; n >= short_Xleft_needle+insertLeftX; --n) {
+							for (let n = short_Xright_needle+insertRShift; n >= short_Xleft_needle+insertLShift; --n) {
 								if (!patternEmptyNeedles[r + 1] || !patternEmptyNeedles[r + 1].includes(`${bpBed}${n}`)) {
-									if (n === short_Xright_needle+insertRightX || n === short_Xleft_needle+insertLeftX) insert_arr.push(`knit - ${bpBed}${n} ${back_passRneg[c][1]}`);
+									if (n === short_Xright_needle+insertRShift || n === short_Xleft_needle+insertLShift) insert_arr.push(`knit - ${bpBed}${n} ${back_passRneg[c][1]}`);
 									else if (n % mod === 0 || emptyOffset) insert_arr.push(`knit - ${bpBed}${n} ${back_passRneg[c][1]}`);
 									
 									emptyOffset = false;
 								} else emptyOffset = true;
 							}
 
-							if (insertLl8r && back_passRneg[c][1] === left_bindC) insertLeftX = 0; //reset, since want the left-most needle in `cookie` to be post-xfer value
+							if (insertLl8r && left_bindC == back_passRneg[c][1] && insertl8r_arr.length) { //new //*
+								insert_arr.push(insertl8r_arr);
+								insertl8r_arr = [];
+
+								insertLShift = 0;
+								insertRShift = 0;
+							}
 
 							leftover_carriers.splice(leftover_carriers.indexOf(back_passRneg[c]), 1);
 						}
@@ -2707,7 +2932,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				}
 
 				cookie = rows[i][p];
-				cookieCutter(short_Xleft_needle+insertLeftX, short_Xright_needle+insertRightX, new_carriers, short_row_carriers, p);
+				cookieCutter(short_Xleft_needle+insertLShift, short_Xright_needle+insertRShift, new_carriers, short_row_carriers, p);
 
 				if (xtype === 'inc' && twist !== undefined) {
 					let pass_roller_advance, twist_roller;
@@ -2917,21 +3142,31 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 					}
 				}
 
-				if (insertl8r_arr.length && ((insertLl8r && cookie_carrier == left_bindC) || (insertRl8r && cookie_carrier == right_bindC))) { //*
-					insertL8rP = p; //new
+				insert_arr.push(cookie);
 
-					if (rows[i][p].some(el => el.includes('xfer'))) { //beep!
-						console.log('!debug', rows[i][p], i, p); //remove //debug
-						++insertL8rP;
-					}
+				if (p === insertL8rP && insertl8r_arr.length) {
+					insert_arr.push(insertl8r_arr);
+					insertl8r_arr = [];
 
-					// if (rows[i][p][0].includes(';xfer')) ++insertL8rP; //TODO: && insertL8rP !== rows[i].length-1
-					else {						
-						if (insertLl8r && backpass_Cs.includes(cookie_carrier)) insert_arr.push(insertl8r_arr, cookie);
-						else insert_arr.push(cookie, insertl8r_arr); 
-						insertl8r_arr = [];
-					}
-				} else insert_arr.push(cookie);
+					insertLShift = 0;
+					insertRShift = 0;
+				}
+
+				// if (insertl8r_arr.length && ((insertLl8r && cookie_carrier == left_bindC) || (insertRl8r && cookie_carrier == right_bindC))) { //*
+				// 	insertL8rP = p; //new
+
+				// 	if (rows[i][p].some(el => el.includes('xfer'))) { //beep!
+				// 		console.log('!debug', rows[i][p], i, p); //remove //debug
+				// 		++insertL8rP;
+				// 	}
+
+				// 	// if (rows[i][p][0].includes(';xfer')) ++insertL8rP; //TODO: && insertL8rP !== rows[i].length-1
+				// 	else {						
+				// 		if (insertLl8r && backpass_Cs.includes(cookie_carrier)) insert_arr.push(insertl8r_arr, cookie);
+				// 		else insert_arr.push(cookie, insertl8r_arr); 
+				// 		insertl8r_arr = [];
+				// 	}
+				// } else insert_arr.push(cookie);
 			}
 		}
 
@@ -3025,13 +3260,12 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				}
 			}
 
-			console.log('final_carrier_pos:', JSON.stringify(final_carrier_pos)); //remove //debug
 			let bp_bindoff = [];
 			if (bindoff_pass === undefined) {
 				let passIdx = 0;
 
 				checkForXferPass: for (let p = 0; p < rows[first_short_row].length; ++p) {
-					if (rows[first_short_row][p].some(el => el.includes('xfer'))) { //beep//beep
+					if (rows[first_short_row][p].some(el => el.includes('xfer'))) { //?
 						console.log('!!debug!!', rows[first_short_row][p], first_short_row, p); //remove //debug
 						passIdx += 1;
 					}
@@ -3099,7 +3333,6 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				}
 			}
 
-			console.log('find 4:', findCarrierSide('4', first_short_row, bindoff_pass)); //remove //debug
 			if (!carriers_defined) {
 				// if (bindoff_pass !== undefined && short_row_carriers.includes(el)) 
 
@@ -3298,8 +3531,6 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 					}
 				}
 			}
-
-			console.log('left:', left_carriers, 'right:', right_carriers); //remove //debug //beep
 			
 			for (let c = 0; c < new_carriers.length; ++c) {
 				if (carriers.includes(new_carriers[c]) && shortrow_colors.includes(new_carriers[c])) {
