@@ -10,10 +10,10 @@ const patternLibrary = require('./stitch-pattern-library.js');
 let frontOnlyPatterns = patternLibrary.frontOnlyPatterns;
 
 let xfer_speed = 300;
-let waste_stitch = 6,
+let waste_stitch = 5, //6
 	waste_speed = 400,
 	waste_roller = 150,
-	waste_rows = 35;
+	waste_rows = 40; //35
 let stData, patternCarriers = [], patternNeedles = [], patterns = [], includesPattern = false, needlesToAvoid = [];
 let patAvoidNs = {}; //new //*
 let tuckAvoid = [[], []], patAvoidIdx = 0, patTuckIdx = 1, tuckAvoidCs = [], avoidObj = {false: 0, true: 1};
@@ -88,6 +88,7 @@ if (fs.existsSync('./prompt-answers/knitify/answers.json')) {
 	//TODO: stitch pattern answers
 	stData = promptAnswers['stData']; //?
 	caston_carrier = Number(promptAnswers['caston_carrier']);
+
 	if (caston_carrier) user_specified_carriers.push(caston_carrier); //new //check
 
 	waste_carrier = Number(promptAnswers['waste_carrier']);
@@ -138,7 +139,7 @@ if (fs.existsSync('./prompt-answers/knitify/answers.json')) {
 	if (saveAnswers) promptAnswers['speed_number'] = speed_number; //new //*
 	
 	let wasteSettings = {};
-	if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to change any of the default settings for the waste section? (DEFAULT stitch number: 6, speed number: 400, roller advance: 150, rows: 35)}`)) { //TODO: have rows as an option too
+	if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to change any of the default settings for the waste section? (DEFAULT stitch number: 5, speed number: 400, roller advance: 150, rows: 40)}`)) { //TODO: have rows as an option too
 		let new_waste_stitch = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the waste section stitch number as? }`, {
 			defaultInput: -1,
 			// limit: Number,
@@ -335,9 +336,18 @@ resolvePromises()
 				},
 				limitMessage: chalk.red('-- $<lastInput> is not a number between 1 and 6.'),
 			});
-			caston_carrier === '-1' ? ((console.log(chalk.green(`-- Cast-on carrier : UNSPECIFIED, will assign default value (background color)`))), (caston_carrier = undefined)) : ((caston_carrier = Number(caston_carrier)), (console.log(chalk.green(`-- Cast-on carrier: ${caston_carrier}`))));
-			if (caston_carrier) user_specified_carriers.push(caston_carrier);
-			if (saveAnswers) promptAnswers['caston_carrier'] = caston_carrier; //new //*
+
+			if (caston_carrier === '-1') {
+				console.log(chalk.green(`-- Cast-on carrier : UNSPECIFIED, will assign default value (background color)`));
+				caston_carrier = undefined;
+			} else {
+				caston_carrier = Number(caston_carrier);
+				console.log(chalk.green(`-- Cast-on carrier: ${caston_carrier}`));
+				user_specified_carriers.push(caston_carrier);
+			}
+			// caston_carrier === '-1' ? ((console.log(chalk.green(`-- Cast-on carrier : UNSPECIFIED, will assign default value (background color)`))), (caston_carrier = undefined)) : ((caston_carrier = Number(caston_carrier)), (console.log(chalk.green(`-- Cast-on carrier: ${caston_carrier}`))));
+			// if (caston_carrier) user_specified_carriers.push(caston_carrier);
+			if (saveAnswers) promptAnswers['caston_carrier'] = caston_carrier;
 
 			waste_carrier = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step and use the default carrier [1])} {blue.bold Which carrier would you like to use for the waste section? }`, {
 				defaultInput: -1,
@@ -346,12 +356,21 @@ resolvePromises()
 				},
 				limitMessage: chalk.red('-- $<lastInput> is not a number between 1 and 6.'),
 			});
-			waste_carrier === '-1' ? ((console.log(chalk.green(`-- Waste carrier : UNSPECIFIED, will assign default value: 1`))), (waste_carrier = undefined)) : ((waste_carrier = Number(waste_carrier)), (console.log(chalk.green(`-- Waste carrier: ${waste_carrier}`))));
-			if (waste_carrier) user_specified_carriers.push(waste_carrier);
-			if (saveAnswers) promptAnswers['waste_carrier'] = waste_carrier; //new //*
 
-			let ribPrompt = {}; //new //*
-			if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to add rib?}`)) { //?
+			if (waste_carrier === '-1') {
+				console.log(chalk.green(`-- Waste carrier : UNSPECIFIED, will assign default value: 1`));
+				waste_carrier = undefined;
+			} else {
+				waste_carrier = Number(waste_carrier);
+				console.log(chalk.green(`-- Waste carrier: ${waste_carrier}`));
+				user_specified_carriers.push(waste_carrier);
+			}
+			// waste_carrier === '-1' ? ((console.log(chalk.green(`-- Waste carrier : UNSPECIFIED, will assign default value: 1`))), (waste_carrier = undefined)) : ((waste_carrier = Number(waste_carrier)), (console.log(chalk.green(`-- Waste carrier: ${waste_carrier}`))));
+			// if (waste_carrier) user_specified_carriers.push(waste_carrier);
+			if (saveAnswers) promptAnswers['waste_carrier'] = waste_carrier;
+
+			let ribPrompt = {};
+			if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to add rib?}`)) {
 				rib = true;
 
 				let rib_bot_opts = [];
@@ -485,6 +504,11 @@ resolvePromises()
 		let pass_count = 0;
 		let leftovers = [],
 			stored_leftovers = [];
+
+		const NEGLECTED = Array.from(new Array(pieceWidth), (x, i) => i + 1); //new //* //beep
+		
+		let neglected_needles = [...NEGLECTED],
+			stored_needles = []; //new //* //beep
 		knitout.push(`;row: ${row_count}`);
 		if (passes_per_row[row_count - 1] >= 5) { //// - 1 since starting from 1 not 0 for row count
 			knitout.push('x-roller-advance 0');
@@ -495,15 +519,29 @@ resolvePromises()
 		let taken, inhook, neg_carrier, end_needle, dir_caston;
 		let back_needles = [];
 
-		if (!caston_carrier) { //new if no caston carrier specified //*//*//*
-			if (jacquard_passes[0].some((p) => p[1] == background)) caston_carrier = background;
-			else {
+		if (!caston_carrier) { //if no caston carrier specified
+			// if (jacquard_passes[0].some((p) => p[1] == background)) {
+			if (rows[0].some((p) => p[0][1] == background)) {
+				caston_carrier = background; //TODO: check this
+				console.log(`using background color for caston carrier: ${caston_carrier}.`);
+			} else {
 				if (rib_bottom !== null) caston_carrier = rib_bottom;
-				else caston_carrier = jacquard_passes[0][0][1];
+				else {
+					let max_len = -Infinity;
+
+					rows[0].forEach(function(a, i) {
+  					if (a.length > max_len) {
+    					max_len = a.length;
+    					caston_carrier = a[0][1];
+  					}
+					});
+
+					console.log(`using dominant row 1 color for caston carrier: ${caston_carrier}.`);
+				}
 			}
 		}
 
-		if (!waste_carrier) waste_carrier = jacquard_passes[0][0][1]; //new if no waste carrier specified //*//*//*
+		if (!waste_carrier) waste_carrier = jacquard_passes[0][0][1]; //if no waste carrier specified
 
 		const ODD_CASTON = (x, dir, dir_caston) => {
 			// x % 2 !== 0 ? dir_caston.push(`knit ${dir} f${x} ${jacquard_passes[0][0][1]}`) : dir_caston.push(`knit ${dir} b${x} ${jacquard_passes[0][0][1]}`);
@@ -648,6 +686,7 @@ resolvePromises()
 			} //finishedPatIds
 
 			if ((passes_per_row[row_count - 1] === 6 && pass_count === 2) || (passes_per_row[row_count - 1] === 5 && pass_count === 1)) {
+				// if (passes_per_row[row_count - 1] === 6) knitout.push(';six passes'); //remove //debug
 				knitout.push('x-roller-advance 150');
 				roller_advance = 150;
 			}
@@ -906,7 +945,14 @@ resolvePromises()
 							if (edge_needlesL.length === 0) edge_needlesL = [...edge_L];
 							if (edge_needlesR.length === 0) edge_needlesR = [...edge_R];
 						}
+						// if ((dir === '+' && x === 1) || (dir === '-' && x === pieceWidth)) {
 						if ((dir === '+' && x === 1) || (dir === '-' && x === pieceWidth)) {
+							if (pass_count === 0) {
+								stored_needles = [...new Set([...stored_needles, ...neglected_needles])];
+								// stored_needles = [...neglected_needles]; //new //* //beep
+								neglected_needles = [...NEGLECTED]; //new //* //beep
+							}
+
 							stored_leftovers = [...new Set([...stored_leftovers, ...leftovers])];
 							leftovers = [];
 							edgeL_done = false;
@@ -917,10 +963,18 @@ resolvePromises()
 								if (!edgeL_done && edge_L.includes(x)) {
 									if (pass_count <= 3 && x % back_mod === pass_count) {
 										knitout.push(notFrontOp);
+
+										if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //new //* //beep
+										if (stored_needles.includes(x)) stored_needles.splice(stored_needles.indexOf(x), 1); //new //* //beep
+
 										if (edge_needlesL.includes(x)) edge_needlesL.splice(edge_needlesL.indexOf(x), 1);
 										edgeL_done = true;
 									} else if (x === edge_needlesL[0]) {
 										knitout.push(notFrontOp.replace(`${x} ${carrier}`, `${edge_needlesL[0]} ${carrier}`));
+
+										if (neglected_needles.includes(edge_needlesL[0])) neglected_needles.splice(neglected_needles.indexOf(edge_needlesL[0]), 1); //new //* //beep
+										if (stored_needles.includes(edge_needlesL[0])) stored_needles.splice(stored_needles.indexOf(edge_needlesL[0]), 1); //new //* //beep
+
 										// knitout.push(`${backOp} ${dir} b${edge_needlesL[0]} ${carrier}`);
 										edge_needlesL.shift();
 										edgeL_done = true;
@@ -932,40 +986,63 @@ resolvePromises()
 								} else if (!edgeR_done && edge_R.includes(x)) {
 									if (pass_count <= 3 && x % back_mod === pass_count) {
 										knitout.push(notFrontOp);
+
+										if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //new //* //beep
+										if (stored_needles.includes(x)) stored_needles.splice(stored_needles.indexOf(x), 1); //new //* //beep
+
 										if (edge_needlesR.includes(x)) edge_needlesR.splice(edge_needlesR.indexOf(x), 1);
 										edgeR_done = true;
 									} else if (x === edge_needlesR[0]) {
 										knitout.push(notFrontOp.replace(`${x} ${carrier}`, `${edge_needlesR[0]} ${carrier}`));
+
+										if (neglected_needles.includes(edge_needlesR[0])) neglected_needles.splice(neglected_needles.indexOf(edge_needlesR[0]), 1); //new //* //beep
+										if (stored_needles.includes(edge_needlesR[0])) stored_needles.splice(stored_needles.indexOf(edge_needlesR[0]), 1); //new //* //beep
+
 										// knitout.push(`${backOp} ${dir} b${edge_needlesR[0]} ${carrier}`);
 										edge_needlesR.shift();
 										edgeR_done = true;
 									}
 									
-									if (stored_leftovers.includes(x)) {
-										stored_leftovers.splice(stored_leftovers.indexOf(x), 1);
-									}
+									// if (stored_leftovers.includes(x)) {
+									// 	stored_leftovers.splice(stored_leftovers.indexOf(x), 1);
+									// }
 								}
 							} else {
 								edge_needlesL.includes(x) ? (edgeL_done = true) : (edgeR_done = true);
 							}
 						} else {
-							if (x % back_mod === pass_count) {
-								if (!taken) {
+							// if (carrier == 6 && !taken) console.log(x, back_mod, pass_count, x % back_mod === pass_count, stored_leftovers.includes(x), (x % back_mod === pass_count || stored_leftovers.includes(x))); //remove //debug
+							if (!taken) {
+								if (x % back_mod === pass_count) {
 									knitout.push(notFrontOp);
-									if (stored_leftovers.includes(x)) {
-										stored_leftovers.splice(stored_leftovers.indexOf(x), 1);
-									}
-								} else {
-									leftovers.push(x);
-								}
-							} else if (stored_leftovers.includes(x)) {
-								if (!taken) {
+
+									if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //new //* //beep
+									if (stored_needles.includes(x)) stored_needles.splice(stored_needles.indexOf(x), 1); //new //* //beep
+								} else if (stored_needles.includes(x)) {
 									knitout.push(notFrontOp);
-									stored_leftovers.splice(stored_leftovers.indexOf(x), 1);
+
+									stored_needles.splice(stored_needles.indexOf(x), 1);
 								}
-							} else {
-								leftovers.push(x);
 							}
+							// if (x % back_mod === pass_count) {
+							// 	if (!taken) {
+							// 		knitout.push(notFrontOp);
+
+							// 		if (stored_leftovers.includes(x)) {
+							// 			stored_leftovers.splice(stored_leftovers.indexOf(x), 1);
+							// 		}
+							// 	} else {
+							// 		leftovers.push(x);
+							// 	}
+							// } else if (stored_leftovers.includes(x)) {
+							// 	if (!taken) {
+							// 		knitout.push(notFrontOp);
+							// 		stored_leftovers.splice(stored_leftovers.indexOf(x), 1);
+							// 		if (leftovers.includes(x)) leftovers.splice(leftovers.indexOf(x), 1); //new //beep
+							// 	}
+							// } else {
+							// 	leftovers.push(x);
+							// }
 						}
 					} else { //Default or birdseye //TODO: figure out what's happening with birdseye
 						if (!taken && !stitchOnly) {

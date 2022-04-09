@@ -10,6 +10,10 @@ node_modules/
 *.jpeg
 *.bmp
 
+*.PNG
+*.JPG
+*.JPEG
+
 #exlude all k-code and knitout files
 *.kc
 *.k

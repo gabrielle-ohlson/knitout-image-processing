@@ -30,7 +30,7 @@ readlineSync.promptLoop(function (input) {
 		return /\.json$/i.test(input);
 	}
 });
-if (preloadFile) { //TODO: have option of still asking prompt in one of the keys is missing fom the preloaded file
+if (preloadFile) { //TODO: have option of still asking prompt if one of the keys is missing fom the preloaded file
 	console.log(chalk.green(`-- Reading prompt answers from: ${preloadFile}`));
 	promptAnswers = JSON.parse(fs.readFileSync('./prompt-answers/knitify/answers.json'));
 
@@ -64,7 +64,7 @@ if (preloadFile) { //TODO: have option of still asking prompt in one of the keys
 
 	readlineSync.setDefaultOptions({ prompt: '' });
 	if (img) console.log(chalk`{blue.italic \n(press Enter to scale stitches according to img dimensions)}`);
-	if (saveAnswers) promptAnswers['img'] = img; //new //*
+	if (saveAnswers) promptAnswers['img'] = img;
 
 	needle_count = readlineSync.questionInt(chalk.blue.bold('How many stitches wide? '), {
 		defaultInput: -1, //new
@@ -72,14 +72,14 @@ if (preloadFile) { //TODO: have option of still asking prompt in one of the keys
 		limitMessage: chalk.red('-- $<lastInput> is not a number.'),
 	});
 	needle_count = Number(needle_count);
-	needle_count === -1 ? console.log(chalk.green('-- Needle count: AUTO')) : console.log(chalk.green(`-- Needle count: ${needle_count}`)); //new
+	needle_count === -1 ? console.log(chalk.green('-- Needle count: AUTO')) : console.log(chalk.green(`-- Needle count: ${needle_count}`));
 	if (needle_count === -1) needle_count = Jimp.AUTO;
-	if (saveAnswers) promptAnswers['needle_count'] = needle_count; //new //*
+	if (saveAnswers) promptAnswers['needle_count'] = needle_count;
 
 	// console.log(chalk.green(`-- Needle count: ${needle_count}`));
 	//TODO: maybe limit needle_count and row_count to whole numbers (and limit needle_count to >0) ? or could just do .toFixed
 
-	if (img) console.log(chalk`{blue.italic \n(press Enter to scale rows according to img dimensions)}`);
+	if (img) console.log(chalk`{blue.italic \n(Either input an exact row count, press Enter to scale rows according to needle count for true img dimensions, or input a float number for a specific scale.)}`); //new
 	row_count = readlineSync.question(chalk`{blue.bold How many rows long?} `, {
 	// row_count = readlineSync.question(chalk`{blue.bold \nHow many rows long?} {blue.italic (press Enter to scale rows according to img dimensions) }`, { //TODO: remove default/enter if using only stitch pattern
 		defaultInput: -1,
@@ -87,12 +87,21 @@ if (preloadFile) { //TODO: have option of still asking prompt in one of the keys
 		limitMessage: chalk.red('-- $<lastInput> is not a number.'),
 	});
 	row_count = Number(row_count);
-	row_count === -1 ? console.log(chalk.green('-- Row count: AUTO')) : console.log(chalk.green(`-- Row count: ${row_count}`));
-	if (row_count === -1) row_count = Jimp.AUTO;
-	if (saveAnswers) {
-		promptAnswers['row_count'] = row_count; //new //*
 
-		fs.writeFileSync('./prompt-answers/knitify/saved.json', JSON.stringify(promptAnswers), { flag: 'w' }); //new //*
+	if (row_count % 1 !== 0) { //scale
+		console.log(chalk.green(`-- Row count scale: ${row_count}`));
+	} else {
+		if (row_count === -1) {
+			console.log(chalk.green('-- Row count: AUTO'));
+			row_count = Jimp.AUTO;
+		} else console.log(chalk.green(`-- Row count: ${row_count}`));
+		// row_count === -1 ? console.log(chalk.green('-- Row count: AUTO')) : console.log(chalk.green(`-- Row count: ${row_count}`));
+	}
+	// if (row_count === -1) row_count = Jimp.AUTO;
+	if (saveAnswers) {
+		promptAnswers['row_count'] = row_count;
+
+		fs.writeFileSync('./prompt-answers/knitify/saved.json', JSON.stringify(promptAnswers), { flag: 'w' });
 	}
 	if (fs.existsSync('./prompt-answers/knitify/answers.json')) {
 		readlineSync.keyInYNStrict(chalk.black.bgYellow(`! WARNING:`) + ` The program is about to delete the file 'answers.json' located in the '/prompt-answers/knitify' folder. Please rename the file now if you will to keep it.\nReady to proceed?`);
@@ -116,7 +125,15 @@ if (fs.existsSync(colorwork_path)) {
 if (img) {
 	Jimp.read(`./in-colorwork-images/${img}`, (err, image) => {
 		if (err) throw err;
-		if (needle_count == -1 && row_count == -1) row_count = image.getHeight(); //if both auto (so Jimp doesn't throw an error)
+		let img_width = image.getWidth();
+		let img_height = image.getHeight();
+		if (needle_count == -1 && row_count == -1) row_count = img_height; //if both auto (so Jimp doesn't throw an error)
+		else if (row_count % 1 !== 0) {
+			let scale = needle_count/img_width;
+			row_count = Math.round(img_height*scale*row_count);
+			console.log(`scaled row_count is: ${row_count}.`);
+		}
+
 		image.resize(needle_count, row_count).write(colorwork_path);
 	});
 } else { //if just stitch pattern
