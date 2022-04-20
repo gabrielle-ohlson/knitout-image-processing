@@ -838,6 +838,8 @@ resolvePromises()
 				inhook = true;
 			}
 			const knitoutLines = (x, last) => {
+				let needle_done = false;
+
 				let notFrontOp = `knit ${dir} b${x} ${carrier}`; //new //*
 				// let backOp = 'knit'; //new //*
 				// let otherBed = 'b';
@@ -859,15 +861,20 @@ resolvePromises()
 				if (front !== undefined) {
 					knitout.push(`knit ${dir} f${front[0]} ${carrier}`);
 					taken = true;
+					needle_done = true; //new
 				} else {
 					taken = false;
 				}
 
 				if (Object.keys(patAvoidNs).length) {
 					if (Object.values(patAvoidNs).some(arr => arr.includes(x) || (typeof arr[patAvoidIdx] === 'object' && arr[patAvoidIdx].includes(x)))) {
-						if (x === end_needle && !taken && !knitout[knitout.length - 1].includes(`b${end_needle}`)) { //new //check
-							knitout.push(`miss ${dir} f${x} ${carrier}`);
+						if (x === end_needle && !needle_done) {
+							knitout.push(`miss ${dir} b${x} ${carrier}`);
+							needle_done = true;
 						}
+						// if (x === end_needle && !taken && !knitout[knitout.length - 1].includes(`b${end_needle}`)) { //new //check
+						// 	knitout.push(`miss ${dir} b${x} ${carrier}`);
+						// }
 						return;
 					}
 				}
@@ -895,6 +902,7 @@ resolvePromises()
 				if (placement_pass && double_bed) { //* //? //check //come back!
 					// knitout.push(`knit ${dir} b${x} ${carrier}`);
 					knitout.push(notFrontOp); //new //*
+					needle_done = true;
 					back_needles.push(x); //check //remove //? or keep? //TODO: maybe add this for Secure/Minimal?
 				} else {
 					if (back_style === 'Ladderback') {
@@ -904,37 +912,45 @@ resolvePromises()
 							if (i % 4 === 0) {
 								if (x % 4 === 1) {
 									knitout.push(notFrontOp);
+									needle_done = true;
 									back_needles.push(x);
 								} else {
 									if (missing_needles.includes(x)) {
 										knitout.push(notFrontOp);
+										needle_done = true;
 									}
 								}
 							} else if (i % 4 === 1) {
 								if (x % 4 === 2) {
 									knitout.push(notFrontOp);
+									needle_done = true;
 									back_needles.push(x);
 								} else {
 									if (missing_needles.includes(x)) {
 										knitout.push(notFrontOp);
+										needle_done = true;
 									}
 								}
 							} else if (i % 4 === 2) {
 								if (x % 4 === 3) {
 									knitout.push(notFrontOp);
+									needle_done = true;
 									back_needles.push(x);
 								} else {
 									if (missing_needles.includes(x)) {
 										knitout.push(notFrontOp);
+										needle_done = true;
 									}
 								}
 							} else if (i % 4 === 3) {
 								if (x % 4 === 0) {
 									knitout.push(notFrontOp);
+									needle_done = true;
 									back_needles.push(x);
 								} else {
 									if (missing_needles.includes(x)) {
 										knitout.push(notFrontOp);
+										needle_done = true;
 									}
 								}
 							}
@@ -963,6 +979,7 @@ resolvePromises()
 								if (!edgeL_done && edge_L.includes(x)) {
 									if (pass_count <= 3 && x % back_mod === pass_count) {
 										knitout.push(notFrontOp);
+										needle_done = true;
 
 										if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //new //* //beep
 										if (stored_needles.includes(x)) stored_needles.splice(stored_needles.indexOf(x), 1); //new //* //beep
@@ -971,6 +988,8 @@ resolvePromises()
 										edgeL_done = true;
 									} else if (x === edge_needlesL[0]) {
 										knitout.push(notFrontOp.replace(`${x} ${carrier}`, `${edge_needlesL[0]} ${carrier}`));
+										if (edge_needlesL[0] === x) needle_done = true;
+										// if (x === end_needle && edge_needlesL[0] !== end_needle) knitout.push(`miss ${dir} b${x} ${carrier}`); //new
 
 										if (neglected_needles.includes(edge_needlesL[0])) neglected_needles.splice(neglected_needles.indexOf(edge_needlesL[0]), 1); //new //* //beep
 										if (stored_needles.includes(edge_needlesL[0])) stored_needles.splice(stored_needles.indexOf(edge_needlesL[0]), 1); //new //* //beep
@@ -986,6 +1005,7 @@ resolvePromises()
 								} else if (!edgeR_done && edge_R.includes(x)) {
 									if (pass_count <= 3 && x % back_mod === pass_count) {
 										knitout.push(notFrontOp);
+										needle_done = true;
 
 										if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //new //* //beep
 										if (stored_needles.includes(x)) stored_needles.splice(stored_needles.indexOf(x), 1); //new //* //beep
@@ -994,6 +1014,7 @@ resolvePromises()
 										edgeR_done = true;
 									} else if (x === edge_needlesR[0]) {
 										knitout.push(notFrontOp.replace(`${x} ${carrier}`, `${edge_needlesR[0]} ${carrier}`));
+										if (edge_needlesR[0] === x) needle_done = true;
 
 										if (neglected_needles.includes(edge_needlesR[0])) neglected_needles.splice(neglected_needles.indexOf(edge_needlesR[0]), 1); //new //* //beep
 										if (stored_needles.includes(edge_needlesR[0])) stored_needles.splice(stored_needles.indexOf(edge_needlesR[0]), 1); //new //* //beep
@@ -1015,11 +1036,13 @@ resolvePromises()
 							if (!taken) {
 								if (x % back_mod === pass_count) {
 									knitout.push(notFrontOp);
+									needle_done = true;
 
 									if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //new //* //beep
 									if (stored_needles.includes(x)) stored_needles.splice(stored_needles.indexOf(x), 1); //new //* //beep
 								} else if (stored_needles.includes(x)) {
 									knitout.push(notFrontOp);
+									needle_done = true;
 
 									stored_needles.splice(stored_needles.indexOf(x), 1);
 								}
@@ -1049,34 +1072,43 @@ resolvePromises()
 							if (i % 2 === 0) {
 								if (x % 2 !== 0) {
 									knitout.push(notFrontOp);
+									needle_done = true;
 									back_needles.push(x);
 								} else {
 									let missing_needles = even_bird.filter((x) => back_needles.indexOf(x) === -1);
 									if (stored_leftovers) missing_needles = [...missing_needles, ...stored_leftovers];
 									if (missing_needles.includes(x) && i === prev_row + passes_per_row[row_count - 1] - 1) {
 										knitout.push(notFrontOp);
+										needle_done = true;
 										if (stored_leftovers) stored_leftovers.splice(stored_leftovers.indexOf(x), 1); //check //*
 									}
 								}
 							} else {
 								if (x % 2 === 0) {
 									knitout.push(notFrontOp);
+									needle_done = true;
 									back_needles.push(x);
 								} else {
 									let missing_needles = odd_bird.filter((x) => back_needles.indexOf(x) === -1);
 									if (stored_leftovers) missing_needles = [...missing_needles, ...stored_leftovers];
 									if (missing_needles.includes(x) && i === prev_row + passes_per_row[row_count - 1] - 1) {
 										knitout.push(notFrontOp);
+										needle_done = true;
 										if (stored_leftovers) stored_leftovers.splice(stored_leftovers.indexOf(x), 1); //check //*
 									}
 								}
 							}
 						}
 					}
-					if (x === end_needle && !taken && !knitout[knitout.length - 1].includes(`b${end_needle}`)) {
-						knitout.push(`miss ${dir} f${x} ${carrier}`);
-					}
+					// if (x === end_needle && !taken && !knitout[knitout.length - 1].includes(`b${end_needle}`)) {
+					// 	knitout.push(`miss ${dir} b${x} ${carrier}`);
+					// }
 				}
+				if (x === end_needle && !needle_done) {
+					knitout.push(`miss ${dir} b${end_needle} ${carrier}`);
+					needle_done = true;
+				}
+
 				if (inhook && x === last) {
 					knitout.push(`releasehook ${carrier}`);
 					inhook = false;
