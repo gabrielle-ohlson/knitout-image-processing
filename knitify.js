@@ -649,6 +649,7 @@ resolvePromises()
 
 				if (i !== 0) { //new
 					knitout.push(`;row: ${row_count}`);
+
 					if (passes_per_row[row_count - 1] >= 5) { // - 1 since starting from 1 not 0 for row count
 						knitout.push('x-roller-advance 0');
 						roller_advance = 0;
@@ -660,7 +661,7 @@ resolvePromises()
 					back_needles = [];
 				}
 			}
-
+			
 			if (tuckAvoid[0].length && !tuckAvoidCs.includes(carrier)) { //TODO: maybe change this //?
 				patAvoidIdx = avoidObj[!patAvoidIdx];
 				patTuckIdx = avoidObj[!patTuckIdx];
@@ -737,6 +738,8 @@ resolvePromises()
 				}
 
 				function bringInCarrierFromPattern(c, cIdx, direction) {
+					let end_needle_done = false;
+
 					if (patternCarriers.includes(c)) {
 						let start_needle = (direction === '-' ? pieceWidth : 1);
 						if (Math.abs(carrier_track[cIdx].END_NEEDLE - start_needle) > 4) {
@@ -744,12 +747,20 @@ resolvePromises()
 							knitout.push(';bring in carrier from pattern');
 							if (dir === '+') {
 								for (let n = bringInFrom; n >= start_needle; --n) { //negative because need to finish prev pass
-									if (n % 3 === 0) knitout.push(`knit - b${n} ${c}`);
+									if (n % 3 === 0) {
+										knitout.push(`knit - b${n} ${c}`);
+										if (n === 1) end_needle_done = true;
+									}
 								}
+								if (!end_needle_done) knitout.push(`miss - b1 ${c}`);
 							} else {
 								for (let n = bringInFrom; n <= start_needle; ++n) {
-									if (n % 3 === 0) knitout.push(`knit + b${n} ${c}`);
+									if (n % 3 === 0) {
+										knitout.push(`knit + b${n} ${c}`);
+										if (n === pieceWidth) end_neele_done = true;
+									}
 								}
+								if (!end_needle_done) knitout.push(`miss + b${pieceWidth} ${c}`);
 							}
 						}
 					}
@@ -806,21 +817,21 @@ resolvePromises()
 						colorwork_carriers.push(least_freq); //new
 					} else {
 						let least_idx = carrier_track.findIndex((obj) => obj.CARRIER === least_freq);
-
+						
 						bringInCarrierFromPattern(carrier_track[least_idx].CARRIER, least_idx, track_dir); //check
 
 						carrier_track[least_idx].DIR = track_dir;
 						carrier_track[least_idx].END_NEEDLE = tracked_end_needle;
 					}
 					if (track_dir === '+') {
-						for (let t = 1; t < pieceWidth; ++t) {
-							if (t === 1 || t === pieceWidth - 1 || t % Number(least_freq) === 0) {
+						for (let t = 1; t <= pieceWidth; ++t) {
+							if (t === 1 || t === pieceWidth || t % Number(least_freq) === 0) {
 								knitout.push(`knit + b${t} ${least_freq}`);
 							}
 						}
 					} else {
 						for (let t = pieceWidth; t >= 1; --t) {
-							if (t === 1 || t === pieceWidth - 1 || t % Number(least_freq) === 0) {
+							if (t === 1 || t === pieceWidth || t % Number(least_freq) === 0) {
 								knitout.push(`knit - b${t} ${least_freq}`);
 							}
 						}
