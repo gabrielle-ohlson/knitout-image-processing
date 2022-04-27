@@ -340,11 +340,6 @@ let in_file = fs
 for (let i = 0; i < in_file.length; ++i) {
 	in_file[i] = in_file[i].split('\n');
 	in_file[i] = in_file[i].filter((el) => !el.includes('ow:')); //;row (just just 'ow:' because split at ';r')
-
-	// in_file[i] = in_file[i].filter((el) => !el.includes('ow:') && el.trim().length); //;row (just just 'ow:' because split at ';r') //go back! //? //*
-
-	// let blank = in_file[i].filter(el => el.includes(';row:')); //go back! //?
-	// if (blank.length) console.log(blank, blank.length); //remove //debug
 }
 
 let caston_section = in_file.shift();
@@ -703,8 +698,7 @@ for (let i = 0; i < in_file.length; ++i) {
 			continue pass_loop;
 		}
 
-		// if (shapeifyIgnore || type.includes('x-') || (type === 'rack')) {
-			if (shapeifyIgnore || type.includes('x-') || type === 'rack' || type === 'pause' || type === 'xfer' || type === 'drop' || type.charAt[0] === ';') { //test //beep //new
+			if (shapeifyIgnore || type.includes('x-') || type === 'rack' || type === 'pause' || type === 'xfer' || type === 'drop' || type.charAt[0] === ';') { //test
 			pass.push(in_file[i][p]);
 			continue pass_loop;
 		}
@@ -1196,10 +1190,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
 				xfer_section.push('rack 0');
 				if (x !== xfer_needle) {
 					if (x > xfer_needle + 3) {
-						if (bindoff_time && x === xfer_needle + 80) xfer_section.push('x-add-roller-advance -100'); //new //check //30 //?
-						// if (bindoff_time && x > xfer_needle + 20) {
-						// 	if (x === xfer_needle+21) xfer_section.push('x-roller-advance 10'); //new //check
-						// 	// xfer_section.push('x-add-roller-advance -300'); //+10 & -200 instead //?
+						if (bindoff_time && x === xfer_needle + 80) xfer_section.push('x-add-roller-advance -100');
 						else xfer_section.push('x-add-roller-advance -50');
 					}
 					xfer_section.push(`drop b${x - 1}`);
@@ -1232,11 +1223,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
 				xfer_section.push('rack 0');
 				if (x !== xfer_needle + count - 1) {
 					if (x < xfer_needle + count - 4) {
-						if (x === xfer_needle+count-80) xfer_section.push('x-add-roller-advance -100'); //new //check //30 //?
-						// if (bindoff_time && x < xfer_needle + count - 21) {
-						// 	if (x === xfer_needle+count-22) xfer_section.push('x-roller-advance 10'); //new //check
-						// 	// xfer_section.push('x-add-roller-advance -300'); //-11 & -200 instead //?
-						// }
+						if (x === xfer_needle+count-80) xfer_section.push('x-add-roller-advance -100');
 						else xfer_section.push('x-add-roller-advance -50');
 					}
 					xfer_section.push(`drop b${x + 1}`);
@@ -1756,23 +1743,34 @@ let main_roller_advance = `x-roller-advance ${roller_advance}`;
 
 let left_xfer = true; //for now
 let right_xfer = true;
-let xtype, left_xfer_count, right_xfer_count, xfer_row_interval;
+// let xtype, left_xfer_count, right_xfer_count, xfer_row_interval; //TODO: //remove
+let left_xfer_count, right_xfer_count, xfer_row_interval;
+
+let xtypeL = null, xtypeR = null;
+
 function parseShape(arr, r) {
 	arr.some((element) => {
 		if (element.ROW === r) {
-			if (element.LEFT > 0 || element.RIGHT > 0) {
-				xtype = 'inc';
-			} else {
-				xtype = 'dec';
-			}
+			if (element.LEFT > 0) xtypeL = 'inc';
+			else if (element.LEFT < 0) xtypeL = 'dec';
+			else xtypeL = null;
+
+			if (element.RIGHT > 0) xtypeR = 'inc';
+			else if (element.RIGHT < 0) xtypeR = 'dec';
+			else xtypeR = null;
+			// if (element.LEFT > 0 || element.RIGHT > 0) { //TODO: //remove
+			// 	xtype = 'inc';
+			// } else {
+			// 	xtype = 'dec';
+			// }
 			left_xfer = right_xfer = false; //for now
 			left_xfer_count = right_xfer_count = 0; //for now
 			if (element.RIGHT !== 0) {
-				xtype === 'dec' ? (right_xfer_count = -element.RIGHT) : (right_xfer_count = element.RIGHT);
+				xtypeR === 'dec' ? (right_xfer_count = -element.RIGHT) : (right_xfer_count = element.RIGHT);
 				right_xfer = true;
 			}
 			if (element.LEFT !== 0) {
-				xtype === 'dec' ? (left_xfer_count = -element.LEFT) : (left_xfer_count = element.LEFT);
+				xtypeL === 'dec' ? (left_xfer_count = -element.LEFT) : (left_xfer_count = element.LEFT);
 				left_xfer = true;
 			}
 			if (arr.indexOf(element) < arr.length - 1) {
@@ -1810,7 +1808,7 @@ let insertLeft = 0, insertRight = 0;
 // let insertLeftX = 0, insertRightX = 0; //remove //?
 
 
-function insertXferPasses(left, right, xtype, r) {
+function insertXferPasses(left, right, xtype, r) { //TODO: check about split on both sides
 	insertLinc = undefined, insertRinc = undefined;
 
 	emptyRow = patternEmptyNeedles[r];
@@ -1819,13 +1817,13 @@ function insertXferPasses(left, right, xtype, r) {
 	let xfer_needle1, xcount1, xfer_needle2, xcount2, side, stitches1, stitches2;
 	let bg_arr1 = [...bg_needles]; //check if this becomes a problem for double bed inc
 	let bg_arr2 = [...bg_needles];
+
 	if (left === null) {
 		xfer_needle2 = xcount2 = stitches2 = null;
 		xfer_needle1 = right;
 		side = 'right';		
 		xcount1 = right_xfer_count + 2; //TODO: //check whether +2 for xcount is consistent when more than 2/3
 		stitches1 = right_xfer_count;
-
 		if (xtype === 'inc' && inc_method === 'split' && insertRl8r && right_xfer_count < 3) insertRinc = right_xfer_count;
 	} else {
 		if (right === null) {
@@ -1999,7 +1997,7 @@ shaped_rows.push(caston_section);
 
 if (!row1_small) {
 	for (let r = 0; r < xfer_row_interval; ++r) {
-		shaped_rows.push(`;row: ${r+1}`); //new //check
+		shaped_rows.push(`;row: ${r+1}`);
 		shaped_rows.push(rows[r]);
 	}
 } else {
@@ -2014,34 +2012,14 @@ let back_passRneg = [];
 
 //--- MAIN FUNCTION ---
 main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
-	xtype = undefined; //reset for now in case no xfers
+	xtypeL = null, xtypeR = null; //reset for now in case no xfers
 
 	if (r !== 0) {
 		insertLl8r = false;
 		insertRl8r = false;
-		// insertLl8r = insertRl8r = true;
-
-		// let lastKnitLn;
-		// findKnitPass: for (let i = 0; i < rows[r].length; ++i) { //first pass
-		// 	lastKnitLn = rows[r][i].slice().reverse().find(ln => ln.includes('knit '));
-		// 	if (lastKnitLn) {
-		// 		break findKnitPass;
-		// 	}
-		// }
-
-		// let default_bindC = lastKnitLn.charAt(lastKnitLn.length - 1);
 
 		left_bindC = undefined;
 		right_bindC = undefined;
-
-		// left_bindC = right_bindC = lastKnitLn.charAt(lastKnitLn.length - 1);
-
-		// Object.defineProperties(prevRowPassInfo, {
-		// 	'findNeg': { get: function() { return Object.values(this).filter(info => info[info.length-1].direction === '-'); } },
-		// 	'findPos': { get: function() { return Object.values(this).filter(info => info.some(el => el.direction === '+')); } }
-		// 	// 'findPos': { set: function(x) { this.a = x / 2; } }
-		// });
-		// let currRowPassInfo = rows[r].flat().find(ln => ln.includes(';pass: '));
 
 		let prevRowPassInfo = rows[r-1].flat().filter(ln => ln.includes(';pass: '));
 
@@ -2057,7 +2035,6 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				left_bindC = undefined;
 				insertLl8r = true;
 			}
-			// if (prevRowPassInfo.filter(ln => ln.includes(`;-;${left_bindC}`)).length > 1) insertLl8r = true;
 		} else insertLl8r = true;
 
 		if (right_bindC) {
@@ -2071,139 +2048,11 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 					right_bindC = left_bindC;
 					insertRl8r = true;
 				}
-			// if (prevRowPassInfo.filter(ln => ln.includes(`;-;${left_bindC}`)).length > 1) insertLl8r = true;
 			}
 		} else {
 			right_bindC = left_bindC;
 			insertRl8r = true;
 		}
-
-		// if (insertLl8r) {
-		// 	let insertL8rInfo = currRowPassInfo.reverse().find(ln => ln.includes(';-;')); //first occurrence will be the correct direction
-
-		// 	insertL8rP = currRowPassInfo.indexOf(insertL8rInfo);
-		// 	left_bindC = insertL8rInfo.split(';')[2];
-		// } else if (insertRl8r) {
-		// 	let insertL8rInfo = currRowPassInfo.reverse().find(ln => ln.includes(';+;')); //first occurrence will be the correct direction
-
-		// 	insertL8rP = currRowPassInfo.indexOf(insertL8rInfo);
-		// 	right_bindC = insertL8rInfo.split(';')[2];
-		// }
-
-
-
-
-		// function getRowInfo(rowIdx) {
-		// 	let rowPassInfo = {};
-
-		// 	Object.defineProperties(rowPassInfo, {
-		// 		'findNeg': { get: function() { return Object.entries(this).find(info => info[1][info[1].length-1].direction === '-'); } },
-		// 		'findPos': { get: function() { return Object.entries(this).find(info => info[1][info[1].length-1].direction === '+'); } }
-		// 		// 'findPos': { get: function() { return Object.values(this).find(info => info[info.length-1].direction === '+'); } },
-		// 		// 'findPos': { set: function(x) { this.a = x / 2; } }
-		// 	});
-
-		// 	for (let p = 0; p < rows[rowIdx].length; ++p) {
-		// 		findDirCarrier: for (let ln = 0; ln < rows[rowIdx][p].length; ++ln) {
-		// 			let info = rows[rowIdx][p][ln].split(' ');
-		// 			if (info[0] === ';pass:') { // ;pass: 1079 ;+;2;157;205
-		// 				info = info[2].split(';');
-		// 				if (!info[2] in rowPassInfo) rowPassInfo[info[2]] = [];
-		// 				rowPassInfo[info[2]].push({'passIdx': p, 'direction': info[1]});
-		// 				// prevRowPassInfo.push([info[1], info[2]]);
-		// 				break findDirCarrier;
-		// 			} else if (info[0] === 'knit') {
-		// 				if (!info[3] in rowPassInfo) rowPassInfo[info[3]] = [];
-		// 				rowPassInfo[info[3]].push({'passIdx': p, 'direction': info[1]});
-		// 				// prevRowPassInfo.push([info[1], info[3]]);
-		// 				break findDirCarrier;
-		// 			}
-		// 		}
-		// 	}
-
-		// 	return rowPassInfo;
-		// }
-
-		// // let currRowPassInfo = {};
-		// let prevRowPassInfo = getRowInfo(r-1);
-
-		// left_bindC = prevRowPassInfo.findNeg;
-		// let posPassInfo = prevRowPassInfo.findPos;
-		// if (left_bindC) left_bindC = left_bindC.
-
-
-
-		// let negCs = prevRowPassInfo.findNeg;
-
-		// left_bind_C = prevRowPassInfo.
-		// // let left_C_passes = rows[r-1].filter(pass => pass.some(ln => ln.includes('knit - ')));
-
-		// if (left_C_passes.length > 1) {
-
-		// } else left_bindC = left_C_passes[0].find(ln => ln.includes('knit - ')).split(' ')[3];
-
-		// let left_bindC_pass = rows[r-1].find(pass => pass.some(ln => ln.includes('knit - ')));
-
-		// if (left_bindC_pass) left_bindC = left_bindC_pass.find(ln => ln.includes('knit - ')).split(' ')[3];
-		// else insertLl8r = true;
-		// // {
-		// // 	left_bindC = rows[r].find(pass => pass.some(ln => ln.includes('knit - ')));
-
-		// // 	if (left_bindC) {
-		// // 		left_bindC = left_bindC.split(' ')[3];
-
-		// // 		insertLl8r = true;
-		// // 	} else { //TODO: have it do a back pass before
-		// // 		console.log('will need back pass for left_bindC.'); //debug 
-		// // 	}
-		// // }
-
-		// // if (left_bindC) left_bindC = left_bindC.split(' ')[3];
-		// let right_bindC_pass = rows[r-1].find(pass => pass.some(ln => ln.includes('knit + ')));
-
-		// if (right_bindC_pass) {
-		// 	right_bindC = right_bindC_pass.find(ln => ln.includes('knit + ')).split(' ')[3];
-
-		// 	if (insertLl8r) {
-		// 		left_bindC = right_bindC;
-
-		// 		let bindC_passes = rows[r-1].filter(pass => pass.some(ln => ln.includes('knit ') && ln.includes(` ${right_bindC}`)));
-
-		// 		if (bindC_passes.length > 1) insertL8rP = rows[r-1].indexOf(bindC_passes[0]); //new //* //insert after first pass with this carrier to ensure direction is correct
-		// 		else insertL8rP = rows[r-1].length - 1;
-		// 	}
-		// } else {
-		// 	insertRl8r = true;
-		// 	right_bindC = left_bindC; // will end up on right side
-		// }
-
-		// for (let i = 0; i < rows[r - 1].length; ++i) {
-		// 	if (!left_bindC && rows[r - 1][i].some((el) => el.includes('knit - '))) { //new //knit -
-		// 		findKnit: for (let ln = rows[r - 1][i].length - 1; ln >= 0; --ln) {
-		// 			let ln_op = rows[r - 1][i][ln];
-		// 			if (ln_op.includes('knit ')) {
-		// 				left_bindC = ln_op.charAt(ln_op.length - 1);
-		// 				break findKnit;
-		// 			}
-		// 		}
-
-		// 		// insertLl8r = false; 
-
-		// 		// if (insertRl8r === false && left_bindC === right_bindC) insertRl8r = true;
-		// 	} else if (rows[r - 1][i].some((el) => el.includes('knit + '))) { //new //knit
-		// 		findKnit: for (let ln = rows[r - 1][i].length - 1; ln >= 0; --ln) {
-		// 			let ln_op = rows[r - 1][i][ln];
-		// 			if (ln_op.includes('knit ')) {
-		// 				right_bindC = ln_op.charAt(ln_op.length - 1);
-		// 				break findKnit;
-		// 			}
-		// 		}
-
-		// 		insertRl8r = false;
-
-		// 		if (insertLl8r === false && left_bindC === right_bindC) insertLl8r = true;
-		// 	}
-		// }
 	} else {
 		xfer_row_interval = shaping_arr[0].ROW;
 	}
@@ -2241,11 +2090,16 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			XleftN = Xleft_needle;
 			XrightN = Xright_needle;
 		}
-		if (xtype === 'inc' && !double_bed) {
-			cleanInc(r);
-		}
+
+		if (!double_bed && (xtypeL === 'inc' || xtypeR === 'inc')) cleanInc(r);
+
 		shaped_rows.push(`;shaping for row ${r+1}`);
-		insertXferPasses(XleftN, XrightN, xtype, r);
+
+		if (xtypeL === xtypeR) insertXferPasses(XleftN, XrightN, xtypeL, r);
+		else {
+			if (xtypeL !== null) insertXferPasses(XleftN, null, xtypeL, r);
+			if (xtypeR !== null) insertXferPasses(null, XrightN, xtypeR, r);
+		}
 		shaped_rows.push(xfer_section);
 		xfer_section = [];
 	}
@@ -2280,15 +2134,12 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 	// }
 	
 	if (!warning && r !== 0) {
-		if (left_xfer) {
-			xtype === 'dec' ? (Xleft_needle += left_xfer_count) : (Xleft_needle -= left_xfer_count);
-		}
-		if (right_xfer) {
-			xtype === 'dec' ? (Xright_needle -= right_xfer_count) : (Xright_needle += right_xfer_count);
-		}
+		if (left_xfer) xtypeL === 'dec' ? (Xleft_needle += left_xfer_count) : (Xleft_needle -= left_xfer_count);
+
+		if (right_xfer) xtypeR === 'dec' ? (Xright_needle -= right_xfer_count) : (Xright_needle += right_xfer_count);
 	}
 	
-	let cookie_carrier; //new location
+	let cookie_carrier;
 	function cookieCutter(XleftN, XrightN, other_arr, replacement, p) {
 		if (XleftN !== L_NEEDLE) {
 			for (let cc = L_NEEDLE; cc < XleftN; ++cc) {
@@ -2456,35 +2307,26 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 		}
 	}
 
-	// let insertL8rP;
 	let insertLShift = 0, insertRShift = 0;
 
 	if (insertLl8r) {
 		if (insertLinc) insertLShift = insertLinc;
-		else if (xtype == 'dec' && left_xfer_count > 2) insertLShift = -left_xfer_count;
-		// else insertLl8r = false; //new //check
-		// insertLShift = (insertLinc ? insertLinc : -left_xfer_count);
+		else if (xtypeL == 'dec' && left_xfer_count > 2) insertLShift = -left_xfer_count;
 	} else if (insertRl8r) {
 		if (insertRinc) insertRShift = -insertRinc;
-		else if (xtype == 'dec' && right_xfer_count > 2) insertRShift = right_xfer_count;
-		// else insertRl8r = false; //new //check
-		// insertRShift = (insertRinc ? -insertRinc : right_xfer_count);
+		else if (xtypeR == 'dec' && right_xfer_count > 2) insertRShift = right_xfer_count;
 	}
 
 
 	if (!warning) {
 		for (let i = r; i < r + xfer_row_interval; ++i) {
-			shaped_rows.push(`;row: ${i+1}`); //new //check
+			shaped_rows.push(`;row: ${i+1}`);
 
 			let insertL8rP;
 			for (let p = 0; p < rows[i].length; ++p) {
 				let pass_carrier = (rows[i][p][0].includes(';pass: ') ? rows[i][p][0].split(';')[3] : undefined);
 
-				// rows[i][p][1].charAt(rows[i][p][1].length - 1));
-
-				// let pass_carrier = (rows[i][p][0].includes(';pass: ') ? rows[i][p][0].charAt(rows[i][p][0].length - 1) : rows[i][p][1].charAt(rows[i][p][1].length - 1));
-
-				if (insertL8rP === undefined && (insertLl8r && pass_carrier == left_bindC) || (insertRl8r && pass_carrier === right_bindC)) insertL8rP = p; //new //* //beep
+				if (insertL8rP === undefined && (insertLl8r && pass_carrier == left_bindC) || (insertRl8r && pass_carrier === right_bindC)) insertL8rP = p;
 
 				if (!pass_carrier) {
 					pass_carrier = rows[i][p].find(ln => ln.includes('knit '));
@@ -2493,16 +2335,6 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				}
 
 				if (shortrow_time && back_passLpos.length > 0) {
-					// let pass_carrier = (rows[i][p][0].includes(';pass: ') ? rows[i][p][0].split(';')[3] : undefined);
-
-					// if (insertL8rP === undefined && (insertLl8r && pass_carrier == left_bindC) || (insertRl8r && pass_carrier === right_bindC)) insertL8rP = p; //new //* //beep
-
-					// if (!pass_carrier) {
-					// 	pass_carrier = rows[i][p].find(ln => ln.includes('knit '));
-
-					// 	if (pass_carrier) pass_carrier = pass_carrier.split(' ')[3];
-					// }
-
 					let leftover_carriers = [...back_passLpos];
 					for (let c = 0; c < back_passLpos.length; ++c) {
 						if (i === back_passLpos[c][0] && (pass_carrier == back_passLpos[c][1] || pass_carrier == short_row_carriers[new_carriers.indexOf(back_passLpos[c][1])])) {
@@ -2533,7 +2365,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				cookie = rows[i][p];
 				cookieCutter(Xleft_needle+insertLShift, Xright_needle+insertRShift, short_row_carriers, new_carriers, p);
 
-				if (xtype === 'inc' && twist !== undefined) {
+				if ((xtypeL === 'inc' || xtypeR === 'inc') && twist !== undefined) {
 					let pass_roller_advance, twist_roller;
 					let twist_count = 1;
 					roll: for (let a = p; a >= 0; --a) { //TODO: maybe go back to other rows if no roll yet?
@@ -2751,49 +2583,13 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 
 					insertLShift = 0;
 					insertRShift = 0;
-
-					// if (p === 0) {
-					// 	if (insertLl8r) {
-					// 		insertLeft = (insertLinc ? insertLinc : -left_xfer_count);
-					// 		insertRight = 0;
-					// 	} else {
-					// 		insertRight = (insertRinc ? -insertRinc : right_xfer_count);
-					// 		insertLeft = 0;
-					// 	}
-					// }
-
-					// if (rows[i][p][0].includes(';xfer')) { //beep//beep
-				// 	if (rows[i][p].some(ln => ln.includes('xfer'))) { //beep//beep
-				// 		console.log('debug:', rows[i][p][0], i, p); //remove //debug //beep
-				// 		++insertL8rP;
-				// 	} else {
-				// 		if (insertLl8r) {
-				// 			// bind_nextL = true;
-				// 			cookie = rows[i][p]; //reset it
-				// 			cookieCutter(Xleft_needle+insertLeft, Xright_needle, short_row_carriers, new_carriers, p);
-
-				// 			insertLeft = 0;
-				// 			bind_nextL = false;
-				// 		} else if (insertRl8r) {
-				// 			bind_nextR = true;
-				// 			cookie = rows[i][p]; //reset it
-				// 			cookieCutter(Xleft_needle, Xright_needle+insertRight, short_row_carriers, new_carriers, p);
-
-				// 			insertRight = 0;
-				// 			bind_nextR = false;
-				// 		}
-				// 		shaped_rows.push(cookie, insertl8r_arr);
-				// 		insertl8r_arr = [];
-				// 	}
 				}
-				
-				// shaped_rows.push(cookie);
 			}
 		}
 	} else {
 		console.log('A warning was generated.'); //debug
 		for (let w = r; w < rows.length; ++w) {
-			shaped_rows.push(`;row: ${w+1}`); //new //check
+			shaped_rows.push(`;row: ${w+1}`); //check
 
 			for (let p = 0; p < rows[w].length; ++p) {
 				cookie = rows[w][p];
@@ -2829,50 +2625,33 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			}
 
 			if (back_passRneg.length && back_passRneg.some(el => el[0] === r && el[1] == left_bindC)) {
-				insertLl8r = true; //new //check
+				insertLl8r = true;
 			}
 
-			// if (shortrow_time && Math.abs(first_short_row-r) === 1) {
-			// 	let c_keys = Object.keys(carrier_track[left_bindC]);
-			// 	let most_recent = c_keys.reverse().find(el => Number(el) <= first_short_row);
-				
-			// 	let bindC_side = carrier_track[left_bindC][most_recent].side;
-
-			// 	if (bindC_side !== 'left') insertLl8r = true;
-
-			// 	//now again for right side
-			// 	c_keys = Object.keys(carrier_track[right_bindC]);
-			// 	most_recent = c_keys.reverse().find(el => Number(el) <= first_short_row);
-
-			// 	bindC_side = carrier_track[right_bindC][most_recent].side;
-
-			// 	if (bindC_side !== 'right') insertRl8r = true;
-			// } 
-
-			if (xtype === 'inc' && !double_bed) cleanInc(r); //?
+			if (!double_bed && (xtypeL === 'inc' || xtypeR === 'inc')) cleanInc(r); //?
 
 			insert_arr.push(`;shaping for short row ${r+1}`);
-			
-			insertXferPasses(XleftN, XrightN, xtype, r);
-			
+
+			if (xtypeL === xtypeR) insertXferPasses(XleftN, XrightN, xtypeL, r);
+			else {
+				if (xtypeL !== null) insertXferPasses(XleftN, null, xtypeL, r);
+				if (xtypeR !== null) insertXferPasses(null, XrightN, xtypeR, r);
+			}
+						
 			insert_arr.push(xfer_section);
 			xfer_section = [];
 		}
-		xtype === 'dec' ? (short_Xleft_needle += left_xfer_count) : (short_Xleft_needle -= left_xfer_count);
-		xtype === 'dec' ? (short_Xright_needle -= right_xfer_count) : (short_Xright_needle += right_xfer_count);
+		xtypeL === 'dec' ? (short_Xleft_needle += left_xfer_count) : (short_Xleft_needle -= left_xfer_count);
+		xtypeR === 'dec' ? (short_Xright_needle -= right_xfer_count) : (short_Xright_needle += right_xfer_count);
 
 		let insertLShift = 0, insertRShift = 0; //TODO: maybe add this logic to main/left side
 
 		if (insertLl8r) {
 			if (insertLinc) insertLShift = insertLinc;
-			else if (xtype == 'dec' && left_xfer_count > 2) insertLShift = -left_xfer_count;
-			// else insertLl8r = false; //new //check
-			// insertLShift = (insertLinc ? insertLinc : -left_xfer_count);
+			else if (xtypeL == 'dec' && left_xfer_count > 2) insertLShift = -left_xfer_count;
 		} else if (insertRl8r) {
 			if (insertRinc) insertRShift = -insertRinc;
-			else if (xtype == 'dec' && right_xfer_count > 2) insertRShift = right_xfer_count;
-			// else insertRl8r = false; //new //check
-			// insertRShift = (insertRinc ? -insertRinc : right_xfer_count);
+			else if (xtypeR == 'dec' && right_xfer_count > 2) insertRShift = right_xfer_count;
 		}
 		
 		for (let i = r; i < r + xfer_row_interval; ++i) {
@@ -2917,7 +2696,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 								} else emptyOffset = true;
 							}
 
-							if (insertLl8r && left_bindC == back_passRneg[c][1] && insertl8r_arr.length) { //new //*
+							if (insertLl8r && left_bindC == back_passRneg[c][1] && insertl8r_arr.length) {
 								insert_arr.push(insertl8r_arr);
 								insertl8r_arr = [];
 
@@ -2934,7 +2713,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				cookie = rows[i][p];
 				cookieCutter(short_Xleft_needle+insertLShift, short_Xright_needle+insertRShift, new_carriers, short_row_carriers, p);
 
-				if (xtype === 'inc' && twist !== undefined) {
+				if ((xtypeL === 'inc' || xtypeR === 'inc') && twist !== undefined) {
 					let pass_roller_advance, twist_roller;
 					let twist_count = 1;
 					roll: for (let a = p; a >= 0; --a) {
@@ -3151,22 +2930,6 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 					insertLShift = 0;
 					insertRShift = 0;
 				}
-
-				// if (insertl8r_arr.length && ((insertLl8r && cookie_carrier == left_bindC) || (insertRl8r && cookie_carrier == right_bindC))) { //*
-				// 	insertL8rP = p; //new
-
-				// 	if (rows[i][p].some(el => el.includes('xfer'))) { //beep!
-				// 		console.log('!debug', rows[i][p], i, p); //remove //debug
-				// 		++insertL8rP;
-				// 	}
-
-				// 	// if (rows[i][p][0].includes(';xfer')) ++insertL8rP; //TODO: && insertL8rP !== rows[i].length-1
-				// 	else {						
-				// 		if (insertLl8r && backpass_Cs.includes(cookie_carrier)) insert_arr.push(insertl8r_arr, cookie);
-				// 		else insert_arr.push(cookie, insertl8r_arr); 
-				// 		insertl8r_arr = [];
-				// 	}
-				// } else insert_arr.push(cookie);
 			}
 		}
 
@@ -3209,7 +2972,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			shortrow_time = true;
 
 			for (let i = r + xfer_row_interval; i < first_short_row; ++i) {
-				shaped_rows.push(`;row: ${i+1}`); //new //check
+				shaped_rows.push(`;row: ${i+1}`);
 
 				for (let p = 0; p < rows[i].length; ++p) {
 					cookie = rows[i][p];
@@ -3219,23 +2982,23 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				}
 			}
 			let bindoff_pass;
-			let bindoff_p_C; //new //beep
+			let bindoff_p_C;
 			let bind_chosen = false;
 
 			bindoffC: for (let p = rows[first_short_row].length - 1; p >= 0; --p) {
-				if (rows[first_short_row][p].some((el) => el.includes('knit - ')) && !bind_chosen) { //new //new //beep//beep
+				if (rows[first_short_row][p].some((el) => el.includes('knit - ')) && !bind_chosen) {
 					bind_chosen = true;
 
 					let lineIncludesCarrier;
 
 					findTheLine: for (let ln = 0; ln < rows[first_short_row][p].length; ++ln) {
-						if (rows[first_short_row][p][ln].includes('knit + ') || rows[first_short_row][p][ln].includes('knit - ')) { //TODO: maybe make if isn't comment too //beep//beep //new knit 
+						if (rows[first_short_row][p][ln].includes('knit + ') || rows[first_short_row][p][ln].includes('knit - ')) { //TODO: maybe make if isn't comment too // new knit 
 							lineIncludesCarrier = rows[first_short_row][p][ln];
 							break findTheLine;
 						}
 					}
 
-					bindoff_p_C = lineIncludesCarrier.charAt(lineIncludesCarrier.length - 1); //new //beep
+					bindoff_p_C = lineIncludesCarrier.charAt(lineIncludesCarrier.length - 1);
 
 					final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === bindoff_p_C)].SIDE = 'left';
 					bindoff_pass = p; //keeps redefining until end, so ends up being final match
@@ -3252,9 +3015,9 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 						}
 					}
 
-					if (rows[first_short_row][p].some((el) => el.includes('knit - '))) { //beep//beep
+					if (rows[first_short_row][p].some((el) => el.includes('knit - '))) {
 						final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === srC)].SIDE = 'left';
-					} else if (rows[first_short_row][p].some((el) => el.includes('knit + '))) { //beep//beep
+					} else if (rows[first_short_row][p].some((el) => el.includes('knit + '))) {
 						final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === srC)].SIDE = 'right';
 					}
 				}
@@ -3269,7 +3032,6 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 						console.log('!!debug!!', rows[first_short_row][p], first_short_row, p); //remove //debug
 						passIdx += 1;
 					}
-					// if (rows[first_short_row][p][0].includes(';xfer')) passIdx += 1;
 					else break checkForXferPass;
 				}
 				let sr1 = rows[first_short_row][passIdx];
@@ -3304,7 +3066,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				final_carrier_pos[final_carrier_pos.findIndex((el) => el.CARRIER === bindoff_p_C)].SIDE = 'left';
 			}
 			shaped_rows.push(';short row section');
-			shaped_rows.push(`;row: ${first_short_row}`); //new //check
+			shaped_rows.push(`;row: ${first_short_row}`); //check
 			
 			new_carriers = [...carriers];
 			let carriers_defined = false;
@@ -3318,7 +3080,6 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 						carriers_defined = true;
 					} else {
 						let left_carrier = findCarrierOnSide('left', first_short_row, bindoff_pass);
-						// let left_carrier = findCarrierOnSide('left', first_short_row, bindoff_pass+1); //remove //debug //beep! //?
 
 						if (left_carrier !== undefined) {
 							let carrier_idx = new_carriers.indexOf(left_carrier);
@@ -3334,12 +3095,10 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			}
 
 			if (!carriers_defined) {
-				// if (bindoff_pass !== undefined && short_row_carriers.includes(el)) 
-
 				new_carriers = new_carriers.filter((el) => !short_row_carriers.includes(el));
 
 				for (let i = 0; i < tracked_carriers.length; ++i) {
-					if (findCarrierSide(tracked_carriers[i], first_short_row, bindoff_pass+1) === 'right' && new_carriers.includes(tracked_carriers[i]) && tracked_carriers[i] !== bindoff_p_C) { //bindoff_pass+1 //? //new //*
+					if (findCarrierSide(tracked_carriers[i], first_short_row, bindoff_pass+1) === 'right' && new_carriers.includes(tracked_carriers[i]) && tracked_carriers[i] !== bindoff_p_C) { //bindoff_pass+1 //?
 						let carrier_idx = new_carriers.indexOf(tracked_carriers[i]);
 						let replacement_carrier = short_row_carriers.splice(carrier_idx, 1, tracked_carriers[i]);
 						new_carriers.splice(carrier_idx, 1, replacement_carrier);
@@ -3365,7 +3124,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 				}
 			}
 
-			console.log('new_carriers:', new_carriers, 'short_row_carriers:', short_row_carriers); //remove //debug //beep
+			// console.log('new_carriers:', new_carriers, 'short_row_carriers:', short_row_carriers); //remove //debug
 			
 			//TODO: add in something similar for if more than 3 carriers ARE used in body (but only 3 in shortrowsection so OK), to make it so if it ends up on left, add in extra pass to make it end up on right
 			xtra_neg_carriers = xtra_neg_carriers.filter((c) => short_row_carriers.includes(c) || new_carriers.includes(c));
@@ -3480,7 +3239,7 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 			// let left_carriers = [bindoff_carrier];
 			let right_carriers = [];
 			
-			console.log('first_short_row:', first_short_row, 'bindoff_pass:', bindoff_pass); //remove //debug //beep
+			// console.log('first_short_row:', first_short_row, 'bindoff_pass:', bindoff_pass); //remove //debug
 			find_dir: for (let y = first_short_row; y < rows.length; ++y) {
 				if (left_carriers.length + right_carriers.length === new_carriers.length) break find_dir;
 				parse_pass: for (let i = 0; i < rows[y].length; ++i) {
@@ -3488,9 +3247,8 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 						if (bp_bindoff.length > 0 && bindoff_pass > i) {
 							continue parse_pass;
 						} else if (bindoff_pass >= i) continue parse_pass; //go back! //?
-					} //else if (bindoff_pass >= i) continue parse_pass;
-					// if (rows[y][i].some((el) => el.includes(' - '))) {
-					if (rows[y][i].some((el) => el.includes('knit - '))) { //TODO: check //beep //new
+					}
+					if (rows[y][i].some((el) => el.includes('knit - '))) { //TODO: check 
 						let opC;
 
 						findLastKnitC: for (let o = rows[y][i].length - 1; o >= 0; --o) {
@@ -3505,12 +3263,11 @@ main: for (let r = xfer_row_interval; r < rows.length; r += xfer_row_interval) {
 								if (!back_passLpos.some(el => el[1] == opC)) back_passLpos.push([y, opC, back_passLpos.length]);
 							} else {
 								if (!back_passLpos.some(el => el[1] == new_carriers[short_row_carriers.indexOf(opC)])) back_passLpos.push([y, new_carriers[short_row_carriers.indexOf(opC)], back_passLpos.length]);
-							} //beep
+							}
 
 							left_carriers.push(opC);
 						}
-					// } else if (rows[y][i].some((el) => el.includes(' + '))) {
-					} else if (rows[y][i].some((el) => el.includes('knit + '))) { //new //check //beep
+					} else if (rows[y][i].some((el) => el.includes('knit + '))) {
 						let opC;
 
 						findLastKnitC: for (let o = rows[y][i].length - 1; o >= 0; --o) {
