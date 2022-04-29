@@ -2,6 +2,8 @@ const fs = require('fs');
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
 
+let temp_fix = true; //TODO: //remove //beep
+
 let errors = false;
 
 //---------------------------------------------------------------------------------------------
@@ -868,6 +870,76 @@ const decSingleBed = (dec_needle1, count1, rack1, side, dec_needle2, count2, rac
 };
 
 
+const decDoubleBedTempFix = (dec_needle, side, count) => { //beep
+	if (count <= 2) {
+		xfer_section.push('x-add-roller-advance 150');
+
+		if (side === 'left') {
+			xfer_section.push(`xfer b${dec_needle} f${dec_needle}`);
+			xfer_section.push(`xfer b${dec_needle+1} f${dec_needle+1}`);
+			if (count === 2) xfer_section.push(`xfer b${dec_needle+2} f${dec_needle+2}`);
+
+			xfer_section.push('rack -1');
+
+			xfer_section.push('x-add-roller-advance 100');
+
+			xfer_section.push(`xfer f${dec_needle} b${dec_needle+1}`);
+			if (count === 2) {
+				xfer_section.push(`xfer f${dec_needle+1} b${dec_needle+2}`);
+
+				xfer_section.push('rack 0');
+				xfer_section.push(`xfer b${dec_needle+1} f${dec_needle+1}`);
+				xfer_section.push('rack -1');
+				xfer_section.push(`xfer f${dec_needle+1} b${dec_needle+2}`);
+			}
+		}
+		if (side === 'right') { //side === 'right'
+			xfer_section.push(`xfer f${dec_needle} b${dec_needle}`);
+			xfer_section.push(`xfer f${dec_needle-1} b${dec_needle-1}`);
+			if (count === 2) xfer_section.push(`xfer f${dec_needle-2} b${dec_needle-2}`);
+
+			xfer_section.push('rack -1');
+
+			xfer_section.push('x-add-roller-advance 100');
+
+			xfer_section.push(`xfer b${dec_needle} f${dec_needle-1}`);
+			if (count === 2) {
+				xfer_section.push(`xfer b${dec_needle-1} f${dec_needle-2}`);
+
+				xfer_section.push('rack 0');
+				xfer_section.push(`xfer f${dec_needle-1} b${dec_needle-1}`);
+				xfer_section.push('rack -1');
+				xfer_section.push(`xfer b${dec_needle-1} f${dec_needle-2}`);
+			}
+		}
+		xfer_section.push('rack 0');
+	} else console.log(`ERROR: should not use this function for dec > 2 (invalid count of ${count})`);
+}
+
+
+const dec2DoubleBedTemp = (dec_needle, side) => { //beep
+	let racking = 0;
+	if (side === 'left') {
+
+	}
+	if (side === 'right') { //side === 'right'
+		xfer_section.push('x-add-roller-advance 150');
+
+		xfer_section.push(`xfer f${dec_needle} b${dec_needle}`);
+		xfer_section.push(`xfer f${dec_needle-1} b${dec_needle-1}`);
+		xfer_section.push(`xfer f${dec_needle-2} b${dec_needle-2}`);
+
+		xfer_section.push('rack -1');
+		xfer_section.push('x-add-roller-advance 100');
+
+		xfer_section.push(`xfer b${dec_needle} f${dec_needle-1}`);
+
+		xfer_seciton.push('rack 0');
+
+	}
+}
+
+
 const dec1DoubleBed = (dec_needle, side) => { //if double bed, need to just do it twice
 	if (emptyRow.length) xfer_section.push('x-carrier-stopping-distance 3.5');
 
@@ -1216,22 +1288,56 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
 				if (x === xfer_needle && bindoff_time) {
 					break neg;
 				}
-				
-				xfer_section.push(`xfer b${x} f${x}`);
-				xfer_section.push('rack 1');
-				xfer_section.push(`xfer f${x} b${x - 1}`);
-				xfer_section.push('rack 0');
-				if (x !== xfer_needle + count - 1) {
-					if (x < xfer_needle + count - 4) {
-						if (x === xfer_needle+count-80) xfer_section.push('x-add-roller-advance -100');
-						else xfer_section.push('x-add-roller-advance -50');
-					}
-					xfer_section.push(`drop b${x + 1}`);
-				}
-				xfer_section.push(`knit - b${x - 1} ${bindoff_carrier}`);
-				if (x > xfer_needle + 1) xfer_section.push(`tuck + b${x} ${bindoff_carrier}`);
 
-				if (!shortrow_time && x === xfer_needle + count - (dropInitialTuck+1)) xfer_section.push(`drop b${xfer_needle + count}`); //don't drop fix tuck until 3 bindoffs (& let it form a loop for extra security)
+				if (temp_fix) { //TODO: //remove //beep //v
+					xfer_section.push(`xfer f${x} b${x}`);
+					xfer_section.push('rack -1');
+					xfer_section.push(`xfer b${x} f${x - 1}`);
+					xfer_section.push('rack 0');
+					if (x !== xfer_needle + count - 1) {
+						if (x < xfer_needle + count - 4) {
+							if (x === xfer_needle+count-80) xfer_section.push('x-add-roller-advance -100');
+							else xfer_section.push('x-add-roller-advance -50');
+						}
+						xfer_section.push(`drop f${x + 1}`);
+					}
+					xfer_section.push(`knit - f${x - 1} ${bindoff_carrier}`);
+					if (x > xfer_needle + 1) xfer_section.push(`tuck + f${x} ${bindoff_carrier}`);
+
+					if (!shortrow_time && x === xfer_needle + count - (dropInitialTuck+1)) xfer_section.push(`drop f${xfer_needle + count}`); //don't drop fix tuck until 3 bindoffs (& let it form a loop for extra security)
+				} else {
+					xfer_section.push(`xfer b${x} f${x}`);
+					xfer_section.push('rack 1');
+					xfer_section.push(`xfer f${x} b${x - 1}`);
+					xfer_section.push('rack 0');
+					if (x !== xfer_needle + count - 1) {
+						if (x < xfer_needle + count - 4) {
+							if (x === xfer_needle+count-80) xfer_section.push('x-add-roller-advance -100');
+							else xfer_section.push('x-add-roller-advance -50');
+						}
+						xfer_section.push(`drop b${x + 1}`);
+					}
+					xfer_section.push(`knit - b${x - 1} ${bindoff_carrier}`);
+					if (x > xfer_needle + 1) xfer_section.push(`tuck + b${x} ${bindoff_carrier}`);
+
+					if (!shortrow_time && x === xfer_needle + count - (dropInitialTuck+1)) xfer_section.push(`drop b${xfer_needle + count}`); //don't drop fix tuck until 3 bindoffs (& let it form a loop for extra security)
+				} //^
+				
+				// xfer_section.push(`xfer b${x} f${x}`); //go back! //V
+				// xfer_section.push('rack 1');
+				// xfer_section.push(`xfer f${x} b${x - 1}`);
+				// xfer_section.push('rack 0');
+				// if (x !== xfer_needle + count - 1) {
+				// 	if (x < xfer_needle + count - 4) {
+				// 		if (x === xfer_needle+count-80) xfer_section.push('x-add-roller-advance -100');
+				// 		else xfer_section.push('x-add-roller-advance -50');
+				// 	}
+				// 	xfer_section.push(`drop b${x + 1}`);
+				// }
+				// xfer_section.push(`knit - b${x - 1} ${bindoff_carrier}`);
+				// if (x > xfer_needle + 1) xfer_section.push(`tuck + b${x} ${bindoff_carrier}`);
+
+				// if (!shortrow_time && x === xfer_needle + count - (dropInitialTuck+1)) xfer_section.push(`drop b${xfer_needle + count}`); //don't drop fix tuck until 3 bindoffs (& let it form a loop for extra security) //^
 			}
 		}
 	};
@@ -1305,14 +1411,22 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
 			posLoop('knit', 'b');
 		}
 
-		negLoop('xfer', 'f');
+		if (temp_fix) negLoop('xfer', 'b'); //TODO: //remove //beep //V
+		else negLoop('xfer', 'f'); //^
+		// negLoop('xfer', 'f'); //go back!
 
 		xfer_section.push('x-roller-advance 50');
 		if (bindoff_time) xfer_section.push('x-add-roller-advance -50');
-		
-		if (!shortrow_time) xfer_section.push(`tuck + b${xfer_needle + count} ${bindoff_carrier}`);
 
-		xfer_section.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`);
+		if (!shortrow_time) { //TODO: //remove //beep //V
+			if (temp_fix) xfer_section.push(`tuck + f${xfer_needle + count} ${bindoff_carrier}`);
+			else xfer_section.push(`tuck + b${xfer_needle + count} ${bindoff_carrier}`);
+		}
+
+		if (temp_fix) xfer_section.push(`knit - f${xfer_needle + count - 1} ${bindoff_carrier}`);
+		else xfer_section.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`); //^
+		// if (!shortrow_time) xfer_section.push(`tuck + b${xfer_needle + count} ${bindoff_carrier}`); //go back! //v
+		// xfer_section.push(`knit - b${xfer_needle + count - 1} ${bindoff_carrier}`); //^
 
 		negLoop('bind', null);
 		if (bindoff_time) {
@@ -1322,7 +1436,7 @@ const BINDOFF = (xfer_needle, count, side, double_bed, xfer_section) => {
 				bindoffTail(xfer_needle, '-', xfer_section);
 			}
 		} else {
-			if (!double_bed) xfer_section.push(`xfer b${xfer_needle-1} f${xfer_needle-1}`);
+			if (!double_bed) xfer_section.push(`xfer b${xfer_needle-1} f${xfer_needle-1}`); //TODO: maybe adjust this is implementing `temp_fix` ?
 			xfer_section.push(`miss + f${xfer_needle-1} ${bindoff_carrier}`);
 		}
 	}
@@ -1406,10 +1520,22 @@ const inc1DoubleBed = (Xside_needle, side, inc_carrier, arr) => { //TODO: make i
 			xfer_section.push('rack 0');
 			xfer_section.push(`miss - f${Xside_needle-1} ${inc_carrier}`); //miss carrier out of the way
 		} else if (inc_method === 'split') {
-			arr.push('rack 1');
-			arr.push(`split + f${Xside_needle} b${Xside_needle-1} ${inc_carrier}`);
-			arr.push('rack 0');
-			arr.push(`split + b${Xside_needle-1} f${Xside_needle-1} ${inc_carrier}`);
+			if (temp_fix) {
+				arr.push('rack -1');
+				arr.push(`split + b${Xside_needle} f${Xside_needle-1} ${inc_carrier}`);
+				arr.push('rack 0');
+				arr.push(`split + f${Xside_needle-1} b${Xside_needle-1} ${inc_carrier}`);
+			} else {
+				arr.push('rack 1');
+				arr.push(`split + f${Xside_needle} b${Xside_needle-1} ${inc_carrier}`);
+				arr.push('rack 0');
+				arr.push(`split + b${Xside_needle-1} f${Xside_needle-1} ${inc_carrier}`);
+			} //^
+
+			// arr.push('rack 1'); //go back! //v
+			// arr.push(`split + f${Xside_needle} b${Xside_needle-1} ${inc_carrier}`);
+			// arr.push('rack 0');
+			// arr.push(`split + b${Xside_needle-1} f${Xside_needle-1} ${inc_carrier}`); //^
 			arr.push(`miss - f${Xside_needle-1} ${inc_carrier}`); //miss carrier out of the way
 		} else { //twisted-stitch
 			twist = 0;
@@ -1478,15 +1604,37 @@ const inc2DoubleBed = (Xside_needle, side, inc_carrier, arr) => { //TODO: fix th
 			xfer_section.push(`xfer f${Xside_needle + 1} b${Xside_needle}`);
 			twist = 1;
 		} else if (inc_method === 'split') {
-			arr.push('rack 1');
-			arr.push(`split + f${Xside_needle} b${Xside_needle-1} ${inc_carrier}`);
-			arr.push('rack 0');
-			arr.push(`split + b${Xside_needle-1} f${Xside_needle-1} ${inc_carrier}`);
+			if (temp_fix) { //TODO: //remove //beep //v
+				arr.push('rack -1');
+				arr.push(`split + b${Xside_needle} f${Xside_needle-1} ${inc_carrier}`);
+				arr.push('rack 0');
+				arr.push(`split + f${Xside_needle-1} b${Xside_needle-1} ${inc_carrier}`);
 
-			arr.push('rack 1');
-			arr.push(`split + f${Xside_needle-1} b${Xside_needle-2} ${inc_carrier}`);
-			arr.push('rack 0');
-			arr.push(`split + b${Xside_needle-2} f${Xside_needle-2} ${inc_carrier}`);
+				arr.push('rack -1');
+				arr.push(`split + b${Xside_needle-1} f${Xside_needle-2} ${inc_carrier}`);
+				arr.push('rack 0');
+				arr.push(`split + f${Xside_needle-2} b${Xside_needle-2} ${inc_carrier}`);
+			} else {
+				arr.push('rack 1');
+				arr.push(`split + f${Xside_needle} b${Xside_needle-1} ${inc_carrier}`);
+				arr.push('rack 0');
+				arr.push(`split + b${Xside_needle-1} f${Xside_needle-1} ${inc_carrier}`);
+
+				arr.push('rack 1');
+				arr.push(`split + f${Xside_needle-1} b${Xside_needle-2} ${inc_carrier}`);
+				arr.push('rack 0');
+				arr.push(`split + b${Xside_needle-2} f${Xside_needle-2} ${inc_carrier}`);
+			} //^
+
+			// arr.push('rack 1'); //go back! //v
+			// arr.push(`split + f${Xside_needle} b${Xside_needle-1} ${inc_carrier}`);
+			// arr.push('rack 0');
+			// arr.push(`split + b${Xside_needle-1} f${Xside_needle-1} ${inc_carrier}`);
+
+			// arr.push('rack 1');
+			// arr.push(`split + f${Xside_needle-1} b${Xside_needle-2} ${inc_carrier}`);
+			// arr.push('rack 0');
+			// arr.push(`split + b${Xside_needle-2} f${Xside_needle-2} ${inc_carrier}`); //^
 
 			arr.push(`miss - f${Xside_needle-2} ${inc_carrier}`); //miss carrier out of the way
 		} else {
@@ -1864,10 +2012,15 @@ function insertXferPasses(left, right, xtype, r) { //TODO: check about split on 
 			xfer_section.push(`x-speed-number ${xfer_speed_number}`);
 
 			xfer_section.push(`;dec ${stitches1} on ${side1}`);
+
 			if (stitches1 === 1) {
-				dec1DoubleBed(xfer_needle1, side1);
+				if (temp_fix) decDoubleBedTempFix(xfer_needle1, side1, stitches1); //TODO: //remove //beep //v
+				else dec1DoubleBed(xfer_needle1, side1); //^
+				// dec1DoubleBed(xfer_needle1, side1); //go back!
 			} else if (stitches1 === 2) {
-				dec2DoubleBed(xfer_needle1, side1);
+				if (temp_fix) decDoubleBedTempFix(xfer_needle1, side1, stitches1); //TODO: //remove //beep //v
+				else dec2DoubleBed(xfer_needle1, side1); //^
+				// dec2DoubleBed(xfer_needle1, side1); //go back!
 			} else {
 				side === 'right' ? (bindoff_carrier = right_bindC) : (bindoff_carrier = left_bindC); //TODO: figure out why left_bindC was 5 when it should have been 1
 				if ((side === 'right' && insertRl8r) || (side !== 'right' && insertLl8r)) {
@@ -1883,9 +2036,13 @@ function insertXferPasses(left, right, xtype, r) { //TODO: check about split on 
 				//TODO: add bpbind for if dec on both sides with one being thru bindoff method //?
 				xfer_section.push(`;dec ${stitches2} on right`);
 				if (stitches2 === 1) {
-					dec1DoubleBed(xfer_needle2, 'right');
+					if (temp_fix) decDoubleBedTempFix(xfer_needle2, 'right', stitches2); //TODO: //remove //beep //v
+					else dec1DoubleBed(xfer_needle2, 'right'); //^
+					// dec1DoubleBed(xfer_needle2, 'right'); //go back!
 				} else if (stitches2 === 2) {
-					dec2DoubleBed(xfer_needle2, 'right');
+					if (temp_fix) decDoubleBedTempFix(xfer_needle2, 'right', stitches2); //TODO: //remove //beep //v
+					else dec2DoubleBed(xfer_needle2, 'right'); //^
+					// dec2DoubleBed(xfer_needle2, 'right'); //go back!
 				} else {
 					bindoff_carrier = right_bindC;
 					if (insertRl8r) {
