@@ -63,3 +63,5 @@ in-stitch-pattern-images/*
 !/in-stitch-pattern-images/example.jpg
 
 extras/
+
+old/
