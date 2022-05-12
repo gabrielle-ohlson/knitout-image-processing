@@ -204,10 +204,10 @@ function resizeImg(img, needle_count, row_count, img_out_path) {
           // console.log(`scaled row_count is: ${row_count}.`);
         }
 
-        resized_width = needle_count;
-				resized_height = row_count;
-
         image.resize(needle_count, row_count).write(`${img_out_path}/colorwork.png`);
+
+				resized_width = image.getWidth();
+				resized_height = image.getHeight();
 
         resolve(image);
       });
