@@ -1,0 +1,25 @@
+{
+  "name": "knitify",
+  "version": "1.0.3",
+  "description": "An image processing module for creating colorwork motifs to knit on programmable knitting machines, using CMU Textiles Lab's machine-independent file format, knitout.",
+  "main": "colorwork.js",
+  "exports": {
+    ".": "./colorwork.js",
+    "./process-image": "./process-image.js",
+    "./stitch-pattern": "./stitch-pattern.js",
+    "./stitch-pattern-library": "./stitch-pattern-library.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gabrielle-ohlson/knitout-image-processing.git"
+  },
+  "author": "Gabrielle Ohlson",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gabrielle-ohlson/knitout-image-processing/issues"
+  },
+  "homepage": "https://github.com/gabrielle-ohlson/knitout-image-processing#readme"
+}

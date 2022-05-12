@@ -8,6 +8,8 @@ let resized_width, resized_height;
 
 
 const hexToRGB = (hex) => {
+	if (typeof hex === 'object') return hex; //it was already rgb array
+
   let alpha = false,
     h = hex.slice(hex.startsWith('#') ? 1 : 0);
   if (h.length === 3) h = [...h].map((x) => x + x).join('');
@@ -167,7 +169,7 @@ function palOptions(max_colors, dithering, palette_opt) {
 		reIndex: false
 	};
 
-	if (palette_opt) {
+	if (palette_opt && palette_opt.length) { //new
 		for (let i = 0; i < palette_opt.length; ++i) {
 			palette_opt[i] = hexToRGB(palette_opt[i]);
 		}
@@ -177,6 +179,7 @@ function palOptions(max_colors, dithering, palette_opt) {
 
 	return opts;
 }
+
 
 
 function resizeImg(img, needle_count, row_count, img_out_path) {
@@ -192,9 +195,9 @@ function resizeImg(img, needle_count, row_count, img_out_path) {
         let img_width = image.getWidth();
 		    let img_height = image.getHeight();
 
-        if (needle_count == -1) needle_count = img_width;
-        if (row_count == -1) row_count = img_height;
-        // if (needle_count == -1 && row_count == -1) row_count = img_height; //if both auto (so Jimp doesn't throw an error)
+        // if (needle_count == -1) needle_count = img_width;
+        // if (row_count == -1) row_count = img_height;
+        if (needle_count == -1 && row_count == -1) row_count = img_height; //if both auto (so Jimp doesn't throw an error)
         else if (row_count % 1 !== 0) {
           let scale = needle_count/img_width;
           row_count = Math.round(img_height*scale*row_count);
@@ -205,8 +208,6 @@ function resizeImg(img, needle_count, row_count, img_out_path) {
 				resized_height = row_count;
 
         image.resize(needle_count, row_count).write(`${img_out_path}/colorwork.png`);
-
-				console.log(img_out_path); //remove //debug //*
 
         resolve(image);
       });
@@ -241,7 +242,7 @@ function resolvePromises(img, needle_count, row_count, img_out_path, opts, stImg
 
   const promises = new Promise((resolve) => {
 		resize.then((resized_img) => {
-			getData(resized_img, opts).then((result) => {
+			getData(resized_img, opts, img_out_path).then((result) => {
 				colors_arr = result;
 			}).then(() => {
 				if (stitchPats && stitchPats.length) {

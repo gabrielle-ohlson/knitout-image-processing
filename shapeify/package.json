@@ -1,0 +1,25 @@
+{
+  "name": "shapeify",
+  "version": "1.0.2",
+  "description": "An extension to the 'knitify' module for adding shaping to 'square-motif' knitout files.",
+  "main": "shape.js",
+  "exports": {
+    ".": "./shape.js",
+    "./process-image": "./process-image.js",
+    "./process-shape": "./process-shape.js",
+    "./utils": "./utils.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gabrielle-ohlson/knitout-image-processing.git"
+  },
+  "author": "Gabrielle Ohlson",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gabrielle-ohlson/knitout-image-processing/issues"
+  },
+  "homepage": "https://github.com/gabrielle-ohlson/knitout-image-processing#readme"
+}

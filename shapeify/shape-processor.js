@@ -1,18 +1,45 @@
 const Jimp = require('jimp');
 const fs = require('fs');
-const chalk = require('chalk');
+// const chalk = require('chalk');
 
-let brightness, max, last_row, first_short_row, last_short_row, shape_error, shape_err_row;
-let shape_code = [];
-let shape_code_reverse = [];
-let short_row_section = false;
-let section_count = 1;
+console = require('./utils').console;
+const styler = require('./utils').styler;
+const generateError = require('./utils').generateError;
 
-if (fs.existsSync('INPUT_DATA.json')) {
-	let colors_str = fs.readFileSync('INPUT_DATA.json').toString();
+
+function lightOrDark(color) {
+	//variables for red, green, blue values
+	let r, g, b, hsp;
+	r = color[0];
+	g = color[1];
+	b = color[2];
+	// HSP (Highly Sensitive Poo) equation from http://alienryderflex.com/hsp.html
+	hsp = Math.sqrt(0.299 * (r * r) + 0.587 * (g * g) + 0.114 * (b * b));
+	// Using the HSP value, determine whether the color is light or dark
+	if (hsp > 127.5) {
+		return 'light';
+	} else {
+		return 'dark';
+	}
+}
+
+function process(pixels, out_path) {
+	let brightness, max, last_row, first_short_row, last_short_row, shape_error, shape_err_row;
+	let shape_code = [];
+	let shape_code_reverse = [];
+	let short_row_section = false;
+	let section_count = 1;
+
+	let colors_str = JSON.stringify(pixels); //TODO: check this (and then have it just be pixels when go over non-web code)
+
+	if (fs.existsSync(`${out_path}/shape_code.png`)) fs.unlinkSync(`${out_path}/shape_code.png`);
+
+// if (fs.existsSync('INPUT_DATA.json')) {
+	// let colors_str = fs.readFileSync('INPUT_DATA.json').toString();
 	let rgb_arr = colors_str.split(',');
 	for (let i = 0; i < rgb_arr.length; ++i) {
 		let rgb_values = rgb_arr[i].replace(/"|\[|\]/g, '').split(';');
+
 		for (let n = 0; n < rgb_values.length; ++n) {
 			rgb_values[n] = Number(rgb_values[n]);
 		}
@@ -160,14 +187,14 @@ if (fs.existsSync('INPUT_DATA.json')) {
 					}
 				}
 				if (overlap1 === false) {
-					shape_err_row = y;
-					console.log(
-						chalk.red(
-							`ShapeError: no overlapping stitches between row #${y + 1} and row #${
-								y + 2
-							}.\nCheck working directory for 'shape_code.png' to see visualization of first error in image. (Error pixels are red)\n`
-						)
-					);
+					shape_err_row = y; //remove
+					// console.log(
+					// 	chalk.red(
+					// 		`ShapeError: no overlapping stitches between row #${y + 1} and row #${
+					// 			y + 2
+					// 		}.\nCheck working directory for 'shape_code.png' to see visualization of first error in image. (Error pixels are red)\n`
+					// 	)
+					// ); //remove
 					shape_error = true;
 					break;
 				}
@@ -188,7 +215,8 @@ if (fs.existsSync('INPUT_DATA.json')) {
 					} else if (px_arr[x] === 1) {
 						image.setPixelColor(255, x, y); //black
 					} else {
-						console.log(chalk.red(`ShapeError: invalid character (such as '*') still in array`));
+						// console.log(chalk.red(`ShapeError: invalid character (such as '*') still in array`)); //remove
+						generateError(styler(`ShapeError: invalid character (such as '*') still in array`, ['red']));
 					}
 				} else {
 					if (px_arr[x] === 0) {
@@ -200,7 +228,8 @@ if (fs.existsSync('INPUT_DATA.json')) {
 			}
 		}
 		image.dither565();
-		image.write('shape_code.png');
+		image.write(`${out_path}/shape_code.png`);
+		// image.write('shape_code.png');
 	});
 	////create flipped (horiz & vert) version of shape code array for it is processed in the right direction //TODO: fix this, actually shouldn't flip horizontally it seems (?)
 	// for (let i = 0; i < shape_code.length; ++i) { //TODO: remove this?
@@ -212,94 +241,49 @@ if (fs.existsSync('INPUT_DATA.json')) {
 	first_short_row = shape_code_reverse.length - 1 - splice_arr[splice_arr.length - 1];
 	last_short_row = shape_code_reverse.length - 1 - splice_arr[0];
 	
-	let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],');
-	txt_file = txt_file.join('\n').replace(/\]|,/g, '');
-	if (!fs.existsSync('SHAPE-CODE.txt')) {
-		fs.writeFileSync('SHAPE-CODE.txt', txt_file, function (err) {
-			if (err) return console.log(err);
-		});
-	}
-	
-	let new_code = [];
-	let shape_code_txt = fs.readFileSync('./SHAPE-CODE.txt').toString().split('\n');
-	for (let y = 0; y < shape_code_txt.length; ++y) {
-		shape_code_txt[y] = shape_code_txt[y].split('');
-		let shape_row = [];
-		for (let x = 0; x < shape_code_txt[y].length; ++x) {
-			shape_row.push(Number(shape_code_txt[y][x]));
-		}
-		new_code.push(shape_row);
-		shape_row = [];
+// } else {
+// 	shape_code = null;
+// 	short_row_section = null;
+// 	shape_code_reverse = null;
+
+	let shortrow_code;
+	if (short_row_section) {
+		shortrow_code = [...shape_code_reverse];
+		shape_code_reverse = shortrow_code.splice(0, first_short_row);
 	}
 
-	function arraysEqual(a, b) {
-		if (a.length !== b.length) return false;
-		for (let i = 0; i < a.length; ++i) {
-			for (let x = 0; x < a[i].length; ++x) {
-				if (a[i][x] !== b[i][x]) return false;
-			}
-		}
-		return true;
+	let return_info = [
+		shape_code,
+		shape_code_reverse,
+		shortrow_code,
+		short_row_section,
+		first_short_row,
+		last_short_row,
+		section_count,
+		// shape_error,
+		// shape_err_row
+	];
+
+	if (shape_error) {
+			generateError(
+			styler('\nERR: ', ['red', 'bold']) +
+			styler(`ShapeError: no overlapping stitches between row #${shape_err_row + 1} and row #${shape_err_row + 2}.\nCheck working directory for 'shape_code.png' to see visualization of first error in image. (Error pixels are red)\n`, ['red'])
+		);
 	}
 
-	if (!arraysEqual(new_code, shape_code)) {
-		console.log('processing shape code changes...'); //?
-		shape_code = [...new_code];
-		shape_code_reverse = shape_code.reverse();
-
-		// get new first_short_row
-		findNew1stShortRow: for (let r = 0; r < shape_code_reverse.length; ++r) {
-			let blackpx = false, whiteMidpx = false;
-			for (let p = 0; p < shape_code_reverse[r].length; ++p) {
-				if (blackpx && whiteMidpx && shape_code_reverse[r][p] === 1) {
-					first_short_row = r;
-					break findNew1stShortRow;
-				}
-				if (blackpx && shape_code_reverse[r][p] === 0) whiteMidpx = true;
-				if (shape_code_reverse[r][p] === 1) blackpx = true;
-			}	
-		}
-	}
-} else {
-	shape_code = null;
-	short_row_section = null;
-	shape_code_reverse = null;
+	return return_info;
 }
 
-function lightOrDark(color) {
-	////variables for red, green, blue values
-	let r, g, b, hsp;
-	r = color[0];
-	g = color[1];
-	b = color[2];
-	// HSP (Highly Sensitive Poo) equation from http://alienryderflex.com/hsp.html
-	hsp = Math.sqrt(0.299 * (r * r) + 0.587 * (g * g) + 0.114 * (b * b));
-	// Using the HSP value, determine whether the color is light or dark
-	if (hsp > 127.5) {
-		return 'light';
-	} else {
-		return 'dark';
-	}
-}
+module.exports = {process};
 
-let shortrow_code;
-if (short_row_section) {
-	// let multi_shortrows = true; //TODO: add this in for dealing with multiple shortrow sections... eventually
-	// if ((last_short_row = shape_code_reverse.length - 1)) {
-	//   multi_shortrows = false;
-	// }
-	shortrow_code = [...shape_code_reverse];
-	shape_code_reverse = shortrow_code.splice(0, first_short_row);
-}
-
-module.exports = {
-	shape_code,
-	shape_code_reverse,
-	shortrow_code,
-	short_row_section,
-	first_short_row,
-	last_short_row,
-	section_count,
-	shape_error,
-	shape_err_row,
-};
+// module.exports = {
+// 	shape_code,
+// 	shape_code_reverse,
+// 	shortrow_code,
+// 	short_row_section,
+// 	first_short_row,
+// 	last_short_row,
+// 	section_count,
+// 	shape_error,
+// 	shape_err_row,
+// };

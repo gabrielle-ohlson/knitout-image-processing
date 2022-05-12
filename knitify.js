@@ -24,14 +24,16 @@ let saveAnswers = false;
 let answersFile;
 let promptAnswers = {};
 
-let machine, dithering, palette_opt;
+let machine, dithering;
+let palette_opt = [];
 
 let opts = {};
 
 let stitch_number, speed_number; //main_stitch_number
 let back_style = 'Default';
 let rib_info;
-// , rib = false, rib_top = null, rib_bottom = null, ribT_rows, ribB_rows;
+let rib = false;
+let rib_carrier, rib_top = null, rib_bottom = null, ribT_rows, ribB_rows;
 
 let stitchOnly = false;
 let stImg;
@@ -89,6 +91,11 @@ let waste_stitch = 5, //6
 
 // --------------
 
+
+function undefinedify(val) {
+  return (val === null ? undefined : val);
+}
+
 readlineSync.setDefaultOptions({ prompt: chalk`{blue.italic (press Enter to skip and answer prompts) }{blue.bold Filename for pre-loaded prompt answers: }` }); //TODO: make option to skip this and only do stitch pattern
 readlineSync.promptLoop(function (input) {
 	if (input === '') { //if skipping
@@ -112,6 +119,7 @@ readlineSync.promptLoop(function (input) {
 if (preloadFile) { //TODO: have option of still asking prompt if one of the keys is missing fom the preloaded file
 	console.log(chalk.green(`-- Reading prompt answers from: ${preloadFile}`));
   promptAnswers = JSON.parse(fs.readFileSync(`./prompt-answers/knitify/${preloadFile}`));
+
 	// promptAnswers = JSON.parse(fs.readFileSync('./prompt-answers/knitify/answers.json'));
 
 	console.log('Prompt answers:');
@@ -135,13 +143,13 @@ if (preloadFile) { //TODO: have option of still asking prompt if one of the keys
 	speed_number = Number(promptAnswers['speed_number']);
 	
   wasteSettings = promptAnswers['wasteSettings']; //TODO: check about null
-  wasteSettings['waste_carrier'] = promptAnswers['waste_carrier'];
+  wasteSettings['waste_carrier'] = undefinedify(promptAnswers['waste_carrier']);
 
   back_style = promptAnswers['back_style'];
 
   stData = promptAnswers['stData']; //?
 
-  caston_carrier = promptAnswers['caston_carrier'];
+  caston_carrier = undefinedify(promptAnswers['caston_carrier']); //new
 
 	rib_info = promptAnswers['rib'];
 } else {
@@ -161,6 +169,15 @@ if (preloadFile) { //TODO: have option of still asking prompt if one of the keys
 		}
 
 		if (!/\.jpg|\.jpeg|\.png$/i.test(input) || !fs.existsSync(`./in-colorwork-images/${input}`)) {
+      if (!/\.$/i.test(input)) { //doesn't include extension
+        for (let ext of ['.png', '.jpg', '.jpeg']) {
+          if (fs.existsSync(`./in-colorwork-images/${input}${ext}`)) {
+            console.log(`Using existing file with ${ext} extension.`);
+            img_path += ext;
+            return true;
+          }
+        }
+      }
 			let error_message = console.log(chalk.red(`-- The image must be a PNG or JPG that exists in the 'in-colorwork-images' folder.`));
 			return error_message;
 		}
@@ -168,6 +185,9 @@ if (preloadFile) { //TODO: have option of still asking prompt if one of the keys
 			return /\.jpg|\.jpeg|\.png$/i.test(input);
 		}
 	});
+
+  if (saveAnswers) promptAnswers['img'] = img_path; //new //*
+
 	if (img_path) {
     console.log(chalk.green(`-- Reading colorwork data from: ${img_path}`));
     img_path = `./in-colorwork-images/${img_path}`; //new //*
@@ -175,7 +195,7 @@ if (preloadFile) { //TODO: have option of still asking prompt if one of the keys
 
 	readlineSync.setDefaultOptions({ prompt: '' });
 	if (img_path) console.log(chalk`{blue.italic \n(press Enter to scale stitches according to img dimensions)}`);
-	if (saveAnswers) promptAnswers['img'] = img_path; //new //*
+	// if (saveAnswers) promptAnswers['img'] = img_path; //new //*
 
 	// needle_count = readlineSync.questionInt(chalk.blue.bold('How many stitches wide? '), {
 	// 	defaultInput: -1,
@@ -211,12 +231,11 @@ if (preloadFile) { //TODO: have option of still asking prompt if one of the keys
 		},
 		limitMessage: chalk.red('-- $<lastInput> is not a number.'),
 	});
-	row_count = Number(row_count);
 
 	if (row_count % 1 !== 0) { //scale
 		console.log(chalk.green(`-- Row count scale: ${row_count}`));
 	} else {
-		if (row_count === -1) {
+		if (row_count == -1) {
 			console.log(chalk.green('-- Row count: AUTO'));
 			row_count = Jimp.AUTO;
 		} else console.log(chalk.green(`-- Row count: ${row_count}`));
@@ -296,14 +315,14 @@ if (!preloadFile) {
 	});
 	max_colors = Number(max_colors);
 	console.log(chalk.green(`-- Knitting with ${max_colors} color(s).`));
-	// if (saveAnswers) promptAnswers['max_colors'] = max_colors;
+	if (saveAnswers) promptAnswers['max_colors'] = max_colors; //beep
 
 	dithering = (stitchOnly ? null : readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use dithering?} {blue.italic (dithering is recommended for detailed/naturalistic images, but not for graphics/digital artwork.)}`));
 	dithering === true ? (dithering = 'Stucki') : (dithering = null);
-	// if (saveAnswers) promptAnswers['dithering'] = dithering;
+	if (saveAnswers) promptAnswers['dithering'] = dithering; //beep
 
   if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use a predefined palette?}`)) {
-    palette_opt = [];
+    // palette_opt = [];
 
 		for (let i = 1; i <= max_colors; ++i) {
 			let hex = readlineSync.question(chalk.blue.bold(`\nEnter hex-code for color #${i}: `));
@@ -312,9 +331,11 @@ if (!preloadFile) {
 		}
 	}
 
+  if (saveAnswers) promptAnswers['palette'] = palette_opt; //new //*
+
   opts = processImage.palOptions(max_colors, dithering, palette_opt);
 
-	if (saveAnswers) promptAnswers['opts'] = opts; //new //*
+	// if (saveAnswers) promptAnswers['opts'] = opts; //new //*
 
   stitch_number = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the stitch number as? }`, {
 		defaultInput: -1,
@@ -708,8 +729,11 @@ processing()
   //   });
   // })
   // .finally(() => {
-    console.log(stData); //TODO: check
-    if (saveAnswers) fs.writeFileSync(`./prompt-answers/knitify/${answersFile}.json`, JSON.stringify(promptAnswers), { flag: 'w' });
+    if (stData) console.log(stData); //TODO: check
+    // if (saveAnswers) fs.writeFileSync(`./prompt-answers/knitify/${answersFile}.json`, JSON.stringify(promptAnswers), { flag: 'w' });
+    if (saveAnswers) fs.writeFileSync(`./prompt-answers/knitify/${answersFile}.json`, JSON.stringify(promptAnswers, (k, v) => v === undefined ? null : v), { flag: 'w' });
+
+    
 
     let knitout = colorwork.generateKnitout(machine, colors_data, background, color_count, colors_arr, stitch_number, speed_number, caston_carrier, wasteSettings, back_style, rib_info, stitchOnly, stData, console, chalk);
 

@@ -74,6 +74,8 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
   let other_dir = '+';
   let pieceWidth = colors_arr[0].length;
   // let needle_bed = (machine.includes('kniterate') ? 253 : 541); ////one extra so not counting from 0
+  let reverse;
+  back_style === 'Minimal' ? (reverse = false) : (reverse = true);
 
   if (caston_carrier) {
 		caston_carrier = Number(caston_carrier);
