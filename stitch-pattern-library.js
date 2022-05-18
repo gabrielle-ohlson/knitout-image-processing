@@ -137,6 +137,37 @@ function generateRib(min, max, dir, carrier, currNs, prevNs, nextNs, frill) { //
 
 	if (!generateKnitout) { //new
 		POSRIB(min, max); //direction doesn't matter since will return the same needles to avoid either way
+
+		if (avoidOnBack.length && row_count > 0) {
+			for (let n = min; n <= max; ++n) {
+				if ((!prevNs.includes(n) && sequence[n % sequence.length] === 'b') ||
+				(sequence !== 'fb' && !nextNs.includes(n) && sequence[n % sequence.length] === 'f' && n % 2 !== 0)) {
+					if (tuckOnBack) {
+						let avoid_idx = avoidOnBack[0].indexOf(n);
+						if (avoid_idx !== -1) avoidOnBack[0].splice(avoid_idx, 1);
+						else {
+							avoid_idx = avoidOnBack[1].indexOf(n);
+							if (avoid_idx !== -1) avoidOnBack[1].splice(avoid_idx, 1);
+						}
+					} else {
+						let avoid_idx = avoidOnBack.indexOf(n);
+						// if (avoid_idx !== -1 && row_count < 30) console.log(row_count, n, avoidOnBack); //remove //debug
+						if (avoid_idx !== -1) avoidOnBack.splice(avoid_idx, 1);
+					}
+				}
+			}
+			// let avoid_idx = 0;
+
+			// while (avoid_idx < avoidOnBack.length) {
+			// 	let n = avoidOnBack[avoid_idx];
+
+			// 	if ((!prevNs.includes(n) && sequence[n % sequence.length] === 'b') ||
+			// 	(sequence !== 'fb' && !nextNs.includes(n) && sequence[n % sequence.length] === 'f' && n % 2 !== 0)) {
+			// 		avoidOnBack.splice(i, 1);
+			// 	} else avoid_idx += 1;
+
+			// }
+		}
 		
 		return avoidOnBack;
 	} else {
@@ -759,7 +790,7 @@ function generateRibButtonhole(sequence, buttonLeft, buttonRight, dir, carrier, 
 //-------------------------------
 //--- MAIN PATTERN FUNCTION ---//
 //-------------------------------
-function generatePattern(pattern, row, min, max, needles, generate, dir, speed, stitch, roller, width, currentCarrier, backpassCarrier, rowColCt, prevRowNs, nextRowNs) { // rowColCt = new
+function generatePattern(pattern, row, min, max, needles, prevRowNs, nextRowNs, generate, dir, speed, stitch, roller, width, currentCarrier, backpassCarrier, rowColCt) {
 	generated = [];
 	avoidOnBack = [];
 
@@ -767,7 +798,7 @@ function generatePattern(pattern, row, min, max, needles, generate, dir, speed, 
 	let patternName = pattern.name;
 	row_count = row;
 	options = pattern.options;
-	generateKnitout = generate; //new
+	generateKnitout = generate;
 	if (generate) {
 		speed_number = speed;
 		stitch_number = stitch;
@@ -776,42 +807,23 @@ function generatePattern(pattern, row, min, max, needles, generate, dir, speed, 
 		extraCarrier = backpassCarrier;
 		colCt = rowColCt;
 	}
-	// row_count = row;
-	// speed_number = speed;
-	// stitch_number = stitch;
-	// roller_advance = roller;
-	// pieceWidth = width;
-	// extraCarrier = backpassCarrier;
-	// options = pattern.options;
-	// console.log(pattern.name); //remove //debug
-	// console.log(options); //remove //debug
-	// console.log(Object.keys(options).length); //remove //debug
-	if (!prevRowNs) prevRowNs = [max+1, min-1]; //new //*
 
-	if (!nextRowNs) nextRowNs = []; //new //*
+	if (!prevRowNs) prevRowNs = [max+1, min-1];
+
+	if (!nextRowNs) nextRowNs = [];
 	
 	if (!generate && avoidAll.includes(patternName)) { //Lace
 		let pMin = min,
 			pMax = max;
 
 		for (let n = pMin; n <= pMax; ++n) {
-			avoidOnBack.push(n); //new
+			avoidOnBack.push(n);
 		}
 		return avoidOnBack;
 	} else {
 		if (patternName.includes('Rib')) {
-			// let sequence = (patternName.includes('1x1') ? 'fb' : 'ffbb');
-			// let rib_type = patternName.split(' ')[1].split('x');
-			// let sequence = `${'f'.repeat(Number(rib_type[0]))}${'b'.repeat(Number(rib_type[0]))}`;
-
-			// let sequence;
-			// if (patternName === 'Rib 1x1') sequence = 'fb';
-			// else if (patternName === 'Rib 2x2') sequence = 'ffbb';
-			// let pattern = "bbffbf";
-			// return generateRib(sequence, min, max, dir, pattern.carrier, pattern);
 			if (patternName.includes('Buttonholes')) return generateRibButtonhole((patternName.includes('1x1') ? 'fb' : 'ffbb'), min, max, dir, currentCarrier, pattern.action);
-			// else return generateRib(sequence, min, max, dir, pattern.carrier, needles, prevRowNs, nextRowNs, true); //new /Frill for now, just to test
-			else return generateRib(min, max, dir, pattern.carrier, needles, prevRowNs, nextRowNs, true); //new /Frill for now, just to test
+			else return generateRib(min, max, dir, pattern.carrier, needles, prevRowNs, nextRowNs, true); //Frill for now, just to test
 		} else if (patternName === 'Garter') return generateGarter(min, max, dir, pattern.carrier, needles, prevRowNs, nextRowNs);
 		else if (patternName === 'Seed') return generateSeed(min, max, dir, pattern.carrier);
 		else if (patternName === 'Bubbles') {
