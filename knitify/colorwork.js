@@ -350,8 +350,8 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
           
           let pMin = patterns[p].rows[row_count][0];
           let pMax = patterns[p].rows[row_count][patterns[p].rows[row_count].length - 1]; //TODO: change these to match splitting up patterns
-
-          let pAvoid = patternLibrary.generatePattern(patterns[p], stData[st].completed, pMin, pMax, stData[st].rows[row_count], false); //will return just needles to avoid
+		
+          let pAvoid = patternLibrary.generatePattern(patterns[p], stData[st].completed, pMin, pMax, stData[st].rows[row_count], stData[st].rows[row_count-1], stData[st].rows[row_count+1], false); //will return just needles to avoid
           
           if (pAvoid.length) {
             if (typeof pAvoid[0] === 'object') {
@@ -393,7 +393,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
         let pMin = rowFinishedPats[p].rows[row_count][0];
         let pMax = rowFinishedPats[p].rows[row_count][rowFinishedPats[p].rows[row_count].length - 1]; //TODO: change these to match splitting up patterns
 
-        let pAvoid = patternLibrary.generatePattern(rowFinishedPats[p], stData[st].completed, pMin, pMax, stData[st].rows[row_count], false); //will return just needles to avoid //new
+        let pAvoid = patternLibrary.generatePattern(rowFinishedPats[p], stData[st].completed, pMin, pMax, stData[st].rows[row_count], stData[st].rows[row_count-1], stData[st].rows[row_count+1], false); //will return just needles to avoid
 
         patAvoidNs[pId] = pAvoid;
       }
@@ -581,15 +581,13 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
         taken = false;
       }
 
-      if (Object.keys(patAvoidNs).length) {
-        if (Object.values(patAvoidNs).some(arr => arr.includes(x) || (typeof arr[patAvoidIdx] === 'object' && arr[patAvoidIdx].includes(x)))) {
-          if (x === end_needle && !needle_done) {
-            knitout.push(`miss ${dir} b${x} ${carrier}`);
-            needle_done = true;
-          }
-
-          return;
+      if ((needlesToAvoid.length && needlesToAvoid.includes(x)) || (tuckAvoid[patAvoidIdx].length && tuckAvoid[patAvoidIdx].includes(x))) {
+        if (x === end_needle && !needle_done) {
+          knitout.push(`miss ${dir} b${x} ${carrier}`);
+          needle_done = true;
         }
+
+        return;
       }
 
       if (placement_pass && double_bed) { //? //check //come back!
@@ -894,7 +892,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
             let backpassCarrier = carrier_track.find(c => c.CARRIER !== patterns[p].carrier && c.CARRIER !== carrier); //doesn't matter which carrier, as long as passes test
             
             let pat_row_count = (!finishedPatIds.includes(patterns[p].id) ? stData[st].completed : stData[st].completed-1); //-1 since already these
-            knitout.push(patternLibrary.generatePattern(patterns[p], pat_row_count, x, endNeedle, patterns[p].rows[row_count], true, dir, speed_number, stitch_number, roller_advance, pieceWidth, carrier, backpassCarrier, passes_per_row[row_count - 1], stData[st].rows[row_count-1], stData[st].rows[row_count+1]));
+            knitout.push(patternLibrary.generatePattern(patterns[p], pat_row_count, x, endNeedle, patterns[p].rows[row_count], stData[st].rows[row_count-1], stData[st].rows[row_count+1], true, dir, speed_number, stitch_number, roller_advance, pieceWidth, carrier, backpassCarrier, passes_per_row[row_count - 1]));
 
             if (!finishedPatIds.includes(patterns[p].id)) {
               stData[st].rowDone = true;
@@ -918,17 +916,17 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
               for (let px = x; px <= endNeedle; ++px) {
                 if (Object.values(patAvoidNs).some(arr => arr.includes(x) || (typeof arr[patAvoidIdx] === 'object' && arr[patAvoidIdx].includes(x)))) continue;
                 if (!notDefault) {
-                  if (px % back_mod === pass_count) leftovers.push(px);
+                  if (px % back_mod === pass_count) neglected_needles.push(px);
                 } else {
-                  if ((i % 2 === 0 && px % 2 !== 0) || (i % 2 !== 0 && px % 2 === 0)) stored_leftovers.push(px);	
+                  if ((i % 2 === 0 && px % 2 !== 0) || (i % 2 !== 0 && px % 2 === 0)) stored_needles.push(px);
                 }
               }
             }
 
             if (patterns[p].carrier !== null && carrier !== patterns[p].carrier) {
               for (let px = x; px <= endNeedle; ++px) {
-                if (stored_leftovers.includes(px) || px % back_mod === pass_count) knitout.push(`knit + b${px} ${carrier}`);
-                if (stored_leftovers.includes(px)) stored_leftovers.slice(stored_leftovers.indexOf(px), 1);
+                if (stored_needles.includes(px) || px % back_mod === pass_count) knitout.push(`knit + b${px} ${carrier}`);
+                if (stored_needles.includes(px)) stored_needles.slice(storedstored_needles_leftovers.indexOf(px), 1);
               }
             }
 
@@ -1012,7 +1010,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
             let backpassCarrier = carrier_track.find(c => c.CARRIER !== patterns[p].carrier && c.CARRIER !== carrier); //doesn't matter which carrier, as long as passes test
             
             let pat_row_count = (!finishedPatIds.includes(patterns[p].id) ? stData[st].completed : stData[st].completed-1); //-1 since already these
-            knitout.push(patternLibrary.generatePattern(patterns[p], pat_row_count, endNeedle, x, patterns[p].rows[row_count], true, dir, speed_number, stitch_number, roller_advance, pieceWidth, carrier, backpassCarrier, passes_per_row[row_count - 1], stData[st].rows[row_count-1], stData[st].rows[row_count+1])); //new //TODO: check on stData[st].rows[row_count-1]
+            knitout.push(patternLibrary.generatePattern(patterns[p], pat_row_count, endNeedle, x, patterns[p].rows[row_count], stData[st].rows[row_count-1], stData[st].rows[row_count+1], true, dir, speed_number, stitch_number, roller_advance, pieceWidth, carrier, backpassCarrier, passes_per_row[row_count - 1]));
 
             if (!finishedPatIds.includes(patterns[p].id)) {
               stData[st].rowDone = true;
@@ -1036,17 +1034,17 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
               for (let px = x; px >= endNeedle; --px) {
                 if (Object.values(patAvoidNs).some(arr => arr.includes(x) || (typeof arr[patAvoidIdx] === 'object' && arr[patAvoidIdx].includes(x))));
                 if (!notDefault) {
-                  if (px % back_mod === pass_count) leftovers.push(px);
+                  if (px % back_mod === pass_count) neglected_needles.push(px);
                 } else {
-                  if ((i % 2 === 0 && px % 2 !== 0) || (i % 2 !== 0 && px % 2 === 0)) stored_leftovers.push(px);	
+                  if ((i % 2 === 0 && px % 2 !== 0) || (i % 2 !== 0 && px % 2 === 0)) stored_needles.push(px);	
                 }
               }
             }
 
             if (patterns[p].carrier !== null && carrier !== patterns[p].carrier) { //new //check
               for (let px = x; px >= endNeedle; --px) {
-                if (stored_leftovers.includes(px) || px % back_mod === pass_count) knitout.push(`knit - b${px} ${carrier}`);
-                if (stored_leftovers.includes(px)) stored_leftovers.slice(stored_leftovers.indexOf(px), 1);
+                if (stored_needles.includes(px) || px % back_mod === pass_count) knitout.push(`knit - b${px} ${carrier}`);
+                if (stored_needles.includes(px)) stored_needles.slice(stored_needles.indexOf(px), 1);
               }
             }
 
