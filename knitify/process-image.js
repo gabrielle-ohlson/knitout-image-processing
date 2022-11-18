@@ -182,7 +182,7 @@ function palOptions(max_colors, dithering, palette_opt) {
 
 
 
-function resizeImg(img, needle_count, row_count, img_out_path) {
+function resizeImg(img, needle_count, row_count, img_out_path, max_needles) {
   const resized = new Promise((resolve) => {
     needle_count ? needle_count = Number(needle_count) : needle_count = Jimp.AUTO;
 		row_count ? row_count = Number(row_count): row_count = Jimp.AUTO;
@@ -195,8 +195,15 @@ function resizeImg(img, needle_count, row_count, img_out_path) {
         let img_width = image.getWidth();
 		    let img_height = image.getHeight();
 
-        // if (needle_count == -1) needle_count = img_width;
-        // if (row_count == -1) row_count = img_height;
+				if (needle_count == -1 && img_width > max_needles) {
+					needle_count = max_needles;
+
+					if (row_count == -1) {
+						let scale = needle_count/img_width;
+          	row_count = Math.round(img_height*scale);
+					}
+				}
+
         if (needle_count == -1 && row_count == -1) row_count = img_height; //if both auto (so Jimp doesn't throw an error)
         else if (row_count % 1 !== 0) {
           let scale = needle_count/img_width;
@@ -232,9 +239,9 @@ function resizeImg(img, needle_count, row_count, img_out_path) {
 }
 
 
-function resolvePromises(img, needle_count, row_count, img_out_path, opts, stImg, stitchPats, st_out_path) { // img_out_path is //new //*
+function resolvePromises(img, needle_count, row_count, img_out_path, opts, max_needles, stImg, stitchPats, st_out_path) {
   const resize = new Promise((resolve, reject) => {
-		resizeImg(img, needle_count, row_count, img_out_path).then((result) => {
+		resizeImg(img, needle_count, row_count, img_out_path, max_needles).then((result) => {
 			resolve(result);
 			return result; //?
 		});
@@ -260,35 +267,21 @@ function resolvePromises(img, needle_count, row_count, img_out_path, opts, stImg
 
 
 
-function process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt, stImg, stitchPats, st_out_path) { // img_out_path is //new //*
+function process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt, max_needles, stImg, stitchPats, st_out_path) {
   dithering === 'true' ? (dithering = 'Stucki') : (dithering = null);
 
 	console.log('processing...'); //remove //debug
 
   return new Promise((resolve) => {
     let info_arr = [];
-		// let knitout;
 
     let opts = palOptions(max_colors, dithering, palette_opt);
 
-    // resolvePromises(img_path, needle_count, row_count, img_out_path, opts, stImg, stitchPats, st_out_path)
-    // .then((result) => {
-    //   let stData = result; //might be undefined if no result
-    // });
-
-    resolvePromises(img_path, needle_count, row_count, img_out_path, opts, stImg, stitchPats, st_out_path)
+    resolvePromises(img_path, needle_count, row_count, img_out_path, opts, max_needles, stImg, stitchPats, st_out_path)
     .then((result) => {
       let stData = result; //might be undefined if no result
-			// let colors_data = colors_arr.pop();
-			// let background = colors_arr.pop();
-			// let color_count = colors_arr.pop().length;
-			// colors_arr = colors_arr.reverse();
 
-      info_arr = [stData, resized_width, resized_height, colors_arr]; //new //*
-
-      // knitout = colorwork.generateKnitout(machine, colors_data, background, color_count, colors_arr, stitch_number, speed_number, caston_carrier, wasteSettings, back_style, rib_info, stitchOnly, stData, console, chalk); //TODO: deal with this //*
-
-      // info_arr = [knitout, resized_width, resized_height];
+      info_arr = [stData, resized_width, resized_height, colors_arr];
 
       resolve(info_arr);
 			return info_arr; //TODO: determine if need return

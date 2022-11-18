@@ -35,6 +35,8 @@ let rib_info;
 let rib = false;
 let rib_carrier, rib_top = null, rib_bottom = null, ribT_rows, ribB_rows;
 
+let max_needles;
+
 let stitchOnly = false;
 let stImg;
 let stData;
@@ -439,7 +441,10 @@ process.on('unhandledRejection', (reason, promise) => { //throw Error if issue
 
 function processing() {
   const promise = new Promise((resolve, reject) => {
-    let info_arr = processImage.process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt);
+		if (machine === 'kniterate') max_needles = 252;
+		else max_needles = 540; //TODO: adjust this for other machines besides shima swgn12 and kniterate
+
+    let info_arr = processImage.process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt, max_needles);
 
     resolve(info_arr);
     // imageColors.getData().then((result) => {

@@ -5,7 +5,7 @@
   "main": "knitify.js",
   "scripts": {
     "start": "node knitify.js",
-    "shapeify": "node shape-cropper.js && node shape-writer.js && node shape-processor.js && node shapeify.js",
+    "shapeify": "node shapeify.js",
     "knitify": "node knitify.js",
     "debug": "node knitify.js"
   },
