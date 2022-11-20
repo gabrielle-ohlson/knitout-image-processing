@@ -5,7 +5,7 @@ const styler = require('./utils.js').styler; //new
 const generateError = require('./utils.js').generateError; //new
 console = require('./utils.js').console; //new
 
-let xfer_speed = 300;
+let xfer_speed = 300; // for kniterate
 
 let waste_carrier,
 	waste_stitch = 5, //6
@@ -1135,6 +1135,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 		carriers_arr.push(i);
 	}
 	if (machine.includes('swg')) {
+		xfer_speed = 0; //new
 		caston = [...neg_caston, ...pos_caston];
 		caston.unshift(`inhook ${caston_carrier}`);
 		caston.push(`releasehook ${caston_carrier}`);

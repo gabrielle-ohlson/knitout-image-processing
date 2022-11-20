@@ -349,19 +349,21 @@ if (!preloadFile) {
 	stitch_number === '-1' ? ((console.log(chalk.green(`-- Stitch number: UNSPECIFIED, will assign default value: ${default_stitch}`))), (stitch_number = default_stitch)) : ((console.log(chalk.green(`-- Stitch number: ${stitch_number}`))), (stitch_number = Number(stitch_number)));
 	// main_stitch_number = stitch_number;
 	if (saveAnswers) promptAnswers['stitch_number'] = stitch_number;
-
+  
+  let speed_lims = (machine === 'kniterate' ? '0-600' : '0-15');
+  let default_speed = (machine.includes('swg') ? 0 : 300);
   speed_number = readlineSync.question(
-		chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the carriage speed number as?} {blue.italic (valid speeds are between <0-600>) }`,
+		chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the carriage speed number as?} {blue.italic (valid speeds are between <0-600> for kniterate [with 300 as the default] and <0-15> for swgn2 [with 0 denoting the default]) }`,
 		{
 			defaultInput: -1,
 			limit: function (input) {
-				return (Number(input) >= 0 && Number(input) <= 600) || Number(input) === -1;
+				return (machine.includes('swg') && Number(input) > 0 && Number(input) <= 15) || (Number(input) >= 0 && Number(input) <= 600) || Number(input) === -1;
 			},
-			limitMessage: chalk.red('-- $<lastInput> is not within the accepted range: <0-600>.'), //TODO: adjust for swgn2
+			limitMessage: chalk.red(`-- $<lastInput> is not within the accepted range: <${speed_lims}>.`),
 		}
 	);
 	speed_number === '-1'
-		? (console.log(chalk.green('-- Speed number: UNSPECIFIED, will assign default value: 300')), (speed_number = 300)) //TODO: adjust for swgn2 (have no default, I guess)
+		? (console.log(chalk.green(`-- Speed number: UNSPECIFIED, will assign default value: ${default_speed}`)), (speed_number = default_speed))
 		: ((console.log(chalk.green(`-- Speed number: ${speed_number}`))), (speed_number = Number(speed_number)));
 	if (saveAnswers) promptAnswers['speed_number'] = speed_number;
   

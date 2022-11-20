@@ -146,7 +146,7 @@ ___
 ```console
 What model knitting machine will you be using?
 ```
-*e.g. `kniterate`* or `swgn2`
+*e.g. `kniterate` or `swgn2`*
 ___
 <a id="knitify7"></a>**7.** The program will reduce the number of colors in the image in accordance with the number you input.\
 Keep in mind the maximum number of carriers your machine has (e.g. for kniterate, 6).
@@ -176,9 +176,9 @@ ___
 ___
 <a id="knitify11"></a>**11.** Enter a number to set the knitting speed for the piece (knitout extension: `x-speed-number`). Faster speeds are more efficient, but may increase the chances of dropped stitches/broken yarn on less sophisticated machines.
 ```console
-(OPTIONAL: press enter to skip this step) What would you like to set the carriage speed number as? (valid speeds are between <0-600>)
+(OPTIONAL: press enter to skip this step) What would you like to set the carriage speed number as? (valid speeds are between <0-600> for kniterate [with 300 as the default] and <0-15> for swgn2 [with 0 denoting the default])
 ```
-*e.g. `300`*
+*e.g. `300` or `0`*
 ___
 <a id="knitify12"></a>**12.** Optionally, you can alter the default knitout-extension settings for the waste section at the beginning of the piece, or just stick with the defaults.
 ```console
