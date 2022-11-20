@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs'); //TODO: update with all swg stuff for web version
 
 const readlineSync = require('readline-sync');
 const chalk = require('chalk');
@@ -302,7 +302,7 @@ if (!preloadFile) {
 			'-- The program does not currently support the $<lastInput> machine. Please open an issue at the github repository (https://github.com/textiles-lab/knitout-image-processing) to request for this machine to be supported.'
 		),
 	});
-	machine = machine.toLowerCase();
+	machine = machine.toLowerCase().trim(); //new
 	console.log(chalk.green(`-- Model: ${machine}`)); //TODO: add better support for different shima models (and maybe stoll?)
 	if (saveAnswers) promptAnswers['machine'] = machine;
 
@@ -364,55 +364,58 @@ if (!preloadFile) {
 		? (console.log(chalk.green('-- Speed number: UNSPECIFIED, will assign default value: 300')), (speed_number = 300)) //TODO: adjust for swgn2 (have no default, I guess)
 		: ((console.log(chalk.green(`-- Speed number: ${speed_number}`))), (speed_number = Number(speed_number)));
 	if (saveAnswers) promptAnswers['speed_number'] = speed_number;
+  
+  if (machine === 'kniterate') { //new
+    if (readlineSync.keyInYNStrict(chalk `{blue.bold \nWould you like to change any of the default settings for the waste section? (DEFAULT stitch number: 5, speed number: 400, roller advance: 150, rows: 40)}`)) {
+        keyInYNStrict //TODO: have rows as an option too //TODO: adjust for swgn2
+      let new_waste_stitch = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the waste section stitch number as? }`, {
+        defaultInput: -1,
+        // limit: Number,
+        limit: function (input) {
+          return (Number(input) >= 0 && Number(input) <= 9) || Number(input) === -1;
+        },
+        limitMessage: chalk.red('-- $<lastInput> is not a number between 0 and 9.'),
+      });
+      if (new_waste_stitch != '-1') waste_stitch = Number(new_waste_stitch);
+      wasteSettings['waste_stitch'] = waste_stitch; 
 
-  if (readlineSync.keyInYNStrict(chalk `{blue.bold \nWould you like to change any of the default settings for the waste section? (DEFAULT stitch number: 5, speed number: 400, roller advance: 150, rows: 40)}`)) { //TODO: have rows as an option too //TODO: adjust for swgn2
-		let new_waste_stitch = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the waste section stitch number as? }`, {
-			defaultInput: -1,
-			// limit: Number,
-			limit: function (input) {
-				return (Number(input) >= 0 && Number(input) <= 9) || Number(input) === -1;
-			},
-			limitMessage: chalk.red('-- $<lastInput> is not a number between 0 and 9.'),
-		});
-		if (new_waste_stitch != '-1') waste_stitch = Number(new_waste_stitch);
-		wasteSettings['waste_stitch'] = waste_stitch; 
+      let new_waste_speed = readlineSync.question(
+        chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the waste section carriage speed number as?} {blue.italic (valid speeds are between <0-600>) }`,
+        {
+          defaultInput: -1,
+          limit: function (input) {
+            return (Number(input) >= 0 && Number(input) <= 600) || Number(input) === -1;
+          },
+          limitMessage: chalk.red('-- $<lastInput> is not within the accepted range: <0-600>.'),
+        }
+      );
+      if (new_waste_speed != '-1') waste_speed = Number(new_waste_speed);
+      wasteSettings['waste_speed'] = waste_speed;
 
-		let new_waste_speed = readlineSync.question(
-			chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the waste section carriage speed number as?} {blue.italic (valid speeds are between <0-600>) }`,
-			{
-				defaultInput: -1,
-				limit: function (input) {
-					return (Number(input) >= 0 && Number(input) <= 600) || Number(input) === -1;
-				},
-				limitMessage: chalk.red('-- $<lastInput> is not within the accepted range: <0-600>.'),
-			}
-		);
-		if (new_waste_speed != '-1') waste_speed = Number(new_waste_speed);
-		wasteSettings['waste_speed'] = waste_speed;
+      let new_waste_roller = readlineSync.question(
+        chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the waste section roller advance as? }`,
+        {
+          defaultInput: -1,
+          limit: Number,
+          limitMessage: chalk.red('-- $<lastInput> is not a number.'),
+        }
+      );
+      if (new_waste_roller != '-1') waste_roller = Number(new_waste_roller);
+      wasteSettings['waste_roller'] = waste_roller;
 
-		let new_waste_roller = readlineSync.question(
-			chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the waste section roller advance as? }`,
-			{
-				defaultInput: -1,
-				limit: Number,
-				limitMessage: chalk.red('-- $<lastInput> is not a number.'),
-			}
-		);
-		if (new_waste_roller != '-1') waste_roller = Number(new_waste_roller);
-		wasteSettings['waste_roller'] = waste_roller;
-
-		let new_waste_rows = readlineSync.question(chalk `{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold How many rows for the waste section? }`, { //new
-			defaultInput: -1,
-			// limit: Number,
-			limit: function(input) {
-				return (Number(input) >= 1) || Number(input) === -1;
-			},
-			limitMessage: chalk.red('-- $<lastInput> is not a positive number.'),
-		});
-		if (new_waste_rows != '-1') waste_rows = Number(new_waste_rows);
-		wasteSettings['waste_rows'] = waste_rows; 
-	};
-	if (saveAnswers) promptAnswers['wasteSettings'] = wasteSettings;
+      let new_waste_rows = readlineSync.question(chalk `{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold How many rows for the waste section? }`, { //new
+        defaultInput: -1,
+        // limit: Number,
+        limit: function(input) {
+          return (Number(input) >= 1) || Number(input) === -1;
+        },
+        limitMessage: chalk.red('-- $<lastInput> is not a positive number.'),
+      });
+      if (new_waste_rows != '-1') waste_rows = Number(new_waste_rows);
+      wasteSettings['waste_rows'] = waste_rows; 
+    }
+  }
+  if (saveAnswers) promptAnswers['wasteSettings'] = wasteSettings;
 
   if (img_path) { //not stitch only
     back_style = ['Default', 'Birdseye', 'Minimal', 'Secure'],
@@ -504,24 +507,26 @@ processing()
       // user_specified_carriers.push(caston_carrier);
     }
     if (saveAnswers) promptAnswers['caston_carrier'] = caston_carrier;
+    
+    if (machine === 'kniterate') { //new
+      waste_carrier = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step and use the default carrier [1])} {blue.bold Which carrier would you like to use for the waste section? }`, {
+        defaultInput: -1,
+        limit: function (input) {
+          return (Number(input) >= 1 && Number(input) <= 6) || Number(input) === -1;
+        },
+        limitMessage: chalk.red('-- $<lastInput> is not a number between 1 and 6.'),
+      });
 
-    waste_carrier = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step and use the default carrier [1])} {blue.bold Which carrier would you like to use for the waste section? }`, {
-      defaultInput: -1,
-      limit: function (input) {
-        return (Number(input) >= 1 && Number(input) <= 6) || Number(input) === -1;
-      },
-      limitMessage: chalk.red('-- $<lastInput> is not a number between 1 and 6.'),
-    });
-
-    if (waste_carrier === '-1') {
-      console.log(chalk.green(`-- Waste carrier : UNSPECIFIED, will assign default value: 1`));
-      waste_carrier = undefined;
-    } else {
-      waste_carrier = Number(waste_carrier);
-      console.log(chalk.green(`-- Waste carrier: ${waste_carrier}`));
-      // user_specified_carriers.push(waste_carrier);
+      if (waste_carrier === '-1') {
+        console.log(chalk.green(`-- Waste carrier : UNSPECIFIED, will assign default value: 1`));
+        waste_carrier = undefined;
+      } else {
+        waste_carrier = Number(waste_carrier);
+        console.log(chalk.green(`-- Waste carrier: ${waste_carrier}`));
+        // user_specified_carriers.push(waste_carrier);
+      }
+      if (saveAnswers) promptAnswers['waste_carrier'] = waste_carrier;
     }
-    if (saveAnswers) promptAnswers['waste_carrier'] = waste_carrier;
   }
 
 

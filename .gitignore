@@ -65,3 +65,6 @@ in-stitch-pattern-images/*
 extras/
 
 old/
+
+Makefile
+dat-files/

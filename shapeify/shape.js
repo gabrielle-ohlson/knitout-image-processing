@@ -4314,15 +4314,12 @@ function generateKnitout(in_file, shape_code, shape_code_reverse, shortrow_code,
 	if (shaped_rows.some((line) => line.includes(undefined) || line.includes(NaN) || line.includes(null))) {
 		generateError(
 			styler('ERR: ', ['red', 'bold']) +
-			styler("file includes invalid value such as 'undefined'." ['red'])
+			styler("file includes invalid value such as 'undefined'.", ['red'])
 		);
 		// generateError(chalk`{red.bold ERR:} {red file includes invalid value such as 'undefined'.}`);
 		// console.log(chalk`{red.bold ERR:} {red file includes invalid value such as 'undefined'.}`); //remove
 		// errors = true; //remove
 	}
-
-	console.log('checkin 2.6'); //remove //debug
-
 
 	//---------------------------------------
 	//--- FINALLY, STRINGIFY FINAL_FILE ---//
