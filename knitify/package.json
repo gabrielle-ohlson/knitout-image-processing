@@ -1,6 +1,6 @@
 {
   "name": "knitify",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "An image processing module for creating colorwork motifs to knit on programmable knitting machines, using CMU Textiles Lab's machine-independent file format, knitout.",
   "main": "colorwork.js",
   "exports": {
