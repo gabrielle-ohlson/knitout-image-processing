@@ -322,7 +322,7 @@ function generateKnitout(in_file, shape_code, shape_code_reverse, shortrow_code,
 
 	let machine = caston_section.find(ln => ln.split(' ')[0] === ';;Machine:').split(' ')[1].toLowerCase();
 
-	let sinkers = (machine === 'kniterate' ? false : true); //TODO: determine if most other machines (besides shima) have sinkers 
+	let sinkers = (machine === 'kniterate' ? false : true); //TODO: determine if most other machines (besides swg) have sinkers 
 
 	let yarn_out, yarn_in;
 	sinkers ? ((yarn_out = 'outhook'), (yarn_in = 'inhook')) : ((yarn_out = 'out'), (yarn_in = 'in'));
@@ -445,7 +445,7 @@ function generateKnitout(in_file, shape_code, shape_code_reverse, shortrow_code,
 	//--------------------------------------------------------------------------------------------
 	//--- SHIFT CAST-ON SECTION OVER IF NECESSARY/ADD IN SHORTROW YARN CARRIERS IF NECESSARY ---//
 	//--------------------------------------------------------------------------------------------
-	//TODO: add this for shima caston
+	//TODO: add this for swg caston
 	let header = caston_section,
 		yarns_in = [],
 		rib_bottom = [],
@@ -4249,7 +4249,7 @@ function generateKnitout(in_file, shape_code, shape_code_reverse, shortrow_code,
 	//-----------------------------------
 	//--- ADD OUT / OUTHOOK BACK IN ---//
 	//-----------------------------------
-	//TODO: do this for inhook & releasehook for shima
+	//TODO: do this for inhook & releasehook for swg
 	((carriers_arr) => {
 		short_row_section && !sinkers ? (carriers_arr = [...new Set([...left_sr_carriers, redefine_carriers, carriers].flat(2))]) : (carriers_arr = carriers); //beep
 

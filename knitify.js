@@ -295,7 +295,7 @@ if (!preloadFile) {
   machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machine will you be using? '), {
 		limit: [
 			function (input) {
-				return input.toLowerCase().includes('shima') || input.toLowerCase().includes('kniterate');
+				return input.toLowerCase().includes('swg') || input.toLowerCase().includes('kniterate');
 			},
 		],
 		limitMessage: chalk.red(
@@ -307,10 +307,10 @@ if (!preloadFile) {
 	if (saveAnswers) promptAnswers['machine'] = machine;
 
   let carrier_count;
-	machine.includes('shima') ? (carrier_count = 10) : (carrier_count = 6); //TODO: limit needle bed with this too (prob will have to use promises :,( )
+	machine.includes('swg') ? (carrier_count = 10) : (carrier_count = 6); //TODO: limit needle bed with this too (prob will have to use promises :,( )
 
 	max_colors = readlineSync.question(chalk.blue.bold('\nHow many colors would you like to use? '), { //TODO: make sure this is ok when using just stitch pattern
-		limit: machine.includes('shima') ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [1, 2, 3, 4, 5, 6],
+		limit: machine.includes('swg') ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [1, 2, 3, 4, 5, 6],
 		limitMessage: chalk.red(
 			`-- The ${machine} machine is capable of working with a max of ${carrier_count} colors per row, but $<lastInput> is not within that accepted range. Please input a valid number.`
 		),
@@ -333,21 +333,20 @@ if (!preloadFile) {
 		}
 	}
 
-  if (saveAnswers) promptAnswers['palette'] = palette_opt; //new //*
+  if (saveAnswers) promptAnswers['palette'] = palette_opt;
 
   opts = processImage.palOptions(max_colors, dithering, palette_opt);
 
-	// if (saveAnswers) promptAnswers['opts'] = opts; //new //*
-
+  let default_stitch = (machine.includes('swg') ? 63 : 6);
   stitch_number = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the stitch number as? }`, {
 		defaultInput: -1,
 		// limit: Number,
 		limit: function (input) {
-			return (Number(input) >= 0 && Number(input) <= 9) || Number(input) === -1;
+			return (Number(input) >= 0 && (machine.includes('swg') || Number(input) <= 9)) || Number(input) === -1; //TODO: add max for swgn2
 		},
-		limitMessage: chalk.red('-- $<lastInput> is not a number between 0 and 9.'),
+		limitMessage: chalk.red('-- $<lastInput> is not a number between 0 and 9.'), //TODO: adjust for swgn2
 	});
-	stitch_number === '-1' ? ((console.log(chalk.green(`-- Stitch number: UNSPECIFIED, will assign default value: 6`))), (stitch_number = 6)) : ((console.log(chalk.green(`-- Stitch number: ${stitch_number}`))), (stitch_number = Number(stitch_number)));
+	stitch_number === '-1' ? ((console.log(chalk.green(`-- Stitch number: UNSPECIFIED, will assign default value: ${default_stitch}`))), (stitch_number = default_stitch)) : ((console.log(chalk.green(`-- Stitch number: ${stitch_number}`))), (stitch_number = Number(stitch_number)));
 	// main_stitch_number = stitch_number;
 	if (saveAnswers) promptAnswers['stitch_number'] = stitch_number;
 
@@ -358,15 +357,15 @@ if (!preloadFile) {
 			limit: function (input) {
 				return (Number(input) >= 0 && Number(input) <= 600) || Number(input) === -1;
 			},
-			limitMessage: chalk.red('-- $<lastInput> is not within the accepted range: <0-600>.'),
+			limitMessage: chalk.red('-- $<lastInput> is not within the accepted range: <0-600>.'), //TODO: adjust for swgn2
 		}
 	);
 	speed_number === '-1'
-		? (console.log(chalk.green('-- Speed number: UNSPECIFIED, will assign default value: 300')), (speed_number = 300))
+		? (console.log(chalk.green('-- Speed number: UNSPECIFIED, will assign default value: 300')), (speed_number = 300)) //TODO: adjust for swgn2 (have no default, I guess)
 		: ((console.log(chalk.green(`-- Speed number: ${speed_number}`))), (speed_number = Number(speed_number)));
 	if (saveAnswers) promptAnswers['speed_number'] = speed_number;
 
-  if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to change any of the default settings for the waste section? (DEFAULT stitch number: 5, speed number: 400, roller advance: 150, rows: 40)}`)) { //TODO: have rows as an option too
+  if (readlineSync.keyInYNStrict(chalk `{blue.bold \nWould you like to change any of the default settings for the waste section? (DEFAULT stitch number: 5, speed number: 400, roller advance: 150, rows: 40)}`)) { //TODO: have rows as an option too //TODO: adjust for swgn2
 		let new_waste_stitch = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the waste section stitch number as? }`, {
 			defaultInput: -1,
 			// limit: Number,
@@ -442,7 +441,7 @@ process.on('unhandledRejection', (reason, promise) => { //throw Error if issue
 function processing() {
   const promise = new Promise((resolve, reject) => {
 		if (machine === 'kniterate') max_needles = 252;
-		else max_needles = 540; //TODO: adjust this for other machines besides shima swgn12 and kniterate
+		else max_needles = 540; //TODO: adjust this for other machines besides shima swgn2 and kniterate
 
     let info_arr = processImage.process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt, max_needles);
 
