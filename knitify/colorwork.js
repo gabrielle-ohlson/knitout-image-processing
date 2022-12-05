@@ -120,7 +120,7 @@ function tuckPattern(machine, firstN, direction, bed, c) { //remember to drop af
 // function for planning which needles won't follow the modulus pattern in a given row, and thus should be knitted with a different carrier (and also, which carrier to knit them will)
 let extra_pass_idx = 0; //for when more than 5 colors in a row
 let rep_shift = [0, 0]; //shift for repeated edge needles
-function planBackRow(back_mod, row_passes, back_style) {
+function planBackRow(back_mod, row_passes, back_style, row_count) {
 	const edgeNs_L = [1, 2, 3];
 	const edgeNs_R = [pieceWidth, pieceWidth-1, pieceWidth-2];
 
@@ -155,6 +155,14 @@ function planBackRow(back_mod, row_passes, back_style) {
 
 		let pass_needles = row_passes[i].map(el => el[0]);
 
+		off_limits[carrier] = [...pass_needles];
+
+		// kinda hacky way to ensure last needle in caston (which should always be on the back bed [//TODO: ensure this for kniterate]) is not knitted in first pass so that it is stable. //TODO: make this more sophisticated by only doing this if first pass is in opposite direction of caston and only for the edge needle on that side
+		if (row_count === 1 && i === 0) {
+			if (!pass_needles.includes(1)) off_limits[carrier].push(1);
+			if (!pass_needles.includes(pieceWidth)) off_limits[carrier].push(pieceWidth);
+		}
+
 		if (plan_edgeNs) {
 			carrier_edgeNs[carrier] = [null, null]; //left and right
 
@@ -166,9 +174,9 @@ function planBackRow(back_mod, row_passes, back_style) {
 			if (right_edgeNs.length) carrier_edgeNs[carrier][1] = right_edgeNs[0];
 		}
 
-		off_limits[carrier] = pass_needles;
 		for (let n = 1; n <= pieceWidth; ++n) {
-			if (!pass_needles.includes(n)) { // not knitting on the front
+			// if (!pass_needles.includes(n)) { // not knitting on the front
+			if (!off_limits[carrier].includes(n)) { // not knitting on the front/off limits
 				if (n % back_mod == pass_idx) { // we would knit this on the back
 					planned_needles[carrier].push(n);
 					leftover_needles.splice(leftover_needles.indexOf(n), 1); // remove it
@@ -520,7 +528,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 			// the passes in this particular row:
 			row_passes = jacquard_passes.slice(i, i+passes_per_row[row_count - 1]);
 
-			if (!single_color) planned_bns = planBackRow(back_mod, row_passes, back_style);
+			if (!single_color) planned_bns = planBackRow(back_mod, row_passes, back_style, row_count);
 			else planned_bns = {};
 
 			if (stData) {
