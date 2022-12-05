@@ -5,6 +5,7 @@ const styler = require('./utils.js').styler; //new
 const generateError = require('./utils.js').generateError; //new
 console = require('./utils.js').console; //new
 
+let pieceWidth; //global now
 let xfer_speed = 300; // for kniterate
 
 let waste_carrier,
@@ -45,8 +46,11 @@ let last_pass_dir, xfer_needle, last_needle, bindoff_carrier, bindCLastN;
 let kniterate_caston = [],
 	waste_yarn_section = [];
 
+let caston_method = 'alt tuck'; //'zigzag'; //'alt tuck'; //'zigzag'; //new //TODO: add code for skipping first needle if first pass and knitting in opposite direction of last pass of caston (and then storing that needle for future knitting)
 let negCaston = false;
 let user_specified_carriers = [];
+
+let first_pass = true; //whether it is the first pass of the row //TODO: actually use this
 
 let edge_L = [],
 	edge_R = [],
@@ -112,8 +116,143 @@ function tuckPattern(machine, firstN, direction, bed, c) { //remember to drop af
 }
 
 
+//TODO: store passes per row in a dictionary instead, so can access all the passes in a given row more easily
+// function for planning which needles won't follow the modulus pattern in a given row, and thus should be knitted with a different carrier (and also, which carrier to knit them will)
+let extra_pass_idx = 0; //for when more than 5 colors in a row
+let rep_shift = [0, 0]; //shift for repeated edge needles
+function planBackRow(back_mod, row_passes, back_style) {
+	const edgeNs_L = [1, 2, 3];
+	const edgeNs_R = [pieceWidth, pieceWidth-1, pieceWidth-2];
+
+	let plan_edgeNs = false; 
+	let extra_passes = false;
+	if (back_style === 'Secure') {
+		plan_edgeNs = true;
+
+		if (row_passes.length > 5) extra_passes = true;
+	}
+
+	let rowCs = [];
+	let off_limits = {};
+	let planned_needles = {};
+
+	let carrier_edgeNs = {};
+
+	let leftover_needles = [...all_needles];
+	
+	for (let i = 0; i < row_passes.length; ++i) {
+		let pass_idx = i;
+		if (extra_passes && i > 4) {
+			pass_idx = extra_pass_idx;
+			if (extra_pass_idx < 4) extra_pass_idx += 1;
+			else extra_pass_idx = 0;
+		}
+
+		let carrier = row_passes[i][0][1]; //TODO: return if !row_passes.length
+		rowCs.push(carrier);
+
+		planned_needles[carrier] = []; //TODO: ensure no repeated carriers in row_passes
+
+		let pass_needles = row_passes[i].map(el => el[0]);
+
+		if (plan_edgeNs) {
+			carrier_edgeNs[carrier] = [null, null]; //left and right
+
+			let left_edgeNs = pass_needles.filter(n => n < 4);
+			let right_edgeNs = pass_needles.filter(n => pieceWidth-n < 3);
+
+			if (left_edgeNs.length) carrier_edgeNs[carrier][0] = left_edgeNs[0];
+
+			if (right_edgeNs.length) carrier_edgeNs[carrier][1] = right_edgeNs[0];
+		}
+
+		off_limits[carrier] = pass_needles;
+		for (let n = 1; n <= pieceWidth; ++n) {
+			if (!pass_needles.includes(n)) { // not knitting on the front
+				if (n % back_mod == pass_idx) { // we would knit this on the back
+					planned_needles[carrier].push(n);
+					leftover_needles.splice(leftover_needles.indexOf(n), 1); // remove it
+					if (plan_edgeNs) {
+						if (edgeNs_L.includes(n)) carrier_edgeNs[carrier][0] = n;
+						if (edgeNs_R.includes(n)) carrier_edgeNs[carrier][1] = n;
+					}
+				}
+			}
+		}
+	}
+
+	if (plan_edgeNs) {
+		let left_edgeNs = [1, 2, 3]; // maybe we should instead say the 4 edge-most needles //?
+		let right_edgeNs = [pieceWidth, pieceWidth-1, pieceWidth-2];
+
+		let leftover_edgeNs_L = leftover_needles.filter(n => n < 4); // maybe we should instead say the 4 edge-most needles //?
+		let leftover_edgeNs_R = leftover_needles.filter(n => pieceWidth-n < 3);
+		
+		let idxs = [...rep_shift];
+
+		if (leftover_edgeNs_L.length) {
+			if (idxs[0] !== 0) { //we want the first needle to be knitted after we get done with the leftovers to be the next edgeN in line, according to repeats
+				left_edgeNs = [...left_edgeNs.slice(idxs[0], left_edgeNs.length), ...left_edgeNs.slice(0, idxs[0])];
+			}
+			left_edgeNs.reverse().sort(n => leftover_edgeNs_L.includes(n)).reverse();
+			idxs[0] = 0; // reset it so we can get the leftovers
+		}
+
+		if (leftover_edgeNs_R.length) {
+			if (idxs[1] !== 0) { //we want the first needle to be knitted after we get done with the leftovers to be the next edgeN in line, according to repeats
+				right_edgeNs = [...right_edgeNs.slice(idxs[1], right_edgeNs.length), ...right_edgeNs.slice(0, idxs[1])];
+			}
+			right_edgeNs.reverse().sort(n => leftover_edgeNs_R.includes(n)).reverse();
+			idxs[1] = 0; // reset it so we can get the leftovers
+		}
+
+		for (let i = 0; i < rowCs.length; ++i) {
+			if (carrier_edgeNs[rowCs[i]][0] === null) {
+				let n = left_edgeNs[idxs[0] % left_edgeNs.length];
+
+				carrier_edgeNs[rowCs[i]][0] = n;
+
+				planned_needles[rowCs[i]].push(n);
+
+				if (leftover_needles.includes(n)) leftover_needles.splice(leftover_needles.indexOf(n), 1);
+
+				idxs[0] += 1;
+			}
+
+			if (carrier_edgeNs[rowCs[i]][1] === null) {
+				let n = right_edgeNs[idxs[1] % right_edgeNs.length];
+				carrier_edgeNs[rowCs[i]][1] = n;
+
+				planned_needles[rowCs[i]].push(n);
+
+				if (leftover_needles.includes(n)) leftover_needles.splice(leftover_needles.indexOf(n), 1);
+			
+				idxs[1] += 1;
+			}
+		}
+
+		// shift so less build up on edge needles:
+		rep_shift[0] = edgeNs_L.indexOf(left_edgeNs[idxs[0] % left_edgeNs.length]);
+		rep_shift[1] = edgeNs_R.indexOf(right_edgeNs[idxs[1] % right_edgeNs.length]);
+		// rep_shift[0] = idxs[0] % left_edgeNs.length;
+		// rep_shift[1] = idxs[1] % right_edgeNs.length;
+	}
+
+	for (let n of leftover_needles) {
+		let carrier = rowCs.find(c => !off_limits[c].includes(n));
+		if (carrier) planned_needles[carrier].push(n);
+	}
+
+	return planned_needles;
+}
+
+
 function generateKnitout(machine, colors_data, background, color_count, colors_arr, stitch_number, speed_number, caston_carrier, wasteSettings, back_style, rib_info, stitchOnly, stData, console, chalk) {
 	let knitout = [];
+
+	let planned_bns = {}; //new //*
+
+	let row_passes;
 	
 	let dir, needle, carrier;
 
@@ -121,7 +260,11 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 
 	let init_dir = '-'; //for kniterate
 	let other_dir = '+';
-	let pieceWidth = colors_arr[0].length;
+
+	let bp_mod = Math.min(color_count, 5); //for how often we knit on % needles in backpasses
+
+	pieceWidth = colors_arr[0].length;
+
 	let reverse;
 	back_style === 'Minimal' ? (reverse = false) : (reverse = true);
 
@@ -275,7 +418,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 	jacquard_passes = rows.flat();
 	let row_count = 1;
 	let pass_count = 0;
-	let leftovers = [],
+	let leftovers = [], //TODO: remove these #?
 		stored_leftovers = [];
 
 	const NEGLECTED = Array.from(new Array(pieceWidth), (x, i) => i + 1); //*
@@ -323,7 +466,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 		x % 2 === 0 ? dir_caston.push(`knit ${dir} f${x} ${caston_carrier}`) : dir_caston.push(`knit ${dir} b${x} ${caston_carrier}`);
 	};
 
-	for (let x = 1; x <= pieceWidth; ++x) {
+	for (let x = 1; x <= pieceWidth; ++x) { //TODO: remove this for swg, or make alt-tuck caston vs zigzag an option
 		machine === 'kniterate' || (machine.includes('swg') && pieceWidth % 2 === 0) ? ODD_CASTON(x, '+', pos_caston) : EVEN_CASTON(x, '+', pos_caston);
 	}
 
@@ -340,13 +483,17 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 	}
 
 	let single_color = false;
+	let back_mod;
 	for (let i = 0; i < jacquard_passes.length; ++i) {
 		let placement_pass = false;
 
+		/*
 		let back_mod;
-		passes_per_row[row_count - 1] < 6 && back_style === 'Secure' ? (back_mod = passes_per_row[row_count - 1]) : (back_mod = 5);
+		passes_per_row[row_count - 1] < 6 && back_style === 'Secure' ? (back_mod = passes_per_row[row_count - 1]) : (back_mod = 5); //TODO: probably need to do this only when it is the first pass of the row //?
+		*/
 		
 		if (i === 0 || i === prev_row + passes_per_row[row_count - 1]) { //first pass of the row
+			first_pass = true; //new //TODO: actually se this
 			if (passes_per_row[row_count+1] && jacquard_passes[i + passes_per_row[row_count+1]-1][0].length === 0) {
 				if (!single_color && needlesToAvoid.length) { //recently switched from multiple colors to one; xfer any needlesToAvoid to front bed
 					knitout.push(';transfer back bed needles since using single color now');
@@ -367,6 +514,14 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 				pass_count = 0;
 				row_count += 1;
 			}
+
+			passes_per_row[row_count - 1] < 6 && back_style === 'Secure' ? (back_mod = passes_per_row[row_count - 1]) : (back_mod = 5); //new: only doing this when it is the first pass of the row 
+			
+			// the passes in this particular row:
+			row_passes = jacquard_passes.slice(i, i+passes_per_row[row_count - 1]);
+
+			if (!single_color) planned_bns = planBackRow(back_mod, row_passes, back_style);
+			else planned_bns = {};
 
 			if (stData) {
 				needlesToAvoid = [];
@@ -425,7 +580,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 				prev_row = i;
 				back_needles = [];
 			}
-		}
+		} else first_pass = false; //new //*
 		
 		if (tuckAvoid[0].length && !tuckAvoidCs.includes(carrier)) { //TODO: maybe change this //?
 			patAvoidIdx = avoidObj[!patAvoidIdx];
@@ -472,9 +627,10 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 		}
 
 		if (machine.includes('swg') && !colorwork_carriers.includes(carrier)) { //new
-			dir = init_dir; // start in the negative direction for everything
+			if (carrier === caston_carrier && caston_method === 'zigzag') dir = '+'; //new
+			else dir = init_dir; // start in the negative direction for everything
 		} else {
-			i % 2 === 0 ? (dir = init_dir) : (dir = other_dir);
+			i % 2 === 0 ? (dir = init_dir) : (dir = other_dir); //TODO: store directions earlier
 		}
 
 		let start_needle = (dir === '-' ? pieceWidth : 1); //new
@@ -591,15 +747,20 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 					carrier_track[least_idx].DIR = track_dir;
 					carrier_track[least_idx].END_NEEDLE = tracked_end_needle;
 				}
+				
+				knitout.push(';backpass for stacked carriers'); //new //*
+
 				if (track_dir === '+') {
 					for (let t = 1; t <= pieceWidth; ++t) {
-						if (t === 1 || t === pieceWidth || t % Number(least_freq) === 0) {
-							knitout.push(`knit + b${t} ${least_freq}`);
+						// if (t === 1 || t === pieceWidth || t % Number(least_freq) === 0) {
+						if (t === 1 || t === pieceWidth || t % bp_mod === (Number(least_freq)-1 % bp_mod)) {
+							knitout.push(`knit + b${t} ${least_freq}`); // bp_mod
 						}
 					}
 				} else {
 					for (let t = pieceWidth; t >= 1; --t) {
-						if (t === 1 || t === pieceWidth || t % Number(least_freq) === 0) {
+						// if (t === 1 || t === pieceWidth || t % Number(least_freq) === 0) {
+						if (t === 1 || t === pieceWidth || t % bp_mod === (Number(least_freq)-1 % bp_mod)) {
 							knitout.push(`knit - b${t} ${least_freq}`);
 						}
 					}
@@ -656,7 +817,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 				needle_done = true;
 				back_needles.push(x); //check //remove //? or keep? //TODO: maybe add this for Secure/Minimal?
 			} else {
-				if (back_style === 'Ladderback') {
+				if (back_style === 'Ladderback') { //TODO: make sure this is actually functional lol
 					if (!taken) {
 						let missing_needles = [];
 						if (i === prev_row + passes_per_row[row_count - 1] - 1) missing_needles = all_needles.filter((x) => back_needles.indexOf(x) === -1);
@@ -707,13 +868,19 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 						}
 					}
 				} else if (back_style === 'Minimal' || back_style === 'Secure') {
-					if (back_style === 'Secure') {
+					if (planned_bns[carrier].includes(x)) {
+						knitout.push(notFrontOp);
+						needle_done = true;
+					}
+					/* //TODO: remove once confirmed that new method works well
+					if (back_style === 'Secure') { //TODO: deal with extra_back6
 						if (pass_count === 5) pass_count = extra_back6;
 						if (edge_needlesL.length === 0) edge_needlesL = [...edge_L];
 						if (edge_needlesR.length === 0) edge_needlesR = [...edge_R];
 					}
-					if ((dir === '+' && x === 1) || (dir === '-' && x === pieceWidth)) {
-						if (pass_count === 0) {
+
+					if ((dir === '+' && x === 1) || (dir === '-' && x === pieceWidth)) { // first needle of the pass
+						if (pass_count === 0) { // first pass of the row
 							stored_needles = [...new Set([...stored_needles, ...neglected_needles])];
 							// stored_needles = [...neglected_needles]; //remove
 							neglected_needles = [...NEGLECTED]; //*
@@ -721,54 +888,69 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 
 						stored_leftovers = [...new Set([...stored_leftovers, ...leftovers])];
 						leftovers = [];
+						// reset for new carrier:
 						edgeL_done = false;
 						edgeR_done = false;
 					}
+
 					if (back_style === 'Secure' && (edge_L.includes(x) || edge_R.includes(x))) {
 						if (!taken) {
-							if (!edgeL_done && edge_L.includes(x)) {
-								if (pass_count <= 3 && x % back_mod === pass_count) {
-									knitout.push(notFrontOp);
-									needle_done = true;
-
-									if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //*
-									if (stored_needles.includes(x)) stored_needles.splice(stored_needles.indexOf(x), 1); //*
-
-									if (edge_needlesL.includes(x)) edge_needlesL.splice(edge_needlesL.indexOf(x), 1);
-									edgeL_done = true;
-								} else if (x === edge_needlesL[0]) {
-									knitout.push(notFrontOp.replace(`${x} ${carrier}`, `${edge_needlesL[0]} ${carrier}`));
-									if (edge_needlesL[0] === x) needle_done = true;
-
-									if (neglected_needles.includes(edge_needlesL[0])) neglected_needles.splice(neglected_needles.indexOf(edge_needlesL[0]), 1); //*
-									if (stored_needles.includes(edge_needlesL[0])) stored_needles.splice(stored_needles.indexOf(edge_needlesL[0]), 1); //*
-
-									edge_needlesL.shift();
-									edgeL_done = true;
-								}
+							// if it is the last pass of the row, we should knit this needle no matter what (if we can) //TODO: add separate array for storing needles that were neglected in the *previous* row, so we know to *always* knit these whenever we get the chance (//TODO: add more sophisticated planning so can save the edge needles for whenever they would be best to knit):
+							if (stored_needles.includes(x)) { // & pass_count === passes_per_row-1 //this is a hack for now, what we *really should do* is plan ahead for what needles will need to be knitted by other carriers in a given row
+								knitout.push(notFrontOp);
+								needle_done = true;
 								
-								if (stored_leftovers.includes(x)) {
-									stored_leftovers.splice(stored_leftovers.indexOf(x), 1);
-								}
-							} else if (!edgeR_done && edge_R.includes(x)) {
-								if (pass_count <= 3 && x % back_mod === pass_count) {
-									knitout.push(notFrontOp);
-									needle_done = true;
+								stored_needles.splice(stored_needles.indexOf(x), 1); //*
 
-									if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //*
-									if (stored_needles.includes(x)) stored_needles.splice(stored_needles.indexOf(x), 1); //*
+								if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //*
+								
+								if (edge_L.includes(x)) edgeL_done = true;
+								if (edge_R.includes(x)) edgeR_done = true;
+							} else {
+								if (!edgeL_done && edge_L.includes(x)) {
+									if (pass_count <= 3 && x % back_mod === pass_count) {
+										knitout.push(notFrontOp);
+										needle_done = true;
 
-									if (edge_needlesR.includes(x)) edge_needlesR.splice(edge_needlesR.indexOf(x), 1);
-									edgeR_done = true;
-								} else if (x === edge_needlesR[0]) {
-									knitout.push(notFrontOp.replace(`${x} ${carrier}`, `${edge_needlesR[0]} ${carrier}`));
-									if (edge_needlesR[0] === x) needle_done = true;
+										if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //*
+										if (stored_needles.includes(x)) stored_needles.splice(stored_needles.indexOf(x), 1); //*
 
-									if (neglected_needles.includes(edge_needlesR[0])) neglected_needles.splice(neglected_needles.indexOf(edge_needlesR[0]), 1); //*
-									if (stored_needles.includes(edge_needlesR[0])) stored_needles.splice(stored_needles.indexOf(edge_needlesR[0]), 1); //*
+										if (edge_needlesL.includes(x)) edge_needlesL.splice(edge_needlesL.indexOf(x), 1);
+										edgeL_done = true;
+									} else if (x === edge_needlesL[0]) {
+										knitout.push(notFrontOp.replace(`${x} ${carrier}`, `${edge_needlesL[0]} ${carrier}`));
+										if (edge_needlesL[0] === x) needle_done = true;
 
-									edge_needlesR.shift();
-									edgeR_done = true;
+										if (neglected_needles.includes(edge_needlesL[0])) neglected_needles.splice(neglected_needles.indexOf(edge_needlesL[0]), 1); //*
+										if (stored_needles.includes(edge_needlesL[0])) stored_needles.splice(stored_needles.indexOf(edge_needlesL[0]), 1); //*
+
+										edge_needlesL.shift();
+										edgeL_done = true;
+									}
+									
+									if (stored_leftovers.includes(x)) {
+										stored_leftovers.splice(stored_leftovers.indexOf(x), 1);
+									}
+								} else if (!edgeR_done && edge_R.includes(x)) {
+									if (pass_count <= 3 && x % back_mod === pass_count) {
+										knitout.push(notFrontOp);
+										needle_done = true;
+
+										if (neglected_needles.includes(x)) neglected_needles.splice(neglected_needles.indexOf(x), 1); //*
+										if (stored_needles.includes(x)) stored_needles.splice(stored_needles.indexOf(x), 1); //*
+
+										if (edge_needlesR.includes(x)) edge_needlesR.splice(edge_needlesR.indexOf(x), 1);
+										edgeR_done = true;
+									} else if (x === edge_needlesR[0]) {
+										knitout.push(notFrontOp.replace(`${x} ${carrier}`, `${edge_needlesR[0]} ${carrier}`));
+										if (edge_needlesR[0] === x) needle_done = true;
+
+										if (neglected_needles.includes(edge_needlesR[0])) neglected_needles.splice(neglected_needles.indexOf(edge_needlesR[0]), 1); //*
+										if (stored_needles.includes(edge_needlesR[0])) stored_needles.splice(stored_needles.indexOf(edge_needlesR[0]), 1); //*
+
+										edge_needlesR.shift();
+										edgeR_done = true;
+									}
 								}
 							}
 						} else {
@@ -790,6 +972,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 							}
 						}
 					}
+					*/
 				} else { //Default or birdseye //TODO: figure out what's happening with birdseye
 					if (!taken && !stitchOnly) {
 						if (i % 2 === 0) {
@@ -824,12 +1007,13 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 					}
 				}
 			}
+
 			if (x === end_needle && !needle_done) {
 				knitout.push(`miss ${dir} b${end_needle} ${carrier}`);
 				needle_done = true;
 			}
 
-			if (inhook && x === last) { //TODO: do releasehook after at least 2 passes, or add tuck pattern
+			if (inhook && x === last) {
 				knitout.push(`releasehook ${carrier}`);
 				if (carrier !== caston_carrier) knitout.push(...tuckPattern(machine, start_needle, dir, 'f')); //drop it //new
 				inhook = false;
@@ -988,7 +1172,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 						if (patterns[p].carrier !== null && carrier !== patterns[p].carrier) {
 							for (let px = x; px <= endNeedle; ++px) {
 								if (stored_needles.includes(px) || px % back_mod === pass_count) knitout.push(`knit + b${px} ${carrier}`);
-								if (stored_needles.includes(px)) stored_needles.slice(storedstored_needles_leftovers.indexOf(px), 1);
+								if (stored_needles.includes(px)) stored_needles.slice(stored_needles.indexOf(px), 1);
 							}
 						}
 
@@ -1119,7 +1303,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 				knitoutLines(x, 1);
 			}
 		}
-		++pass_count;
+		pass_count += 1; // ++pass_count; //I just like this better tbh
 	}
 
 
@@ -1134,13 +1318,49 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 		carriers_str = `${carriers_str} ${i}`;
 		carriers_arr.push(i);
 	}
-	if (machine.includes('swg')) {
+	if (machine.includes('swg')) { //TODO: make sure this works fine with the rib
 		xfer_speed = 0; //new
-		caston = [...neg_caston, ...pos_caston];
-		caston.unshift(`inhook ${caston_carrier}`);
-		caston.push(`releasehook ${caston_carrier}`);
-		// caston.unshift(`inhook ${jacquard_passes[0][0][1]}`);
-		// caston.push(`releasehook ${jacquard_passes[0][0][1]}`);
+		
+		if (caston_method === 'zigzag') {
+			//start with tuck pattern, since only one pass:
+			caston = [`inhook ${caston_carrier}`, ...tuckPattern(machine, pieceWidth, '-', 'f', caston_carrier)];
+			caston.push('rack -0.75'); //negative rack so last needle we knit is on the back bed //NOTE: the visualizer renders this weirdly for some reason
+			for (let x = pieceWidth; x >= 1; --x) {
+				caston.push(`knit - f${x} ${caston_carrier}`);
+				caston.push(`knit - b${x} ${caston_carrier}`);	
+			}
+			caston.push('rack 0');
+			caston.push(`releasehook ${caston_carrier}`);
+			// drop this tucks:
+			caston.push(...tuckPattern(machine, pieceWidth, '-', 'f')); //drop it //new
+		} else { // alt-tuck caston
+			caston = [`inhook ${caston_carrier}`];
+			let bed1, bed2;
+			
+			// we want the last needle we knit (aka in second pass) to be on the back bed (since first pass of main knitting is on the front):
+			if (pieceWidth % 2 == 0) { // last needle we will knit is even
+				bed1 = 'f';
+				bed2 = 'b';
+			} else { // last needle we will knit is odd
+				bed1 = 'b';
+				bed2 = 'f';
+			}
+
+			for (let n = pieceWidth; n >= 1; --n) {
+				if (n % 2 == 0) caston.push(`knit - ${bed1}${n} ${caston_carrier}`);
+				else caston.push(`knit - ${bed2}${n} ${caston_carrier}`);
+			}
+
+			for (let n = 1; n <= pieceWidth; ++n) {
+				if (n % 2 == 0) caston.push(`knit + ${bed2}${n} ${caston_carrier}`);
+				else caston.push(`knit + ${bed1}${n} ${caston_carrier}`);
+			}
+			caston.push(`releasehook ${caston_carrier}`);
+			// caston = [`inhook ${caston_carrier}`, ...neg_caston, ...pos_caston, `releasehook ${caston_carrier}`];
+			// caston = [...neg_caston, ...pos_caston];
+		}
+		// caston.unshift(`inhook ${caston_carrier}`);
+		// caston.push(`releasehook ${caston_carrier}`);
 		knitout.unshift(caston);
 	} else if (machine === 'kniterate') {
 		caston = [...pos_caston, ...neg_caston]; //so, if not less than 20, this section is length of real section
@@ -1211,7 +1431,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 			
 			let caston_count;
 			pieceWidth < 40 ? (caston_count = 3) : (caston_count = 2);
-			kniterate_caston.push(yarn_in); //TODO: add extra pos pass for carriers that start in neg direction, so don't need to worry about back pass (make sure this doesn't impact waste yarn & draw thread carriers tho)
+			kniterate_caston.push(yarn_in); //TODO: add extra pos pass for carriers that start in neg direction, so don't need to worry about backpass (make sure this doesn't impact waste yarn & draw thread carriers tho)
 			for (let p = 0; p < caston_count; ++p) {
 				kniterate_caston.push(pos_carrier_caston, neg_carrier_caston);
 			}
@@ -1277,7 +1497,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 				
 				let caston_count;
 				pieceWidth < 40 ? (caston_count = 3) : (caston_count = 2);
-				kniterate_caston.push(yarn_in); //TODO: add extra pos pass for carriers that start in neg direction, so don't need to worry about back pass (make sure this doesn't impact waste yarn & draw thread carriers tho)
+				kniterate_caston.push(yarn_in); //TODO: add extra pos pass for carriers that start in neg direction, so don't need to worry about backpass (make sure this doesn't impact waste yarn & draw thread carriers tho)
 				for (let p = 0; p < caston_count; ++p) {
 					kniterate_caston.push(pos_carrier_caston, neg_carrier_caston);
 				}

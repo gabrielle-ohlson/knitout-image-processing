@@ -65,6 +65,7 @@ in-stitch-pattern-images/*
 extras/
 
 old/
+ignore/
 
 Makefile
 dat-files/
