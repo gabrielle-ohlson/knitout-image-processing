@@ -501,7 +501,8 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 		*/
 		
 		if (i === 0 || i === prev_row + passes_per_row[row_count - 1]) { //first pass of the row
-			first_pass = true; //new //TODO: actually se this
+			first_pass = true; //new //TODO: actually use this
+			/* //TODO: deal with this for when have stitch patterns in there
 			if (passes_per_row[row_count+1] && jacquard_passes[i + passes_per_row[row_count+1]-1][0].length === 0) {
 				if (!single_color && needlesToAvoid.length) { //recently switched from multiple colors to one; xfer any needlesToAvoid to front bed
 					knitout.push(';transfer back bed needles since using single color now');
@@ -513,6 +514,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 				single_color = true;
 
 			} else single_color = false;
+			*/
 
 			if (i !== 0) {
 				if (passes_per_row[row_count - 1] === 6) {
