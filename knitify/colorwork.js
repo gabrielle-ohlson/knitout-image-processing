@@ -218,13 +218,18 @@ function planBackRow(back_mod, row_passes, back_style, row_count) {
 			if (carrier_edgeNs[rowCs[i]][0] === null) {
 				let n = left_edgeNs[idxs[0] % left_edgeNs.length];
 
+				if (off_limits[rowCs[i]].includes(n)) {
+					n = left_edgeNs[idxs[0]+1 % left_edgeNs.length]; // skip over it is necessary, and don't increment idxs[0] so next carrier gets the needle we skipped (aka needle 1 [NOTE: this only applies for pass right after the caston])
+				} else {
+					idxs[0] += 1;
+				}
+
 				carrier_edgeNs[rowCs[i]][0] = n;
 
 				planned_needles[rowCs[i]].push(n);
 
 				if (leftover_needles.includes(n)) leftover_needles.splice(leftover_needles.indexOf(n), 1);
-
-				idxs[0] += 1;
+				// idxs[0] += 1;
 			}
 
 			if (carrier_edgeNs[rowCs[i]][1] === null) {
