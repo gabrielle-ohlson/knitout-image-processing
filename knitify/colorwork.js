@@ -72,7 +72,7 @@ let track_back = [];
 
 
 function tuckPattern(machine, firstN, direction, bed, c) { //remember to drop after
-	let output = [];
+	let output = [';start tuck pattern'];
 	if (direction === '+') {
 		for (let n = firstN-1; n > firstN-6; --n) {
 		// for n in range(firstN-1, firstN-6, -1):
@@ -111,6 +111,8 @@ function tuckPattern(machine, firstN, direction, bed, c) { //remember to drop af
 			}
 		}
 	}
+
+	output.push(';end tuck pattern');
 
 	return output;
 }
@@ -1318,7 +1320,8 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 				knitoutLines(x, 1);
 			}
 		}
-		pass_count += 1; // ++pass_count; //I just like this better tbh
+
+		pass_count += 1;
 	}
 
 
@@ -1371,11 +1374,8 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 				else caston.push(`knit + ${bed1}${n} ${caston_carrier}`);
 			}
 			caston.push(`releasehook ${caston_carrier}`);
-			// caston = [`inhook ${caston_carrier}`, ...neg_caston, ...pos_caston, `releasehook ${caston_carrier}`];
-			// caston = [...neg_caston, ...pos_caston];
 		}
-		// caston.unshift(`inhook ${caston_carrier}`);
-		// caston.push(`releasehook ${caston_carrier}`);
+
 		knitout.unshift(caston);
 	} else if (machine === 'kniterate') {
 		caston = [...pos_caston, ...neg_caston]; //so, if not less than 20, this section is length of real section
