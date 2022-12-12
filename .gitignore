@@ -69,3 +69,5 @@ ignore/
 
 Makefile
 dat-files/
+
+*(conflicted*.js

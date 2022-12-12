@@ -368,7 +368,7 @@ function bindoff(specs, side, count, prevN, carrier, arr, as_dec_method, off_lim
         arr.push(`xfer ${bed}${n} ${receive}${n}`);
       }
       if (op === 'bind') {
-        if (n === rightN) break pos;
+        if (!as_dec_method && n === rightN) break pos; //TODO: //check
         
         arr.push(`xfer b${n} f${n}`);
         arr.push('rack -1');
@@ -401,7 +401,7 @@ function bindoff(specs, side, count, prevN, carrier, arr, as_dec_method, off_lim
         arr.push(`xfer ${bed}${n} ${receive}${n}`);
       }
       if (op === 'bind') {
-        if (n === leftN) break neg;
+        if (!as_dec_method && n === leftN) break neg; //TODO: //check
         
         arr.push(`xfer b${n} f${n}`);
         arr.push('rack 1');
@@ -458,9 +458,10 @@ function bindoff(specs, side, count, prevN, carrier, arr, as_dec_method, off_lim
 
     posLoop('bind', null);
 
-    if (rightN <= leftN+3 && !off_limits.includes(leftN-1)) arr.push(`drop b${leftN-1}`); // wasn't dropped earlier
+    if (rightN < leftN+3 && !off_limits.includes(leftN-1)) arr.push(`drop b${leftN-1}`); // wasn't dropped earlier
 
     if (!as_dec_method) bindoffTail(rightN, '+');
+    else arr.push(`miss - f${rightN} ${carrier}`);
   } else if (side === 'right') {
     if (!as_dec_method) {
       negLoop('knit', 'f');
@@ -479,9 +480,10 @@ function bindoff(specs, side, count, prevN, carrier, arr, as_dec_method, off_lim
 
     negLoop('bind', null);
     // n === leftN+count-4
-    if (count <= 4 && !off_limits.includes(rightN+1)) arr.push(`drop b${rightN+1}`); // wasn't dropped earlier
+    if (count < 4 && !off_limits.includes(rightN+1)) arr.push(`drop b${rightN+1}`); // wasn't dropped earlier
 
     if (!as_dec_method) bindoffTail(leftN, '-');
+    else arr.push(`miss + f${leftN} ${carrier}`); //TODO: decide if should knit thru most rightN in this situation (and same for leftN for left side bind) 
   }
 }
 

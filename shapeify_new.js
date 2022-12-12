@@ -260,7 +260,7 @@ getData()
 .finally(() => {
   //--------------------------------
   //--- WRITE THE FINAL FILE ! ---//
-  //--------------------------------
+  //-------------------------------- //TODO: comment back in
   fs.writeFile(`./knit-out-files/${new_file}`, final_file, function (err) {
     if (err) return console.log(err);
     // console.log(chalk.green(`\nThe knitout file has successfully been altered and saved. The path to the new file is: ${new_file}`)); //remove
