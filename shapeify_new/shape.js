@@ -16,7 +16,7 @@ function arraysEqual(a, b, order_matters) {
 let header_section = [], caston_section = [], bindoff_section = [];
 let rows = [];
 let rows_edgeNs = [];
-let rows_sect_idxs = [];
+let rows_sect_keys = [];
 // left and right needles of original piece:
 let MIN = Infinity, MAX = -Infinity;
 let input_carriers = [];
@@ -281,7 +281,7 @@ function determineShaping(shape_code) {
 
     shaping.push(row_shaping);
     prev_edgeNs = row_sect_track;
-    rows_sect_idxs.push(Object.keys(row_sect_track));
+    rows_sect_keys.push(Object.keys(row_sect_track));
     rows_edgeNs.push(row_edgeNs);
   }
 
@@ -439,10 +439,10 @@ function placeCarrier(d, n, carrier, edgeNs, row_idx, ln_idx, sect_idx) {
   }
 
   find_next_op: for (let r=row_idx+1; r<rows.length; ++r) {
-    let i = rows_sect_idxs[r].indexOf(sect_idx);
+    let i = rows_sect_keys[r].indexOf(sect_idx);
 
     if (i === -1) { // no longer in the row
-      if (Object.keys(sect_track[sect_idx].children).some(key => rows_sect_idxs[r].includes(key))) carrier_done = false; //TODO: have code for checking if any of the sections that are no longer in use still have carriers store, and if so, add to leftover carriers
+      if (Object.keys(sect_track[sect_idx].children).some(key => rows_sect_keys[r].includes(key))) carrier_done = false; //TODO: have code for checking if any of the sections that are no longer in use still have carriers store, and if so, add to leftover carriers
       break find_next_op;
     }
 
@@ -732,7 +732,7 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
                   if (info.d === '+') output.push(`miss - b${n} ${sectC}`);
                 }
 
-                console.log(`needle to place carrier, ${sectC}, since it is ${c_dist} needles away from working needle, ${n}.`); //debug
+                console.log(`need to place carrier, ${sectC}, since it is ${c_dist} needles away from working needle, ${n}.`); //debug
               }
               if (specs.visColors[c]) output.push(`x-vis-color ${specs.visColors[c]} ${sectC}`);
             }
@@ -782,7 +782,7 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
       }
     }
 
-    if (doneCs.length) {
+    if (doneCs.length && row_idx < rows.length-1) {
       for (let c of doneCs) {
         let c_idx = sect_track[sect_idx].carriers.indexOf(c);
         sect_track[sect_idx].carriers[c_idx] = undefined;
@@ -838,10 +838,10 @@ function generateKnitout(file_content, shape_code, machine, carriers, inc_method
 
     let sect_ct = rows_edgeNs[r].length;
 
-    let sect_idxs = rows_sect_idxs[r];
+    let sect_keys = rows_sect_keys[r];
 
-    for (let i=0; i<sect_idxs.length; ++i) {
-      let sect_key = sect_idxs[i];
+    for (let i=0; i<sect_keys.length; ++i) {
+      let sect_key = sect_keys[i];
 
       shaping_needles = Object.keys(shaping[r][sect_key]).map(Number);
 
@@ -861,7 +861,7 @@ function generateKnitout(file_content, shape_code, machine, carriers, inc_method
     }
 
     if (r > 0) {
-      let done_sects = rows_sect_idxs[r-1].filter(key => !sect_idxs.includes(key));
+      let done_sects = rows_sect_keys[r-1].filter(key => !sect_keys.includes(key));
       if (done_sects.length) {
         for (let sect_key of done_sects) {
           leftover_carriers = leftover_carriers.concat(sect_track[sect_key].carriers.filter(c => c !== undefined));
@@ -873,25 +873,57 @@ function generateKnitout(file_content, shape_code, machine, carriers, inc_method
   let bindoff_ln = bindoff_section.find(ln => ln.includes('knit '));
 
   if (bindoff_ln) {
+    let edgeN = specs.machine === 'kniterate' ? rows_edgeNs[rows.length-1][0][0] : rows_edgeNs[rows.length-1][rows_edgeNs[row_idx].length-1][1];
+
     let bindoff_output = [];
     output.push(';bindoff section');
     
     let info = knitoutInfo(bindoff_ln);
-    let bindoff_carrier = info.cs[0]; //.join(' ');
+    let bindoff_carrier = info.cs[0];
 
-    let bindoff_edgeNs = rows_edgeNs[rows.length-1][0]; //TODO: do this for each section, if applicable
-    let bindoff_count = bindoff_edgeNs[1]- bindoff_edgeNs[0]+1;
-    let bindoff_side, bindoffN;
+    let last_sect_keys = rows_sect_keys[rows.length-1];
 
-    if (carrier_track[bindoff_carrier].direction === '-') {
-      bindoff_side = 'left';
-      bindoffN = bindoff_edgeNs[0];
-    } else {
-      bindoff_side = 'right';
-      bindoffN = bindoff_edgeNs[1];
+    for (let i=0; i<last_sect_keys.length; ++i) {
+      let sect_key = last_sect_keys[i];
+      let c_idx = input_carriers.indexOf(bindoff_carrier);
+      let bindC = sect_track[sect_key].carriers[c_idx];
+
+      for (let c of sect_track[sect_key].carriers[c_idx]) {
+        if (c === undefined) continue;
+        else {
+          if (bindC === undefined) bindC = c;
+
+          if (c !== bindC && ((specs.machine === 'kniterate' && carrier_track[c].needle <= edgeN) || (specs.machine.includes('swg') && carrier_track[c].needle >= edgeN))) {
+            output.push(`${specs.out_op} ${c}`);
+            delete carrier_track[c];
+          }
+        }
+      }
+
+      let bindoff_edgeNs = rows_edgeNs[rows.length-1][i]; //TODO: do this for each section, if applicable
+      let bindoff_count = bindoff_edgeNs[1]- bindoff_edgeNs[0]+1;
+      let bindoff_side, bindoffN, last_needle;
+
+      if (carrier_track[bindC].direction === '-') {
+        bindoff_side = 'left';
+        bindoffN = bindoff_edgeNs[0];
+        last_needle = bindoff_edgeNs[1];
+      } else {
+        bindoff_side = 'right';
+        bindoffN = bindoff_edgeNs[1];
+        last_needle = bindoff_edgeNs[0];
+      }
+
+      bindoff(specs, bindoff_side, bindoff_count, bindoffN, bindC, bindoff_output, false, []);
+
+      if (i === last_sect_keys.length-1) {
+        bindoff_output.push(new KnitoutOp({op: specs.out_op, cs: [bindC]}));
+        delete carrier_track[bindC];
+      }
+
+      bindoff_output.push(new KnitoutOp({op: 'drop', bn: ['b', last_needle]})); //TODO: maybe knit tag instead so less likely to unravel
     }
 
-    bindoff(specs, bindoff_side, bindoff_count, bindoffN, bindoff_carrier, bindoff_output, false, []);
     bindoff_output.forEach(k_op => {
       k_op.generateCode(output);
     });

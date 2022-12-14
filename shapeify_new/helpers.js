@@ -536,15 +536,15 @@ function bindoff(specs, side, count, prevN, carrier, arr, as_dec_method, off_lim
     dir === '+' ? ((otherT_dir = '-'), (miss1 = last_needle+1), (miss2 = last_needle-1)) : ((otherT_dir = '+'), (miss1 = last_needle-1), (miss2 = last_needle+1));
     if (specs.machine === 'kniterate') arr.push(new KnitoutOp({'op': 'x-roller-advance', param: 200}));
     arr.push(new KnitoutOp({op: 'miss', d: dir, bn: ['b', miss1], cs: carrier}));
-    arr.push(new KnitoutOp({comment: 'pause tail?'}));
+    if (specs.machine === 'kniterate') arr.push(new KnitoutOp({op: 'pause', param: 'tail?'}));
     for (let i = 0; i < 6; ++i) {
       arr.push(new KnitoutOp({op: 'knit', d: otherT_dir, bn: ['b', last_needle], cs: carrier}));
       arr.push(new KnitoutOp({op: 'miss', d: otherT_dir, bn: ['b', miss2], cs: carrier}));
       arr.push(new KnitoutOp({op: 'knit', d: dir, bn: ['b', last_needle], cs: carrier}));
       arr.push(new KnitoutOp({op: 'miss', d: dir, bn: ['b', miss1], cs: carrier}));
     }
-    if (specs.machine === 'kniterate') arr.push(new KnitoutOp({'op': 'x-add-roller-advance', param: 200})); //new
-    arr.push(new KnitoutOp({op: 'drop', bn: ['b', last_needle]}));
+    if (specs.machine === 'kniterate') arr.push(new KnitoutOp({'op': 'x-add-roller-advance', param: 200}));
+    // arr.push(new KnitoutOp({op: 'drop', bn: ['b', last_needle]}));
   }
   
   if (side === 'left') {
