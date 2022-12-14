@@ -2,7 +2,7 @@ const fs = require('fs');
 const readlineSync = require('readline-sync');
 // const chalk = require('chalk');
 
-const shapeProcessor = require('./shapeify/process-image.js');
+const shapeProcessor = require('./shapeify_new/process-image.js');
 
 const shape = require('./shapeify_new/shape.js');
 
@@ -10,8 +10,9 @@ const shape = require('./shapeify_new/shape.js');
 // const styler = require('./styleLog.js');
 // const { style } = require('./shapeify/utils.js');
 
-const styler = require('./shapeify/utils.js').styler;
+const styler = require('./shapeify_new/utils.js').styler;
 
+let specs = {};
 
 let final_file;
 
@@ -25,8 +26,18 @@ readlineSync.setDefaultOptions({ prompt: styler('\nShape image file: ', ['blue',
 readlineSync.promptLoop(function (input) {
 	img = input;
 	if (!/\.jpg|\.jpeg|\.png$/i.test(input) || !fs.existsSync(`./in-shape-images/${input}`)) {
+    if (!/\.$/i.test(input)) { //doesn't include extension
+      for (let ext of ['.png', '.jpg', '.jpeg']) {
+        if (fs.existsSync(`./in-shape-images/${input}${ext}`)) {
+          console.log(`Using existing file with ${ext} extension.`);
+          img += ext;
+          return true;
+        }
+      }
+    }
+
 		// let error_message = console.log(chalk.red(`The image must be a PNG, JPG, or BMP that exists in the 'in-shape-images' folder.`)); //remove
-    let error_message = console.log(styler(`The image must be a PNG, JPG, or BMP that exists in the 'in-shape-images' folder.`, ['red']));
+    let error_message = console.log(styler(`The image must be a PNG, or JPG that exists in the 'in-shape-images' folder.`, ['red']));
 		return error_message;
 	}
 	if (fs.existsSync(`./in-shape-images/${input}`)) {
@@ -74,7 +85,7 @@ if (inc_method == -1) {
   process.kill(process.pid);
 }
 
-inc_method = inc_methods[inc_method];
+specs.inc_method = inc_methods[inc_method];
 
 
 let xfer_speed_number = readlineSync.question(
@@ -115,11 +126,26 @@ let in_file = fs
 	.readFileSync(source_dir + colorwork_file)
 	.toString();
 
-let source_file = in_file .split('\n');
+let in_lines = in_file.split('\n');
 
-let row_count_arr = source_file.filter((el) => el.includes(';row:'));
+let carriers_header = in_lines.find(el => el.includes(';;Carriers:'));
+let machine_header = in_lines.find(el => el.includes(';;Machine:'));
+let visColor_headers = in_lines.filter(el => el.includes('x-vis-color '));
+
+specs.carriers = carriers_header.split(':')[1].trim().split(' ');
+specs.machine = machine_header ? machine_header.split(':')[1].trim().toLowerCase() : (specs.carriers.length === 6 ? 'kniterate' : 'swgn2');
+specs.visColors = {};
+if (visColor_headers.length) {
+  for (let header of visColor_headers) {
+    let info = header.split(' ');
+    specs.visColors[info[2]] = info[1];
+  }
+}
+
+
+let row_count_arr = in_lines.filter((el) => el.includes(';row:'));
 row_count = row_count_arr[row_count_arr.length - 1].replace(';row: ', '');
-let needle_count_arr = source_file.filter((el) => el.trim().length && !el.includes(';') && !el.includes('x-') && !el.includes('miss') && !el.includes('tuck') && !el.includes('drop') && !el.includes('xfer') && !el.includes('pause') && !el.includes('rack'));
+let needle_count_arr = in_lines.filter((el) => el.trim().length && !el.includes(';') && !el.includes('x-') && !el.includes('miss') && !el.includes('tuck') && !el.includes('drop') && !el.includes('xfer') && !el.includes('pause') && !el.includes('rack'));
 let copyN = [...needle_count_arr]; //remove //debug
 needle_count_arr = needle_count_arr.map((el) => el.match(/\d+/g));
 
@@ -192,8 +218,12 @@ getData()
   );
   
   // readlineSync.keyInYNStrict(chalk.blue.bold('Are you ready to proceed?')); //remove
-  readlineSync.keyInYNStrict(styler('Are you ready to proceed?', ['blue', 'bold']));
+  let proceed = readlineSync.keyInYNStrict(styler('Are you ready to proceed?', ['blue', 'bold']));
 
+  if (!proceed) {
+    console.log(styler('Killing program.', ['red']))
+    process.kill(process.pid);
+  }
 
   let new_code = [];
   let shape_code_txt = fs.readFileSync('./SHAPE-CODE.txt').toString().split('\n');
@@ -254,7 +284,7 @@ getData()
   }
 
 
-  final_file = shape.generateKnitout(in_file, shape_code_reverse, inc_method);
+  final_file = shape.generateKnitout(in_file, shape_code_reverse, specs.machine, specs.carriers, specs.inc_method, specs.visColors);
   // final_file = shape.generateKnitout(in_file, shape_code, shape_code_reverse, shortrow_code, short_row_section, first_short_row, last_short_row, section_count, inc_method, xfer_speed_number);
 })
 .finally(() => {

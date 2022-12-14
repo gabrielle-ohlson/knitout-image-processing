@@ -71,3 +71,7 @@ Makefile
 dat-files/
 
 *(conflicted*.js
+
+test*.js
+*_old.js
+* copy.js
