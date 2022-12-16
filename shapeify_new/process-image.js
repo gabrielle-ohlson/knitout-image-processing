@@ -1,6 +1,24 @@
 const Jimp = require('jimp');
 
-const processor = require('./shape-processor.js');
+// const processor = require('./shape-processor.js');
+
+
+function lightOrDark(r, g, b) {
+	//variables for red, green, blue values
+	// r = color[0];
+	// g = color[1];
+	// b = color[2];
+	// HSP (Highly Sensitive Poo) equation from http://alienryderflex.com/hsp.html
+	let hsp = Math.sqrt(0.299 * (r * r) + 0.587 * (g * g) + 0.114 * (b * b));
+	// Using the HSP value, determine whether the color is light or dark
+	if (hsp > 127.5) return 0; // white
+	else return 1; // black
+	// {
+	// 	return 'light';
+	// } else {
+	// 	return 'dark';
+	// }
+}
 
 
 function cropImg(img, needle_count, row_count, out_path) {
@@ -49,9 +67,8 @@ function cropImg(img, needle_count, row_count, out_path) {
 				if (row_count === 0) {
 					row_count = Jimp.AUTO;
 				}
-				// image.crop(cropX_left, cropY_bot, crop_width, crop_height).resize(needle_count, row_count).write(cropped_shape_path);
-				// // return image;
-        image.crop(cropX_left, cropY_bot, crop_width, crop_height).resize(needle_count, row_count).write(`${out_path}/cropped_shape.png`);
+        // image.crop(cropX_left, cropY_bot, crop_width, crop_height).resize(needle_count, row_count).write(`${out_path}/cropped_shape.png`);
+				image.crop(cropX_left, cropY_bot, crop_width, crop_height).resize(needle_count, row_count); //.write(`${out_path}/shape_code.png`);
 				// return image;
 				resolve(image);
 			})
@@ -65,23 +82,54 @@ function cropImg(img, needle_count, row_count, out_path) {
 }
 
 
-function getData(img) {
-	let pixels;
+let px_cols = [0xffffffff, 255];
+function getData(img, out_path) {
+	let pixels = [];
+	// let pixels;
 
 	const processImage = new Promise((resolve) => {
 		Jimp.read(img)
 		.then((image) => {
 			let width = image.bitmap.width;
 			let height = image.bitmap.height;
-			pixels = [];
+
+			/*
+			new Jimp(width, height, (err, im) => {
+				if (err) throw err;
+				for (let y = 0; y < height; ++y) {
+					let row_pixels = [];
+
+					// let px_arr = shape_code[y];
+					for (let x = 0; x < width; ++x) {
+						let pixel = Jimp.intToRGBA(im.getPixelColor(x, y));
+						let val = lightOrDark(pixel.r, pixel.g, pixel.b);
+						row_pixels.push(val);
+
+						im.setPixelColor(px_cols[val], x, y);
+					}
+
+					pixels.push(row_pixels);
+				}
+				im.dither565();
+				im.write(`${out_path}/shape_code.png`);
+				// image.write('shape_code.png');
+			});
+			*/
+
 			for (let y = 0; y < height; ++y) {
-				let rowPixels = [];
+				let row_pixels = [];
 				for (let x = 0; x < width; ++x) {
 					let pixel = Jimp.intToRGBA(image.getPixelColor(x, y));
-					rowPixels.push(`${pixel.r};${pixel.g};${pixel.b};${x};${y}`);
+					let val = lightOrDark(pixel.r, pixel.g, pixel.b);
+					row_pixels.push(val);
+					image.setPixelColor(px_cols[val], x, y);
+					// rowPixels.push(`${pixel.r};${pixel.g};${pixel.b};${x};${y}`);
 				}
-				pixels.push(rowPixels);
+				pixels.push(row_pixels);
 			}
+
+			image.dither565();
+			image.write(`${out_path}/shape_code.png`); //TODO: make sure this is happening before the pixels are returned (for the web version)
 
 			resolve(pixels);
 		})
@@ -93,18 +141,21 @@ function getData(img) {
 }
 
 
-let pixels;
+// let pixels;
 
 function resolvePromises(cropped_img, out_path) {
 	const promises = new Promise((resolve) => {
-		getData(cropped_img).then((result) => {
-			pixels = result;
-		}).then(() => {
-			let shape_info = processor.process(pixels, out_path);
+		getData(cropped_img, out_path).then((result) => {
+			// let binary_pixels = result;
+			resolve(result);
+			return result;
+		})
+		// .then(() => {
+		// 	let shape_info = processor.process(pixels, out_path);
 			
-			resolve(shape_info);
-			return shape_info;
-		});
+		// 	resolve(shape_info);
+		// 	return shape_info;
+		// });
 	});
 	return promises;
 }

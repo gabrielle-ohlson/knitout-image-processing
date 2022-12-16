@@ -1,3 +1,12 @@
+/*
+TODO:
+----
+- [x] fix miss past increase (aka don't miss past next use if will be increasing there)
+- [x] also, don't miss past endN if multi increase
+- [x] fix increase doing too much (starting on wrong needle (left: one too little) and ending on extra needle)
+- [ ] fix issue with test1: decrease in between
+*/
+
 const MAX_XFER_CT = 2; //TODO: adjust according to code
 const MIN_FLOAT_DIST = 5;
 
@@ -13,12 +22,13 @@ function arraysEqual(a, b, order_matters) {
 
 
 // global variables:
-let header_section = [], caston_section = [], bindoff_section = [];
+let header_section = [], waste_section = [], caston_section = [], bindoff_section = [];
 let rows = [];
 let rows_edgeNs = [];
 let rows_sect_keys = [];
 // left and right needles of original piece:
 let MIN = Infinity, MAX = -Infinity;
+let in_carriers = [];
 let input_carriers = [];
 
 let specs = {};
@@ -27,6 +37,9 @@ let leftover_carriers = [];
 let sect_track = {};
 
 let carrier_track = {};
+let carrier_ops = {};
+let carrier_ops_keys = {};
+let last_carrier_ops = {};
 
 let working_needles = {
   'f': [],
@@ -40,10 +53,10 @@ let shaping_needles = [];
 let twisted_stitches = [];
 
 class Carrier {
-  constructor({row, needle, direction}) {
+  constructor({row, n, d}) {
     this.row = row;
-    this.needle = needle;
-    this.direction = direction;
+    this.n = n;
+    this.d = d;
   }
 }
 
@@ -60,13 +73,13 @@ class Section {
 
 
 class Shaping {
-  constructor(type, side, count, prevN, newN, direction) {
+  constructor(type, side, count, prevN, newN, d) {
     this.type = type;
     this.side = side;
     this.count = count;
     this.prevN = prevN;
     this.newN = newN;
-    this.direction = direction;
+    this.d = d;
   }
 }
 
@@ -80,11 +93,11 @@ function trackShaping(side, prevN, newN, dict) {
   if (count > 0) {
     type = 'increase';
     if (side === 'left') { //insert before
-      if (count > MAX_XFER_CT) { //NOTE: multi increase on left side *should always be knitted in the - direction, and start from prevN-1* //NOTE: increases for passes in - direction should *SKIP REST after inc* 
+      if (count > MAX_XFER_CT) { //NOTE: multi increase on left side *should always be knitted in the - direction, and start from prevN-1* //NOTE: increases for passes in - direction should *SKIP REST after inc*
         dict[newN] = new Shaping(type, side, count, prevN-1, newN, '+');
         dict[prevN-1] = new Shaping(type, side, count, prevN-1, newN, '-');
       } else {
-        dict[newN] = new Shaping(type, side, count, prevN, newN, '+'); // miss + {bed}{prevN+1} before inc // *knit - to new needle after inc (with twisted stitch, if relevant)* 
+        dict[newN] = new Shaping(type, side, count, prevN, newN, '+'); // miss + {bed}{prevN+1} before inc // *knit - up to new needle after inc (with twisted stitch, if relevant)* 
         dict[prevN] = new Shaping(type, side, count, prevN, newN, '-'); // miss + {bed}{prevN+1} before inc // then resume *(with twisted stitch, if revelant)*
       }
     } else { // right side
@@ -98,18 +111,18 @@ function trackShaping(side, prevN, newN, dict) {
     }
   } else if (count < 0) {
     type = 'decrease'; //TODO: deal with how 
-    count = Math.abs(count); //? //TODO: determine if should could keep it like this
+    count = Math.abs(count);
     if (side === 'left') {
       if (count > MAX_XFER_CT) { //NOTE: multi decrease on left side *should always be knitted in the + direction, and should not knit through newN during dec*
-        dict[newN] = new Shaping(type, side, count, prevN, newN, undefined); // TODO: if direction === '+', insert before and then just resume. if direction === '-', add - pass that goes from newN to prevN, does decrease, and then resumes.
+        dict[newN] = new Shaping(type, side, count, prevN, newN, undefined); // TODO: if d === '+', insert before and then just resume. if d === '-', add - pass that goes from newN to prevN, does decrease, and then resumes.
       } else {
-        dict[newN] = new Shaping(type, side, count, prevN, newN, undefined); // hmmm... direction doesn't matter.... // if direction === '-', miss + {bed}{newN+1} before dec
+        dict[newN] = new Shaping(type, side, count, prevN, newN, undefined); // hmmm... direction doesn't matter.... // if d === '-', miss + {bed}{newN+1} before dec
       }
     } else {  // right side
       if (count > MAX_XFER_CT) { //NOTE: multi decrease on right side *should always be knitted in the - direction, and should not knit through newN during dec*
-        dict[newN] = new Shaping(type, side, count, prevN, newN, undefined); // TODO: if direction === '-', insert before and then just resume. if direction === '+', add + pass that goes from newN to prevN, does decrease, and then resumes.
+        dict[newN] = new Shaping(type, side, count, prevN, newN, undefined); // TODO: if direction === '-', insert before and then just resume. if d === '+', add + pass that goes from newN to prevN, does decrease, and then resumes.
       } else {
-        dict[newN] = new Shaping(type, side, count, prevN, newN, undefined); // hmmm... direction doesn't matter.... // if direction === '+', miss - {bed}{newN-1} before dec
+        dict[newN] = new Shaping(type, side, count, prevN, newN, undefined); // hmmm... direction doesn't matter.... // if d === '+', miss - {bed}{newN-1} before dec
       }
     }
   }
@@ -126,9 +139,36 @@ function rowsArray(file_content) {
   let bindoff_start = /;bindoff/.exec(file_content).index; //TODO: adjust for when do drop bindoff
   // get all row matches with: file_content2.match(/;row/gm)
   let header_arr = file_content.slice(0, file_start).split(/\r?\n/);
+  let waste_arr = [];
   let caston_arr = file_content.slice(file_start, rows_start).split(/\r?\n/);
   let main_section = file_content.slice(rows_start, bindoff_start);
   let bindoff_arr = file_content.slice(bindoff_start, -1).split(/\r?\n/);
+
+  // let carrier_ln = ln.match(/^(knit) ([+|-])( ?([[f|b]\d+)? ([[f|b]\d+))([ \d+]+)/);
+
+  let caston_ln = [...caston_arr].reverse().find(ln => ln.includes('knit '));
+
+  if (caston_ln) {
+    let info = knitoutInfo(caston_ln);
+    let caston_cs = info.cs;
+
+    let waste_idx = -1;
+    for (let i=caston_arr.length-1; i >= 0; --i) {
+      let carrier_ln = caston_arr[i].match(/^(knit|miss|tuck|split) ([+|-])( ?([[f|b]\d+)? ([[f|b]\d+))([ \d+]+)/);
+      if (carrier_ln) {
+        let cs = carrier_ln[6].trim().split(' ');
+        if (!arraysEqual(cs, caston_cs)) {
+          waste_idx = i;
+          break;
+        }
+        // if (cs[0])
+      }
+    }
+
+    if (waste_idx !== -1) {
+      waste_arr = caston_arr.splice(0, waste_idx+1);
+    }
+  }
 
   let rows_arr = main_section.split(/;row:.+\r?\n/).slice(1); //since first will be blank
 
@@ -137,7 +177,7 @@ function rowsArray(file_content) {
   for (let r=0; r<rows_arr.length; ++r) {
     rows_arr[r] = rows_arr[r].split(/\r?\n/);
   }
-  return [header_arr, caston_arr, rows_arr, bindoff_arr];
+  return [header_arr, waste_arr, caston_arr, rows_arr, bindoff_arr];
 }
 
 
@@ -235,7 +275,7 @@ function determineShaping(shape_code) {
               row_sect_track[sect_key] = [leftN, rightN];
               sect_track[sect_key].edgeNs[r] = [leftN, rightN];
             } else { // let's see if there is an increase (merging of two sections)
-              sect_track[sect_key].parents[match_keys[s]].push(match_keys[s]); // save this overlapping section as a "parent"
+              sect_track[sect_key].parents.push(match_keys[s]); // save this overlapping section as a "parent"
               sect_track[match_keys[s]].children[sect_key] = [leftN, rightN];
 
               let leftN_ = [match_keys[s-1]][1]+1;
@@ -262,15 +302,18 @@ function determineShaping(shape_code) {
         row_shaping[sect_key] = sect_shaping;
       }
 
-      if (leftover_prev_edgeNs.length) { // we need to bind these off (do it in preview row)
-        for (let edgeNs of leftover_prev_edgeNs) {
+      if (Object.keys(leftover_prev_edgeNs).length) { // we need to bind these off (do it in previous row)
+        for (let [sect_key, edgeNs] of Object.entries(leftover_prev_edgeNs)) {
           let prev_leftN = edgeNs[0];
           let prev_rightN = edgeNs[1];
 
           let count = prev_rightN-prev_leftN+1; //TODO: make sure everything is ok with +1 for others
 
-          shaping[shaping.length-1][prev_leftN-1] = new Shaping('bindoff', 'left', count, prev_leftN, prev_rightN, '-');
-          shaping[shaping.length-1][prev_rightN+1] = new Shaping('bindoff', 'right', count, prev_rightN, prev_leftN, '+');
+          row_shaping[sect_key] = {};
+          row_shaping[sect_key][prev_leftN] = new Shaping('bindoff', 'left', count, prev_leftN, prev_rightN, '-'),
+          row_shaping[sect_key][prev_rightN] = new Shaping('bindoff', 'right', count, prev_rightN, prev_leftN, '+')
+          // shaping[shaping.length-1][sect_key][prev_leftN-1] = new Shaping('bindoff', 'left', count, prev_leftN-1, prev_rightN+1, '-');
+          // shaping[shaping.length-1][sect_key][prev_rightN+1] = new Shaping('bindoff', 'right', count, prev_rightN+1, prev_leftN-1, '+');
         }
       }
     } else {
@@ -289,14 +332,14 @@ function determineShaping(shape_code) {
 }
 
 
-function insertShaping(shaping, cs, output, row_idx) {
+function insertShaping(shaping, cs, output) {
   output.push(new KnitoutOp({comment: `${shaping.type} ${Math.abs(shaping.count)} on ${shaping.side} (${shaping.prevN} => ${shaping.newN})`}));
 
   if (shaping.type === 'increase') {
     if (shaping.count > MAX_XFER_CT) incMultDoubleBed(shaping.side, shaping.count, shaping.prevN, cs, output);
     else {
       if (twisted_stitches.length) {
-        let requiredNs = [['f', shaping.prevN], ['b', shaping.prevN]];
+        let requiredNs = [`f${shaping.prevN}`, `b${shaping.prevN}`]; //['f', shaping.prevN], ['b', shaping.prevN]];
 
         if (shaping.side === 'left') {
           if (shaping.count === 2) requiredNs.unshift(`f${shaping.prevN+1}`, `b${shaping.prevN+1}`);
@@ -335,7 +378,7 @@ function insertShaping(shaping, cs, output, row_idx) {
     if (shaping.count > MAX_XFER_CT) bindoff(specs, shaping.side, shaping.count, shaping.prevN, cs, output, true, []);
     else decDoubleBedTempFix(specs, shaping.side, shaping.count, shaping.prevN, output);
   } else if (shaping.type === 'bindoff') {
-    let off_limits = shaping.side === 'left' ? shaping.prevN-1 : shaping.prevN+1;
+    let off_limits = shaping.side === 'left' ? [shaping.prevN-1] : [shaping.prevN+1];
     bindoff(specs, shaping.side, shaping.count, shaping.prevN, cs, output, false, off_limits);
   }
 
@@ -395,7 +438,11 @@ function knitoutInfo(ln) {
 
 
 // check whether a carrier appears in the input piece ever again:
-function carrierDone(carrier, row_idx, ln_idx) {
+function carrierDone(carrier, row_key, ln_idx) {
+  let last_op = last_carrier_ops[carrier];
+  let carrier_done = last_op.row == row_key ? (last_op.idx > ln_idx) : (last_op.row < row_key); //TODO: decide btw > and >=
+
+  /*
   let arr = row_idx === -1 ? caston_section : rows[row_idx];
 
   if (ln_idx < arr.length-1) {
@@ -414,59 +461,62 @@ function carrierDone(carrier, row_idx, ln_idx) {
   }
 
   return true; // if nothing found, carrier is done
+  */
+//  if (return_row) return [carrier_done, last_op.row];
+ return carrier_done;
 }
 
 
-function placeCarrier(d, n, carrier, edgeNs, row_idx, ln_idx, sect_idx) {
-  // first check if there is any use in the current row:
-  let arr = row_idx === -1 ? caston_section : rows[row_idx];
-
-  let carrier_done = true;
+function placeCarrier(d, n, carrier, edgeNs, row_idx, ln_start, sect_key, row_key) {
   let [minN, maxN] = edgeNs;
 
-  if (ln_idx < arr.length-1) {
-    for (let i=ln_idx+1; i<arr.length; ++i) {
-      let ln = arr[i];
-      let next_op = knitoutInfo(ln);
+  let ln_i = ln_start; //+1; // first check if there is any use in the current row
+  // let keys = Object.keys(carrier_ops).sort((a, b) => a-b);
+  // let key_i = keys.indexOf(row_key.toString());
+  let r = row_idx;
+  find_next_op: for (let key of carrier_ops_keys) {
+    if (Number(key) < row_key) continue;
 
-      if (next_op.cs.includes(carrier)) {
-        console.log('row idx:', row_idx+1); //remove //debug
-        if (d === '-' && minN < n) return [minN, false];
-        else if (d === '+' && maxN > n) return [maxN, false];
-        else return [null, false];
-      }
-    }
-  }
-
-  find_next_op: for (let r=row_idx+1; r<rows.length; ++r) {
-    let i = rows_sect_keys[r].indexOf(sect_idx);
-
-    if (i === -1) { // no longer in the row
-      if (Object.keys(sect_track[sect_idx].children).some(key => rows_sect_keys[r].includes(key))) carrier_done = false; //TODO: have code for checking if any of the sections that are no longer in use still have carriers store, and if so, add to leftover carriers
+    let i = rows_sect_keys[r].indexOf(sect_key);
+    if (i === -1) {
+      // if (!Object.keys(sect_track[sect_key].children).some(key => rows_sect_keys[r].includes(key))) carrier_done = true;
       break find_next_op;
     }
 
     let [leftN, rightN] = rows_edgeNs[r][i];
-
     if (leftN < minN) minN = leftN;
     if (rightN > maxN) maxN = rightN;
 
-    for (let ln of rows[r]) {
-      let next_op = knitoutInfo(ln);
-      if (next_op.cs.includes(carrier) && next_op.bn[1] >= leftN && next_op.bn[1] <= rightN) {
-        carrier_done = false;
-        break find_next_op;
+    let carrier_op = carrier_ops[key].find(op => op.cs.includes(carrier) && op.bn[1] >= leftN && op.bn[1] <= rightN && op.idx >= ln_i);
+    if (carrier_op) {
+      if (r === row_idx+1) {
+        let first_cs = carrier_ops[key].find(op => op.bn[1] >= leftN && op.bn[1] <= rightN && op.idx >= ln_i).cs;
+
+        if (first_cs.includes(carrier)) {
+          if (d === '-' && (edgeNs[0]-leftN > MAX_XFER_CT)) {
+            if (edgeNs[0] < n) return edgeNs[0];
+            else return null;
+          } else if (d === '+' && (rightN-edgeNs[1] > MAX_XFER_CT)) {
+            if (edgeNs[1] > n) return edgeNs[1];
+            else return null;
+          }
+        }
       }
+
+      break find_next_op;
     }
+
+    ln_i = 0;
+    if (Number(key) > -1) r += 1;
   }
 
-  if (d === '-' && minN < n) return [minN, carrier_done];
-  else if (d === '+' && maxN > n) return [maxN, carrier_done];
-  else return [null, carrier_done];
+  if (d === '-' && minN < n) return minN;
+  else if (d === '+' && maxN > n) return maxN;
+  else return null;
 }
 
 
-function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
+function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_key, row_key) {
   let output = [];
 
   let skip_args = undefined;
@@ -479,8 +529,9 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
   };
 
   row_loop: for (let r=0; r<row.length; ++r) { //TODO: filter out any extensions/racks that don't work here
+    let ln_inserted = false;
+
     let to_drop = [];
-    let shape_info;
     let doneCs = [];
     let op_n;
     let miss_op;
@@ -491,20 +542,27 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
     let ln = row[r];
     let info = knitoutInfo(ln);
 
-    if (k_args.cs.length && ((info.cs.length && !arraysEqual(k_args.cs, info.cs)) || r === row.length-1)) { // might no longer be using the previous carrier, or might need to miss it out of the way
+    if (k_args.cs.length && row_idx < rows.length-1 && ((info.cs.length && !arraysEqual(k_args.cs, info.cs)) || r === row.length-1)) { // might no longer be using the previous carrier, or might need to miss it out of the way
       for (let c of k_args.cs) {
-        let sectC = sect_track[sect_idx].carriers[input_carriers.indexOf(c)];
+        let sectC = sect_track[sect_key].carriers[input_carriers.indexOf(c)];
 
-        let [missN, carrier_done] = placeCarrier(k_args.d, k_args.bn[1], c, edgeNs, row_idx, r, sect_idx);
+        let carrier_done = carrierDone(c, row_key, r);
+
+        // if (!carrier_done && k_args.d === '-' && shaping)
+        // missN: if (!carrier_done && k_args.d === '-' && )
+        let missN = r === row.length-1 ? placeCarrier(k_args.d, k_args.bn[1], c, edgeNs, row_idx+1, 0, sect_key, row_key) : placeCarrier(k_args.d, k_args.bn[1], c, edgeNs, row_idx, r, sect_key, row_key);
+
+        
+        // let [missN, carrier_done] = placeCarrier(k_args.d, k_args.bn[1], c, edgeNs, row_idx, r, sect_key);
 
         if (missN !== null) {
           miss_op = new KnitoutOp({op: 'miss', d: k_args.d, bn: ['f', missN], cs: [sectC]});
-          carrier_track[sectC].needle = missN;
+          carrier_track[sectC].n = missN;
         }
 
         if (carrier_done) {
           doneCs.push(sectC);
-          carrier_track[sectC].needle = k_args.bn[1];
+          carrier_track[sectC].n = k_args.bn[1];
         }
       }
     }
@@ -530,18 +588,12 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
         if (info.d) k_args.d = info.d;
         k_args.cs = info.cs;
 
-        // update min and max needles of the piece if its the caston:
-        if (row_idx === -1 && info.op !== 'miss') {
-          if (n < MIN) MIN = n;
-          if (n > MAX) MAX = n;
-        }
-
         if (skip_args) { //TODO: adjust this //?
           if (k_args.d !== skip_args.d || !arraysEqual(k_args.cs, skip_args.cs)) skip_args = undefined;
           else skip = true;
         }
 
-        if (!skip && shaping_needles.length) {
+        if (row_key > -1 && !skip && shaping_needles.length) {
           let shapeNs = [];
           
           if (info.d === '+') shapeNs = shaping_needles.filter(el => el < n);
@@ -553,24 +605,62 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
             for (let shapeN of shapeNs) {
               let shaping = row_shaping[shapeN];
 
-              shape_info = shaping;
+              if (!shaping.d || shaping.d === info.d) {
+                if (shaping.type === 'decrease') {
+                  if (shaping.side === 'left' && info.d === '-') {
+                    if (!ln_inserted) { //TODO: check that this is working
+                      iter_output.push(Object.assign(Object.create(KnitoutOp.prototype), info)); // insert ln before decrease on right for pass in + direction
+                      ln_inserted = true;
+                    }
+                    if (shaping.count > MAX_XFER_CT) { // for multi decrease on left side: if d === '-', add - pass that goes from newN to prevN, does decrease, and then resumes.
+                      for (let n=shaping.newN; n>=shaping.prevN; --n) {
+                        iter_output.push(new KnitoutOp({op: 'knit', d: '-', bn: ['b', n], cs: info.cs}));
+                      }
+                    } else {
+                      if (miss_op && miss_op.bn[1] < shaping.prevN) iter_output.push(miss_op);
+                      else iter_output.push(new KnitoutOp({op: 'miss', d: '-', bn: ['f', shaping.prevN], cs: info.cs})); //TODO: maybe check to ensure that info.bn[1] < saping.prevN //?
+                      miss_op = undefined;
+                    }
+                  } else if (shaping.side === 'right' && info.d === '+') {
+                    if (!ln_inserted) {
+                      iter_output.push(Object.assign(Object.create(KnitoutOp.prototype), info)); // insert ln before decrease on left for pass in - direction
+                      ln_inserted = true;
+                    }
 
-              if (!shaping.direction || shaping.direction === info.d) {
-                if (shaping.type === 'decrease' && shaping.count > MAX_XFER_CT) {
-                  if (shaping.side === 'left' && info.d === '-') { // for multi decrease on left side: if d === '-', add - pass that goes from newN to prevN, does decrease, and then resumes.
-                    for (let n=shaping.newN; n>=shaping.prevN; --n) {
-                      iter_output.push(new KnitoutOp({op: 'knit', d: '-', bn: ['b', n], cs: info.cs}));
+                    if (shaping.count > MAX_XFER_CT) { // for multi decrease on right side: if d === '+', add + pass that goes from newN to prevN, does decrease, and then resumes.
+                      for (let n=shaping.newN; n<=shaping.prevN; ++n) {
+                        iter_output.push(new KnitoutOp({op: 'knit', d: '+', bn: ['b', n], cs: info.cs}));
+                      }
+                    } else {
+                      if (miss_op && miss_op.bn[1] > shaping.prevN) iter_output.push(miss_op);
+                      else iter_output.push(new KnitoutOp({op: 'miss', d: '+', bn: ['f', shaping.prevN], cs: info.cs})); //TODO: maybe check to ensure that info.bn[1] < shaping.prevN //?
+                      miss_op = undefined;
                     }
-                  } else if (shaping.side === 'right' && d === '+') { // for multi decrease on right side: if d === '+', add + pass that goes from newN to prevN, does decrease, and then resumes.
-                    for (let n=shaping.newN; n<=shaping.prevN; ++n) {
-                      iter_output.push(new KnitoutOp({op: 'knit', d: '+', bn: ['b', n], cs: info.cs}));
+                  }
+                } else {
+                  if (shaping.count > MAX_XFER_CT) {
+                    miss_op = undefined; //don't miss past
+                  } else {
+                    if (shaping.side === 'right' && info.d === '+' && k_args.bn[1] >= shaping.prevN-1) {
+                      iter_output.push(new KnitoutOp({op: 'miss', d: '-', bn: ['f', shaping.prevN-1], cs: info.cs}));
+                    } else if (shaping.side === 'left' && info.d === '-' && k_args.bn[1] <= shaping.prevN+1) {
+                      iter_output.push(new KnitoutOp({op: 'miss', d: '+', bn: ['f', shaping.prevN+1], cs: info.cs}));
                     }
+                    // } else if (shaping.side === 'left' && info.d === '-' &&)
                   }
                 }
 
-                insertShaping(shaping, info.cs, iter_output, row_idx);
-
-                if (shaping.type === 'increase' && shaping.count > MAX_XFER_CT && shaping.newN !== shapeN) skip_args = {...k_args}; // we want to skip all other needles
+                insertShaping(shaping, info.cs, iter_output);
+                // // if (specs.inc_method === 'split' && shaping.side === 'left' && shaping.d === '-') // then skip_args //*
+                if (shaping.type === 'increase' &&
+                  ((shaping.count > MAX_XFER_CT && shaping.newN !== shapeN) ||
+                    (specs.inc_method === 'split' &&
+                    (shaping.side === 'left' && info.d === '-') ||
+                    (shaping.side === 'right' && info.d === '+'))
+                )) {
+                  skip_args = {...k_args}; // we want to skip all other needles //TODO: check to ensure that this is working
+                  skip = true;
+                }
               }
             }
           }
@@ -581,8 +671,8 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
         if (op_n === undefined) op_n = n;
         k_args.bn = info.bn;
 
-        if (!working_needles[b].includes(n)) working_needles[b].push(n);
-        if (info.op === 'knit' && twisted_stitches.includes(info.bn)) { //TODO: adjust this //?
+        if (!working_needles[b].includes(n)) working_needles[b].push(n); //TODO: ensure working needles gets rid of bn0s after xfer and also needles after decrease
+        if (info.op === 'knit' && twisted_stitches.includes(info.bn.join(''))) { //TODO: adjust this //?
           if (info.d === '+') {
             iter_output.push(
               new KnitoutOp({comment: 'twisted stitch'}),
@@ -598,12 +688,12 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
               new KnitoutOp({op: 'miss', d: '-', bn: info.bn, cs: info.cs})
             );
           }
-          twisted_stitches.splice(twisted_stitches.indexOf(info.bn), 1);
+          twisted_stitches.splice(twisted_stitches.indexOf(info.bn.join('')), 1);
         } else {
-          //TODO: insert miss before shaping, if decrease //?
-          // TODO: if increase by split, remove op
-          if (shape_info && shape_info.type === 'decrease' && ((shape_info.side === 'right' && info.d === '+') || (shape_info.side === 'left' && info.d === '-'))) iter_output.unshift(info); // insert ln before decrease on right && d === '+' or decrease on left && d === '-'
-          else iter_output.push(info);
+          if (!ln_inserted) {
+            iter_output.push(Object.assign(Object.create(KnitoutOp.prototype), info));
+            ln_inserted = true;
+          }
         }
       }
 
@@ -614,36 +704,36 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
           let c_idx = input_carriers.indexOf(c);
 
           if (c_idx === -1) { // new carrier
-            new_cs.push(c);
+            if (!in_carriers.includes(c)) new_cs.push(c);
 
             leftover_carriers.splice(leftover_carriers.indexOf(c), 1);
             input_carriers.push(c);
             c_idx = input_carriers.length-1;
 
-            for (let i=sect_track[sect_idx].carriers.length; i<=c_idx; ++i) {
-              sect_track[sect_idx].carriers.push(undefined);
+            for (let i=sect_track[sect_key].carriers.length; i<=c_idx; ++i) {
+              sect_track[sect_key].carriers.push(undefined);
             }
 
             sectC = c;
-            sect_track[sect_idx].carriers[c_idx] = sectC; // would start undefined since it would be addressed in the for loop above
+            sect_track[sect_key].carriers[c_idx] = sectC; // would start undefined since it would be addressed in the for loop above
           } else {
-            sectC = sect_track[sect_idx].carriers[c_idx];
+            sectC = sect_track[sect_key].carriers[c_idx];
 
             if (sectC === undefined) { // an alternative carrier has not been defined yet
               let c_dist = 0;
-              for (let i=sect_track[sect_idx].carriers.length; i<=c_idx; ++i) { // make any carriers that aren't included in this section undefined 
-                sect_track[sect_idx].carriers.push(undefined);
+              for (let i=sect_track[sect_key].carriers.length; i<=c_idx; ++i) { // make any carriers that aren't included in this section undefined 
+                sect_track[sect_key].carriers.push(undefined);
               }
 
-              if (sect_track[sect_idx].parents.length) { // we could potential get some carriers from a parent section that just finished to reuse
-                find_replacement: for (let p_key of sect_track[sect_idx].parents) {
+              if (sect_track[sect_key].parents.length) { // we could potential get some carriers from a parent section that just finished to reuse
+                find_replacement: for (let p_key of sect_track[sect_key].parents) {
                   let replaceC = sect_track[p_key].carriers[c_idx];
 
-                  if (sect_track[sect_idx].carriers.includes(replaceC)) continue;
+                  if (sect_track[sect_key].carriers.includes(replaceC)) continue;
 
                   if (replaceC !== undefined) {
-                    let replaceC_park = carrier_track[replaceC].needle;
-                    let n_idx = (carrier_track[replaceC].direction === '-' ? 0 : 1);
+                    let replaceC_park = carrier_track[replaceC].n;
+                    let n_idx = (carrier_track[replaceC].d === '-' ? 0 : 1);
                     let children = sect_track[p_key].children;
 
                     let [closest_child, child_dist] = Object.entries(children).reduce((min, entry) => {
@@ -652,12 +742,12 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
                       return dist < min[1] ? [entry[0], dist] : min;
                     }, [undefined, Infinity]);
 
-                    // console.log('details:', row_idx, replaceC, n, info.d, carrier_track[replaceC], children, leftN, rightN, sect_idx, closest_child, leftover_carriers); //remove //debug
+                    // console.log('details:', row_idx, replaceC, n, info.d, carrier_track[replaceC], children, leftN, rightN, sect_key, closest_child, leftover_carriers); //remove //debug
 
-                    if (sect_idx == closest_child) {
+                    if (sect_key == closest_child) {
                       c_dist = child_dist;
                       sectC = replaceC;
-                      sect_track[sect_idx].carriers[c_idx] = sectC;// would start undefined since it would be addressed in the for loop above
+                      sect_track[sect_key].carriers[c_idx] = sectC;// would start undefined since it would be addressed in the for loop above
                       sect_track[p_key].carriers[c_idx] = undefined;
 
                       let leftover_idx = leftover_carriers.indexOf(sectC);
@@ -670,7 +760,7 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
                   for (let i=0; i<sect_track[p_key].carriers.length; ++i) {
                     let c = sect_track[p_key].carriers[i];
                     if (c !== undefined) {
-                      if (carrierDone(input_carriers[i], row_idx, r)) {
+                      if (carrierDone(input_carriers[i], row_key, r)) {
                         leftover_carriers.push(c);
                         sect_track[p_key].carriers[i] = undefined;
                       }
@@ -680,28 +770,47 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
               }
 
               if (sectC === undefined) { // if still no good match, find closest one
-                let dists = leftover_carriers.map(car => Math.abs(carrier_track[car].needle - n));
+                /*
+                if (!leftover_carriers.length) { // we need to see if there is a different carrier we can use
+                  for (let s=0; s<rows_sect_keys[row_idx].indexOf(sect_key); ++s) {
+                    let key = rows_sect_keys[row_idx][s];
+                    for (let i=0; i<sect_track[key].carriers.length; ++i) {
+                      let c = sect_track[key].carriers[i];
+                      if (c !== undefined) {
+                        if (carrierDone(input_carriers[i], row_key+1, 0)) {
+                          leftover_carriers.push(c);
+                          sect_track[key].carriers[i] = undefined;
+                        }
+                      }
+                    }
+                  }
+                }
+                */
+
+                let dists = leftover_carriers.map(car => Math.abs(carrier_track[car].n - n));
                 c_dist = Math.min(...dists);
                 let new_c_idx = dists.indexOf(c_dist);
                 sectC = leftover_carriers.splice(new_c_idx, 1)[0];
 
-                sect_track[sect_idx].carriers[c_idx] = sectC; // would start undefined since it would be addressed in the for loop above
+                sect_track[sect_key].carriers[c_idx] = sectC; // would start undefined since it would be addressed in the for loop above
 
-                if (carrier_track[sectC].row === undefined) new_cs.push(sectC);
+                if (!in_carriers.includes(sectC)) new_cs.push(sectC);
               }
 
               if (c_dist >= MIN_FLOAT_DIST) {
-                let sectC_n = carrier_track[sectC].needle;
+                let sectC_n = carrier_track[sectC].n;
                 if (new_cs.includes(sectC)) {
                   output.push(`${specs.in_op} ${sectC}`);
-
+                  in_carriers.push(sectC);
                   if (sectC_n < n) {
-                    let firstN = row_idx === -1 ? rows_edgeNs[0][0][0] : rows_edgeNs[row_idx][0][0];
+                    let firstN = rows_edgeNs[row_idx][0][0];
+                    // let firstN = row_idx === -1 ? rows_edgeNs[0][0][0] : rows_edgeNs[row_idx][0][0]; //BEEP
 
                     if (sectC_n < firstN) firstN = sectC_n;
                     to_drop = to_drop.concat(tuckPattern(specs.machine, firstN, '+', 'f', sectC, output));
                   } else {
-                    let firstN = row_idx === -1 ? rows_edgeNs[0][rows_edgeNs[row_idx].length-1][1] : rows_edgeNs[row_idx][rows_edgeNs[row_idx].length-1][1];
+                    let firstN = rows_edgeNs[row_idx][rows_edgeNs[row_idx].length-1][1];
+                    // let firstN = row_idx === -1 ? rows_edgeNs[0][rows_edgeNs[row_idx].length-1][1] : rows_edgeNs[row_idx][rows_edgeNs[row_idx].length-1][1]; //BEEP
 
                     if (sectC_n > firstN) firstN = sectC_n;
 
@@ -743,20 +852,23 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
           replace_cs.push(sectC);
 
           carrier_track[sectC].row = row_idx;
-          if (info.d) carrier_track[sectC].direction = info.d;
-          if (op_n !== undefined) carrier_track[sectC].needle = op_n;
+          if (info.d) carrier_track[sectC].d = info.d;
+          if (op_n !== undefined) carrier_track[sectC].n = op_n;
         }
 
         if (new_cs.length) {
           output.push(`${specs.in_op} ${new_cs.join(' ')}`);
           
           for (let sectC of new_cs) {
+            in_carriers.push(sectC);
             if (info.d === '+') {
-              let firstN = row_idx === -1 ? rows_edgeNs[0][0][0] : rows_edgeNs[row_idx][0][0];
+              let firstN = rows_edgeNs[row_idx][0][0];
+              // let firstN = row_idx === -1 ? rows_edgeNs[0][0][0] : rows_edgeNs[row_idx][0][0]; //BEEP
 
               to_drop = to_drop.concat(tuckPattern(specs.machine, firstN, '+', 'f', sectC, output));
             } else {
-              let firstN = row_idx === -1 ? rows_edgeNs[0][rows_edgeNs[row_idx].length-1][1] : rows_edgeNs[row_idx][rows_edgeNs[row_idx].length-1][1];
+              let firstN = rows_edgeNs[row_idx][rows_edgeNs[row_idx].length-1][1];
+              // let firstN = row_idx === -1 ? rows_edgeNs[0][rows_edgeNs[row_idx].length-1][1] : rows_edgeNs[row_idx][rows_edgeNs[row_idx].length-1][1]; //BEEP
 
               to_drop = to_drop.concat(tuckPattern(specs.machine, firstN, '-', 'f', sectC, output));
             }
@@ -784,8 +896,8 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
 
     if (doneCs.length && row_idx < rows.length-1) {
       for (let c of doneCs) {
-        let c_idx = sect_track[sect_idx].carriers.indexOf(c);
-        sect_track[sect_idx].carriers[c_idx] = undefined;
+        let c_idx = sect_track[sect_key].carriers.indexOf(c);
+        sect_track[sect_key].carriers[c_idx] = undefined;
         leftover_carriers.unshift(c);
       }
     }
@@ -795,11 +907,18 @@ function cookieCutter(row, edgeNs, row_shaping, row_idx, sect_idx) {
 }
 
 
-function generateKnitout(file_content, shape_code, machine, carriers, inc_method, visColors) {
-  specs.machine = machine;
-  specs.carriers = carriers;
-  specs.inc_method = inc_method;
-  specs.visColors = visColors;
+function generateKnitout(file_content, shape_code, leftN, rightN, carrier_ops_, last_carrier_ops_, specs_) {
+  // make these params global:
+  MIN = leftN;
+  MAX = rightN;
+  carrier_ops = carrier_ops_;
+  carrier_ops_keys = Object.keys(carrier_ops).sort((a, b) => a-b);
+  last_carrier_ops = last_carrier_ops_;
+  specs = specs_;
+  // specs.machine = machine;
+  // specs.carriers = carriers;
+  // specs.inc_method = inc_method;
+  // specs.visColors = visColors;
 
   if (specs.machine === 'kniterate') {
     specs.in_op = 'in';
@@ -811,17 +930,62 @@ function generateKnitout(file_content, shape_code, machine, carriers, inc_method
 
   leftover_carriers = [...specs.carriers];
 
-  [header_section, caston_section, rows, bindoff_section] = rowsArray(file_content);
+  [header_section, waste_section, caston_section, rows, bindoff_section] = rowsArray(file_content);
 
-  let out_park = specs.machine === 'kniterate' ? -Infinity : Infinity; // this means they all start off the needle bed (parity determined by where carriers are parked when they're out)
+  let out_park = specs.machine === 'kniterate' ?  MIN-1 : MAX+1; // this means they all start off the needle bed (side determined by where carriers are parked when they're out for the given machine)
   for (let c of specs.carriers) {
-    carrier_track[c] = new Carrier({needle: out_park});
+    carrier_track[c] = new Carrier({n: out_park});
   }
 
   let output = header_section;
 
   let shaping = determineShaping(shape_code);
+
+  if (waste_section.length) {
+    output = output.concat(waste_section);
+
+    let in_re = new RegExp(`(${specs.in_op}) ([ \\d+]+)`);
+    let out_re = new RegExp(`(${specs.out_op}) ([ \\d+]+)`);
+    for (let ln of waste_section) {
+      let in_op = ln.match(in_re);
+      if (in_op) in_carriers.push(...in_op[2].trim().split(' '));
+      else {
+        let out_op = ln.match(out_re);
+        if (out_op) in_carriers = in_carriers.filter(c => !out_op[2].trim().split(' ').includes(c));
+        else {
+          let carrier_ln = ln.match(/^(knit|miss|tuck|split) ([+|-])( ?([[f|b]\d+)? ([[f|b]\d+))([ \d+]+)/);
+          if (carrier_ln) {
+            let d = carrier_ln[2];
+            let n = parseInt(carrier_ln[5].match(/\d+/)[0]);
+            // bn[1] = parseInt(bn[1]);
+            let cs = carrier_ln[6].trim().split(' ');
+            for (let c of cs) {
+              carrier_track[c].d = d;
+              carrier_track[c].n = n;
+              // carrier_track[c].row = -1; //?
+            }
+          }
+        }
+      }
+    }
+
+    output.push('rack 0.25');
+    let i = 0;
+    let leftN = rows_edgeNs[0][i][0];
+    for (let n=MIN; n<=MAX; ++n) {
+      if (n < leftN) {
+        output.push(`drop f${n}`, `drop b${n}`);
+      } else {
+        n = rows_edgeNs[0][i][1];
+        i += 1;
+        if (i < rows_edgeNs[0].length) leftN = rows_edgeNs[0][i][0];
+        else leftN = MAX+1;
+      }
+    }
+    output.push('rack 0');
+  }
   
+  let row_key = specs.init_row_key;
   for (let r=0; r<rows.length; ++r) {
     output.push(`;row: ${r+1}`);
 
@@ -847,27 +1011,46 @@ function generateKnitout(file_content, shape_code, machine, carriers, inc_method
 
       if (sect_ct > 1) output.push(`;section: ${i+1}/${sect_ct}`);
 
-      if (r === 0) {
-        output = output.concat(cookieCutter(caston_section, rows_edgeNs[r][i], shaping[r][sect_key], -1, sect_key)); // caston (row_idx === -1 indicates that this is the caston)
-        
-        // update `out_park` so out carriers are weighted over nearby carriers that are on incorrect side when finding `replace_cs`: 
-        out_park = specs.machine === 'kniterate' ? MIN-1 : MAX+1;
-        for (let c of leftover_carriers) {
-          carrier_track[c].needle = out_park;
-        }
-      }
+      if (r === 0) output = output.concat(cookieCutter(caston_section, rows_edgeNs[r][i], shaping[r][sect_key], 0, sect_key, -1)); // caston row key === -1
 
-      output = output.concat(cookieCutter(rows[r], rows_edgeNs[r][i], shaping[r][sect_key], r, sect_key));
+      output = output.concat(cookieCutter(rows[r], rows_edgeNs[r][i], shaping[r][sect_key], r, sect_key, row_key));
     }
 
     if (r > 0) {
       let done_sects = rows_sect_keys[r-1].filter(key => !sect_keys.includes(key));
       if (done_sects.length) {
         for (let sect_key of done_sects) {
+          let bindoff_shaping = shaping[r][sect_key];
+          if (bindoff_shaping) {
+            let bindoff_carrier;
+            let max_fop_ct = -Infinity;
+            for (let i=0; i<sect_track[sect_key].carriers.length; ++i) {
+              let fop_ct = carrier_ops[row_key].filter(el => el.cs.includes(input_carriers[i]) && el.bn[0] === 'f').length;
+              if (fop_ct > max_fop_ct) {
+                bindoff_carrier = sect_track[sect_key].carriers[i];
+                max_fop_ct = fop_ct;
+              }
+            }
+
+            bindoff_shaping = Object.values(bindoff_shaping).filter(el => el.d === carrier_track[bindoff_carrier].d)[0];
+            let bindoff_output = [];
+
+            let off_limits = bindoff_shaping.side === 'left' ? [bindoff_shaping.prevN-1] : [bindoff_shaping.prevN+1];
+
+            bindoff(specs, bindoff_shaping.side, bindoff_shaping.count, bindoff_shaping.prevN, bindoff_carrier, bindoff_output, false, off_limits);
+
+            bindoff_output.push(new KnitoutOp({op: 'drop', bn: ['b', bindoff_shaping.newN]})); //TODO: maybe knit tag instead so less likely to unravel
+
+            bindoff_output.forEach(k_op => {
+              k_op.generateCode(output);
+            });
+          }
+  
           leftover_carriers = leftover_carriers.concat(sect_track[sect_key].carriers.filter(c => c !== undefined));
         }
       }
     }
+    row_key += 1;
   }
 
   let bindoff_ln = bindoff_section.find(ln => ln.includes('knit '));
@@ -893,7 +1076,7 @@ function generateKnitout(file_content, shape_code, machine, carriers, inc_method
         else {
           if (bindC === undefined) bindC = c;
 
-          if (c !== bindC && ((specs.machine === 'kniterate' && carrier_track[c].needle <= edgeN) || (specs.machine.includes('swg') && carrier_track[c].needle >= edgeN))) {
+          if (c !== bindC && ((specs.machine === 'kniterate' && carrier_track[c].n <= edgeN) || (specs.machine.includes('swg') && carrier_track[c].n >= edgeN))) {
             output.push(`${specs.out_op} ${c}`);
             delete carrier_track[c];
           }
@@ -904,7 +1087,7 @@ function generateKnitout(file_content, shape_code, machine, carriers, inc_method
       let bindoff_count = bindoff_edgeNs[1]- bindoff_edgeNs[0]+1;
       let bindoff_side, bindoffN, last_needle;
 
-      if (carrier_track[bindC].direction === '-') {
+      if (carrier_track[bindC].d === '-') {
         bindoff_side = 'left';
         bindoffN = bindoff_edgeNs[0];
         last_needle = bindoff_edgeNs[1];
@@ -918,7 +1101,8 @@ function generateKnitout(file_content, shape_code, machine, carriers, inc_method
 
       if (i === last_sect_keys.length-1) {
         bindoff_output.push(new KnitoutOp({op: specs.out_op, cs: [bindC]}));
-        delete carrier_track[bindC];
+        in_carriers.splice(in_carriers.indexOf(bindC), 1); //?
+        // delete carrier_track[bindC]; //BEEP
       }
 
       bindoff_output.push(new KnitoutOp({op: 'drop', bn: ['b', last_needle]})); //TODO: maybe knit tag instead so less likely to unravel
@@ -942,7 +1126,8 @@ function generateKnitout(file_content, shape_code, machine, carriers, inc_method
   }
 
   for (let c of specs.carriers) {
-    if (Object.keys(carrier_track).includes(c)) output.push(`${specs.out_op} ${c}`); //TODO: take out any that are to to the side of the bindoff carrier first
+    if (in_carriers.includes(c)) output.push(`${specs.out_op} ${c}`); //TODO: take out any that are to to the side of the bindoff carrier first
+    // if (Object.keys(carrier_track).includes(c)) output.push(`${specs.out_op} ${c}`); //TODO: take out any that are to to the side of the bindoff carrier first
   }
   
 	let final_file = JSON.stringify(output).replace(/"/gi, '').replace(/\[|\]/gi, '').split(',');

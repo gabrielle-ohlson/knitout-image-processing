@@ -17,15 +17,15 @@ let specs = {};
 let final_file;
 
 let img, source_dir;
-let row_count, needle_count;
+// let row_count, needle_count;
 
-let shape_code, shape_code_reverse, shortrow_code, short_row_section, first_short_row, last_short_row, section_count; //, shape_error, shape_err_row;
+let shape_code; //, shape_code_reverse, shortrow_code, short_row_section, first_short_row, last_short_row, section_count; //, shape_error, shape_err_row;
 
 // readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nShape image file: ') }); //remove
 readlineSync.setDefaultOptions({ prompt: styler('\nShape image file: ', ['blue', 'bold']) });
 readlineSync.promptLoop(function (input) {
-	img = input;
-	if (!/\.jpg|\.jpeg|\.png$/i.test(input) || !fs.existsSync(`./in-shape-images/${input}`)) {
+  img = input;
+  if (!/\.jpg|\.jpeg|\.png$/i.test(input) || !fs.existsSync(`./in-shape-images/${input}`)) {
     if (!/\.$/i.test(input)) { //doesn't include extension
       for (let ext of ['.png', '.jpg', '.jpeg']) {
         if (fs.existsSync(`./in-shape-images/${input}${ext}`)) {
@@ -36,13 +36,13 @@ readlineSync.promptLoop(function (input) {
       }
     }
 
-		// let error_message = console.log(chalk.red(`The image must be a PNG, JPG, or BMP that exists in the 'in-shape-images' folder.`)); //remove
+    // let error_message = console.log(chalk.red(`The image must be a PNG, JPG, or BMP that exists in the 'in-shape-images' folder.`)); //remove
     let error_message = console.log(styler(`The image must be a PNG, or JPG that exists in the 'in-shape-images' folder.`, ['red']));
-		return error_message;
-	}
-	if (fs.existsSync(`./in-shape-images/${input}`)) {
-		return /\.jpg|\.jpeg|\.png$/i.test(input);
-	}
+    return error_message;
+  }
+  if (fs.existsSync(`./in-shape-images/${input}`)) {
+    return /\.jpg|\.jpeg|\.png$/i.test(input);
+  }
 });
 // console.log(chalk.green(`-- Reading shape data from: ${img}`)); //remove
 console.log(styler(`-- Reading shape data from: ${img}`, ['green']));
@@ -53,14 +53,14 @@ img = `./in-shape-images/${img}`; //new
 //TODO: maybe add option of writing file front scratch here? (with no colorwork); for now, just using a file from image processing program (don't think there is proper support for panels with stitch patterns yet, need to do that)
 // let colorwork_file = readlineSync.question(chalk`{blue.bold \nWhat is the name of the file that you would like to add shaping to? }`, { //remove
 let colorwork_file = readlineSync.question(styler('\nWhat is the name of the file that you would like to add shaping to? ', ['blue', 'bold']), {
-	limit: [
-		function (input) {
-			if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
-			input = `${input}.k`;
-			return fs.existsSync(`./knit-in-files/${input}`) || fs.existsSync(`./knit-out-files/${input}`);
-		},
-	],
-	// limitMessage: chalk`{red -- Input valid name of a knitout (.k) file that exists in either the 'knit-out-files' or 'knit-in-files' folder, please.}`, //remove
+  limit: [
+    function (input) {
+      if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
+      input = `${input}.k`;
+      return fs.existsSync(`./knit-in-files/${input}`) || fs.existsSync(`./knit-out-files/${input}`);
+    },
+  ],
+  // limitMessage: chalk`{red -- Input valid name of a knitout (.k) file that exists in either the 'knit-out-files' or 'knit-in-files' folder, please.}`, //remove
   limitMessage: styler("-- Input valid name of a knitout (.k) file that exists in either the 'knit-out-files' or 'knit-in-files' folder, please.", ['red']),
 });
 
@@ -69,9 +69,9 @@ colorwork_file = `${colorwork_file}.k`;
 // console.log(chalk.green(`-- Reading from: ${colorwork_file}\n\nPlease wait...`)); //remove
 console.log(styler(`-- Reading from: ${colorwork_file}\n\nPlease wait...`, ['green']));
 if (fs.existsSync(`./knit-in-files/${colorwork_file}`)) {
-	source_dir = './knit-in-files/';
+  source_dir = './knit-in-files/';
 } else if (fs.existsSync(`./knit-out-files/${colorwork_file}`)) {
-	source_dir = './knit-out-files/';
+  source_dir = './knit-out-files/';
 }
 
 
@@ -89,14 +89,14 @@ specs.inc_method = inc_methods[inc_method];
 
 
 let xfer_speed_number = readlineSync.question(
-	// chalk`{blue.bold \nWhat carriage speed would you like to use for transfer operations?} {blue.italic (press Enter to use default speed, 300). }`, //remove
+  // chalk`{blue.bold \nWhat carriage speed would you like to use for transfer operations?} {blue.italic (press Enter to use default speed, 300). }`, //remove
   styler('\nWhat carriage speed would you like to use for transfer operations? ', ['blue', 'bold']) + styler('(press Enter to use default speed, 300). ', ['blue', 'italic']),
-	{
-		defaultInput: 300,
-		limit: Number,
-		// limitMessage: chalk.red('-- $<lastInput> is not a number.') //remove
+  {
+    defaultInput: 300,
+    limit: Number,
+    // limitMessage: chalk.red('-- $<lastInput> is not a number.') //remove
     limitMessage: styler('-- $<lastInput> is not a number.', ['red'])
-	}
+  }
 );
 
 
@@ -104,17 +104,17 @@ let xfer_speed_number = readlineSync.question(
 readlineSync.setDefaultOptions({ prompt: styler('\nSave new file as: ', ['blue', 'bold']) });
 let new_file, overwrite;
 readlineSync.promptLoop(function (input) {
-	if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
-	input = `${input}.k`;
-	new_file = input;
-	if (fs.existsSync(`./knit-out-files/${input}`) || fs.existsSync(`./knit-out-files/${input}.k`)) {
-		// overwrite = readlineSync.keyInYNStrict(chalk.black.bgYellow(`! WARNING:`) + ` A file by the name of '${input}' already exists. Proceed and overwrite existing file?`); //remove
+  if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
+  input = `${input}.k`;
+  new_file = input;
+  if (fs.existsSync(`./knit-out-files/${input}`) || fs.existsSync(`./knit-out-files/${input}.k`)) {
+    // overwrite = readlineSync.keyInYNStrict(chalk.black.bgYellow(`! WARNING:`) + ` A file by the name of '${input}' already exists. Proceed and overwrite existing file?`); //remove
     overwrite = readlineSync.keyInYNStrict(styler('! WARNING:', ['black', 'bgYellow']) + ` A file by the name of '${input}' already exists. Proceed and overwrite existing file?`);
-		return overwrite;
-	}
-	if (!fs.existsSync(`./knit-out-files/${input}`)) {
-		return !fs.existsSync(`./knit-out-files/${input}.k`);
-	}
+    return overwrite;
+  }
+  if (!fs.existsSync(`./knit-out-files/${input}`)) {
+    return !fs.existsSync(`./knit-out-files/${input}.k`);
+  }
 });
 // console.log(chalk.green(`-- Saving new file as: ${new_file}`)); //remove
 console.log(styler(`-- Saving new file as: ${new_file}`, ['green']));
@@ -123,8 +123,8 @@ readlineSync.setDefaultOptions({ prompt: '' });
 
 // fs.writeFileSync('SOURCE_FILE.txt', `${in_file}\n${source_dir}`);
 let in_file = fs
-	.readFileSync(source_dir + colorwork_file)
-	.toString();
+  .readFileSync(source_dir + colorwork_file)
+  .toString();
 
 let in_lines = in_file.split('\n');
 
@@ -143,51 +143,81 @@ if (visColor_headers.length) {
 }
 
 
-let row_count_arr = in_lines.filter((el) => el.includes(';row:'));
-row_count = row_count_arr[row_count_arr.length - 1].replace(';row: ', '');
-let needle_count_arr = in_lines.filter((el) => el.trim().length && !el.includes(';') && !el.includes('x-') && !el.includes('miss') && !el.includes('tuck') && !el.includes('drop') && !el.includes('xfer') && !el.includes('pause') && !el.includes('rack'));
-let copyN = [...needle_count_arr]; //remove //debug
-needle_count_arr = needle_count_arr.map((el) => el.match(/\d+/g));
+// let row_count_arr = in_lines.filter((el) => el.includes(';row:'));
+// row_count = row_count_arr[row_count_arr.length - 1].replace(';row: ', '');
 
-for (let i = 0; i < needle_count_arr.length; ++i) {
-  if (needle_count_arr[i] === null) {
-    console.log(copyN[i]); //remove //debug
-    console.log(needle_count_arr[i]);
-    console.log(needle_count_arr[i].splice(0, 1)); //remove //debug
+let carrier_ops = {};
+let last_carrier_ops = {};
+let leftN = Infinity, rightN = -Infinity;
+
+class CarrierOp {
+  constructor({ln, op, d, bn0=[], bn=[], cs=[], row, idx}) {
+    this.ln = ln;
+    this.op = op;
+    this.d = d;
+    this.bn0 = bn0;
+    this.bn = bn;
+    this.cs = cs;
+    this.row = row;
+    this.idx = idx;
   }
 }
 
-needle_count_arr = needle_count_arr.map((arr) => arr.splice(0, 1));
-needle_count_arr = needle_count_arr.map((el) => Number(el));
-(function getMax() {
-  let len = needle_count_arr.length;
-  let max = -Infinity;
-  while (len--) {
-    max = needle_count_arr[len] > max ? needle_count_arr[len] : max;
+let row_count = 0; //-1;
+let row_key = -1;
+let ln_idx = 0;
+
+carrier_ops[row_key] = [];
+for (let ln of in_lines) {
+  let row_ln = ln.match(/^;[ ]?row:[ ]?(\d+)/);
+  if (row_ln) {
+    row_key = parseInt(row_ln[1]);
+    if (specs.init_row_key === undefined) specs.init_row_key = row_key;
+    ln_idx = 0;
+    carrier_ops[row_key] = [];
+    row_count += 1;
   }
-  return (needle_count = max);
-})();
 
-row_count = Number(row_count);
+  let carrier_ln = ln.match(/^(knit|miss|tuck|split) ([+|-])( ?([[f|b]\d+)? ([[f|b]\d+))([ \d+]+)/);
+  // let carrier_ln =
+  //   ln.match(/^split/) ? ln.match(/^(split) ([+|-]) ([[f|b])(\d+) ([[f|b])(\d+)([ \d+]+)/) //(/^(split) ([+|-])( ([[f|b])(\d+)){2}([ \d+]+)/)
+  //   : ln.match(/^(knit|tuck|miss) ([+|-]) ([f|b])(\d+)([ \d+]+)/);
+  // let knit_ln = ln.match(/^knit ([+|-]) ([f|b])(\d+)([ \d+]+)/);
+  if (carrier_ln) {
+    let op = carrier_ln[1];
+    let d = carrier_ln[2];
+    let bn0 = [];
+    if (carrier_ln[4]) {
+      bn0 = carrier_ln[4].match(/([a-zA-Z]+)(\d+)/).slice(1, 3);
+      bn0[1] = parseInt(bn0[1]);
+    }
+    // let bn0 = carrier_ln[4] ? carrier_ln[4].match(/([a-zA-Z]+)(\d+)/).slice(1, 3) : [];
+    let bn = carrier_ln[5].match(/([a-zA-Z]+)(\d+)/).slice(1, 3);
+    bn[1] = parseInt(bn[1]);
+    let cs = carrier_ln[6].trim().split(' ');
 
+    // LIMITATION: if there is an edge needle that only has tuck, it *won't* be considered an edge needle (using this logic so that tuck patterns/'safety tucks' don't get mistaken for true piece needles)
+    if (op === 'knit' && bn[1] < leftN) leftN = bn[1];
+    if (op === 'knit' && bn[1] > rightN) rightN = bn[1];
 
+    let carrier_op = new CarrierOp({ln: ln, op: op, d: d, bn0: bn0, bn: bn, cs: cs, row: row_key, idx: ln_idx});
+
+    carrier_ops[row_key].push(carrier_op);
+    for (let c of cs) {
+      last_carrier_ops[c] = carrier_op;
+    }
+  }
+  ln_idx += 1;
+}
+
+let needle_count = rightN-leftN+1;
 
 // ------------------------
 
 async function getData() {
   await shapeProcessor.process(img, true, needle_count, row_count, '.')
   .then((result) => {
-    let shape_info = result;
-
-    shape_code = shape_info[0],
-    shape_code_reverse = shape_info[1],
-    shortrow_code = shape_info[2],
-    short_row_section = shape_info[3]
-    first_short_row = shape_info[4],
-    last_short_row = shape_info[5],
-    section_count = shape_info[6];
-    // shape_error = shape_info[7],
-    // shape_err_row = shape_info[8];
+    shape_code = result;
   })
   .then(() => {
     let txt_file = JSON.stringify(shape_code).replace(/\[/g, '').split('],');
@@ -201,23 +231,13 @@ async function getData() {
 
 getData()
 .then(() => {
-  // console.log(
-    // styler('If you would like to edit the shape in the .txt file, please do so now.', ['black', 'bold', 'bgYellow'])
-  // );
-  // console.log(
-  //   styler('Valid characters are 0 (white space) and 1 (shape).', ['black', 'bold', 'bgYellow'])
-  // );
-
   console.log(
-  //   // chalk`{bgYellow.black.bold WRITING 'SHAPE-CODE.txt' FILE IN WORKING DIRECTORY.\nIf you would like to edit the shape in the .txt file, please do so now.\nValid characters are: 0 }{black.bgYellow [white space] }{bgYellow.black.bold and 1 }{black.bgYellow [shape]}` //remove
     styler(`\nWRITING 'SHAPE-CODE.txt' FILE IN WORKING DIRECTORY.\nIf you would like to edit the shape in the .txt file, please do so now.\nValid characters are: 0 `, ['bgYellow', 'black', 'bold']) +
     styler('(white space) ', ['bgYellow', 'black']) +
     styler('and 1 ', ['bgYellow', 'black', 'bold']) +
     styler('(shape)', ['black', 'bgYellow'])
-    // styler(`WRITING 'SHAPE-CODE.txt' FILE IN WORKING DIRECTORY.\nIf you would like to edit the shape in the .txt file, please do so now.\nValid characters are 0 (white space) and 1 (shape)`, ['black', 'bgYellow'])
   );
   
-  // readlineSync.keyInYNStrict(chalk.blue.bold('Are you ready to proceed?')); //remove
   let proceed = readlineSync.keyInYNStrict(styler('Are you ready to proceed?', ['blue', 'bold']));
 
   if (!proceed) {
@@ -250,8 +270,9 @@ getData()
   if (!arraysEqual(new_code, shape_code)) {
     console.log('processing shape code changes...'); //?
     shape_code = [...new_code];
-    shape_code_reverse = shape_code.reverse();
+    // shape_code_reverse = shape_code.reverse();
 
+    /*
     // get new first_short_row
     findNew1stShortRow: for (let r = 0; r < shape_code_reverse.length; ++r) {
       let blackpx = false, whiteMidpx = false;
@@ -264,6 +285,7 @@ getData()
         if (shape_code_reverse[r][p] === 1) blackpx = true;
       }	
     }
+    */
   }
 })
 .then(() => {
@@ -283,8 +305,9 @@ getData()
     console.log('Clearing image data...');
   }
 
+  shape_code.reverse();
 
-  final_file = shape.generateKnitout(in_file, shape_code_reverse, specs.machine, specs.carriers, specs.inc_method, specs.visColors);
+  final_file = shape.generateKnitout(in_file, shape_code, leftN, rightN, carrier_ops, last_carrier_ops, specs);
   // final_file = shape.generateKnitout(in_file, shape_code, shape_code_reverse, shortrow_code, short_row_section, first_short_row, last_short_row, section_count, inc_method, xfer_speed_number);
 })
 .finally(() => {
@@ -300,6 +323,3 @@ getData()
 
 
 
-
-
-// function generateKnitout(in_file, shape_code, shape_code_reverse, shortrow_code, short_row_section, first_short_row, last_short_row, section_count, shape_error, shape_err_row, inc_method, xfer_speed_number, console, chalk) {

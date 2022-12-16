@@ -16,10 +16,10 @@ class KnitoutOp {
     this.d = d; //undefined;
 
     if (!Array.isArray(bn0)) bn0 = [bn0.match(/[a-zA-Z]+/)[0], Number(bn0.match(/\d+/)[0])]; //console.log('TODO');
-    else this.bn0 = bn0; //[];
+    this.bn0 = bn0; //[];
 
     if (!Array.isArray(bn)) bn = [bn.match(/[a-zA-Z]+/)[0], Number(bn.match(/\d+/)[0])]; //console.log('TODO');
-    else this.bn = bn; //[];
+    this.bn = bn; //[];
 
     if (!Array.isArray(cs)) this.cs = [cs];
     else this.cs = cs; //[];
@@ -156,7 +156,7 @@ const inc1DoubleBed = (specs, side, prevN, carrier, arr) => { //TODO: make it so
       arr.push(new KnitoutOp({op: 'xfer', bn0: ['b', prevN], bn: ['f', prevN-1]}));
       arr.push(new KnitoutOp({op: 'rack', param: 0}));
       if (specs.machine === 'kniterate') arr.push(new KnitoutOp({'op': 'x-add-roller-advance', param: -100}));
-      arr.push(new KnitoutOp({op: 'miss', d: '+', bn: ['f', prevN], cs: carrier})); // ensures/forces order of xfers that is least likely to drop stitches
+      // arr.push(new KnitoutOp({op: 'miss', d: '+', bn: ['f', prevN], cs: carrier})); // ensures/forces order of xfers that is least likely to drop stitches //go back! //?
 
       arr.push(new KnitoutOp({op: 'xfer', bn0: ['f', prevN], bn: ['b', prevN]}));
       arr.push(new KnitoutOp({op: 'xfer', bn0: ['f', prevN-1], bn: ['b', prevN-1]}));
@@ -165,7 +165,7 @@ const inc1DoubleBed = (specs, side, prevN, carrier, arr) => { //TODO: make it so
       arr.push(new KnitoutOp({op: 'xfer', bn0: ['b', prevN], bn: ['f', prevN-1]}));
 
       arr.push(new KnitoutOp({op: 'rack', param: 0}));
-      arr.push(new KnitoutOp({op: 'miss', d: '-', bn: ['f', prevN-1], cs: carrier})); //miss carrier out of the way
+      // arr.push(new KnitoutOp({op: 'miss', d: '-', bn: ['f', prevN-1], cs: carrier})); //miss carrier out of the way //go back! //?
     } else if (specs.inc_method === 'split') {
       // TODO: remember what low speed is for swgn2
       if (specs.split_speedNumber) arr.push(new KnitoutOp({op: 'x-speed-number', param: specs.split_speedNumber}));
@@ -196,7 +196,7 @@ const inc1DoubleBed = (specs, side, prevN, carrier, arr) => { //TODO: make it so
       arr.push(new KnitoutOp({op: 'knit', d: '+', bn: ['b', prevN-1], cs: carrier}));
       arr.push(new KnitoutOp({op: 'miss', d: '-', bn: ['f', prevN-1], cs: carrier}));
 
-      twisted_stitches.push(['f', prevN-1], ['b', prevN-1]);
+      twisted_stitches.push(`f${prevN-1}`, `b${prevN-1}`); //['f', prevN-1], ['b', prevN-1]);
     }
   } else if (side === 'right') {
     if (specs.inc_method === 'xfer') {
@@ -204,14 +204,14 @@ const inc1DoubleBed = (specs, side, prevN, carrier, arr) => { //TODO: make it so
       arr.push(new KnitoutOp({op: 'xfer', bn0: ['b', prevN], bn: ['f', prevN+1]}));
       arr.push(new KnitoutOp({op: 'rack', param: 0}));
       if (specs.machine === 'kniterate') arr.push(new KnitoutOp({'op': 'x-add-roller-advance', param: -100}));
-      arr.push(new KnitoutOp({op: 'miss', d: '-', bn: ['f', prevN], cs: carrier})); // ensures/forces order of xfers that is least likely to drop stitches
+      // arr.push(new KnitoutOp({op: 'miss', d: '-', bn: ['f', prevN], cs: carrier})); // ensures/forces order of xfers that is least likely to drop stitches //go back! //?
       arr.push(new KnitoutOp({op: 'xfer', bn0: ['f', prevN], bn: ['b', prevN]}));
       arr.push(new KnitoutOp({op: 'xfer', bn0: ['f', prevN+1], bn: ['b', prevN+1]}));
       arr.push(new KnitoutOp({op: 'rack', param: 1}));
       arr.push(new KnitoutOp({op: 'xfer', bn0: ['b', prevN], bn: ['f', prevN+1]}));
 
       arr.push(new KnitoutOp({op: 'rack', param: 0}));
-      arr.push(new KnitoutOp({op: 'miss', d: '+', bn: ['f', prevN+1], cs: carrier})); //miss carrier out of the way
+      // arr.push(new KnitoutOp({op: 'miss', d: '+', bn: ['f', prevN+1], cs: carrier})); //miss carrier out of the way //go back! //?
     } else if (specs.inc_method === 'split') {
       if (specs.split_speedNumber) arr.push(new KnitoutOp({op: 'x-speed-number', param: specs.split_speedNumber}));
 
@@ -229,11 +229,11 @@ const inc1DoubleBed = (specs, side, prevN, carrier, arr) => { //TODO: make it so
       arr.push(new KnitoutOp({op: 'knit', d: '-', bn: ['b', prevN+1], cs: carrier}));
       arr.push(new KnitoutOp({op: 'miss', d: '+', bn: ['f', prevN+1], cs: carrier}));
 
-      twisted_stitches.push(['f', prevN+1], ['b', prevN+1]);
+      twisted_stitches.push(`f${prevN+1}`, `b${prevN+1}`); //['f', prevN+1], ['b', prevN+1]);
     }
   }
 
-  if (specs.inc_method === 'xfer') twisted_stitches.push(['f', prevN], ['b', prevN]);
+  if (specs.inc_method === 'xfer') twisted_stitches.push(`f${prevN}`, `b${prevN}`); //['f', prevN], ['b', prevN]);
 
   return twisted_stitches;
 }
@@ -370,7 +370,7 @@ const inc2DoubleBed = (specs, side, prevN, carrier, arr) => { //TODO: fix this f
   }
 
 
-  if (specs.inc_method === 'xfer') twisted_stitches.push(['f', prevN-1], ['b', prevN-1], ['f', prevN+1], ['b', prevN+1]);
+  if (specs.inc_method === 'xfer') twisted_stitches.push(`f${prevN-1}`, `b${prevN-1}`, `f${prevN+1}`, `b${prevN+1}`); //['f', prevN-1], ['b', prevN-1], ['f', prevN+1], ['b', prevN+1]);
 
   return twisted_stitches;
 }
@@ -379,12 +379,12 @@ const inc2DoubleBed = (specs, side, prevN, carrier, arr) => { //TODO: fix this f
 const incMultDoubleBed = (side, count, prevN, carrier, arr) => {
   arr.push(new KnitoutOp({op: 'rack', param: 0.25})); // half rack for kniterate
   if (side === 'left') {
-    for (let n = prevN-1; n >= prevN-count; --n) {
+    for (let n = prevN; n >= prevN-count+1; --n) {
       arr.push(new KnitoutOp({op: 'knit', d: '-', bn: ['b', n], cs: carrier}));
       arr.push(new KnitoutOp({op: 'knit', d: '-', bn: ['f', n], cs: carrier}));
     }
   } else if (side === 'right') {
-    for (let n = prevN+1; n <= prevN+count; ++n) {
+    for (let n = prevN; n <= prevN+count-1; ++n) {
       arr.push(new KnitoutOp({op: 'knit', d: '+', bn: ['f', n], cs: carrier}));
       arr.push(new KnitoutOp({op: 'knit', d: '+', bn: ['b', n], cs: carrier}));
     }
