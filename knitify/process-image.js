@@ -20,7 +20,7 @@ const hexToRGB = (hex) => {
     Number((h & (alpha ? 0x00ff0000 : 0x00ff00)) >>> (alpha ? 16 : 8)),
     Number(((h & (alpha ? 0x0000ff00 : 0x0000ff)) >>> (alpha ? 8 : 0)) + (alpha ? h & 0x000000ff : '')),
   ];
-};
+}
 
 
 function getData(img, opts, img_out_path) {
@@ -84,6 +84,7 @@ function getData(img, opts, img_out_path) {
 						img.setPixelColor(hex, x, y);
 					}
 				}
+
 				// assign edge colors higher carrier numbers to prevent pockets
 				function sortByFrequency(array) {
 					let frequency = {};
@@ -97,6 +98,7 @@ function getData(img, opts, img_out_path) {
 						return frequency[b] - frequency[a];
 					});
 				}
+				
 				let edge_colors = sortByFrequency(background);
 				edge_colors = edge_colors.map((el) => (el += 1)); // so starting from 1
 				background = edge_colors[0];
@@ -160,18 +162,19 @@ function getData(img, opts, img_out_path) {
 }
 
 
-function palOptions(max_colors, dithering, palette_opt) {
+function palOptions(max_colors, dithering, palette_opt, min_hue_cols) {
+	if (min_hue_cols === undefined) min_hue_cols = max_colors;
 	let opts = {
 		colors: max_colors,
 		method: 2,
-		minHueCols: max_colors,
+		minHueCols: min_hue_cols, //6144, //max_colors, //6144, // 4096 //1024 //TODO: decide between these or add an option (6144 works well for getting more color variety)
 		dithKern: dithering,
 		reIndex: false
 	};
 
 	if (palette_opt && palette_opt.length) { //new
 		for (let i = 0; i < palette_opt.length; ++i) {
-			palette_opt[i] = hexToRGB(palette_opt[i]);
+			if (typeof palette_opt[i] === 'string') palette_opt[i] = hexToRGB(palette_opt[i]);
 		}
 
 		opts.palette = palette_opt;
@@ -267,15 +270,17 @@ function resolvePromises(img, needle_count, row_count, img_out_path, opts, max_n
 
 
 
-function process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt, max_needles, stImg, stitchPats, st_out_path) {
-  dithering === 'true' ? (dithering = 'Stucki') : (dithering = null);
+function process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt, min_hue_cols, max_needles, stImg, stitchPats, st_out_path) { //TODO: update web version since added min_hue_cols
+  // dithering === 'true' ? (dithering = 'Stucki') : (dithering = null);
+
+	console.log(dithering); //remove //debug //NOTE: `TwoSierra` is actually quite good
 
 	console.log('processing...'); //remove //debug
 
   return new Promise((resolve) => {
     let info_arr = [];
 
-    let opts = palOptions(max_colors, dithering, palette_opt);
+    let opts = palOptions(max_colors, dithering, palette_opt, min_hue_cols);
 
     resolvePromises(img_path, needle_count, row_count, img_out_path, opts, max_needles, stImg, stitchPats, st_out_path)
     .then((result) => {

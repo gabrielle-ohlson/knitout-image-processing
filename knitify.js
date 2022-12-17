@@ -26,7 +26,7 @@ let promptAnswers = {};
 
 let machine, dithering;
 let palette_opt = [];
-
+let min_hue_cols;
 let opts = {};
 
 let stitch_number, speed_number; //main_stitch_number
@@ -129,13 +129,14 @@ if (preloadFile) { //TODO: have option of still asking prompt if one of the keys
 
 	img_path = promptAnswers['img'];
 
-  if (img_path) img_path = `./in-colorwork-images/${img_path}`; //new //*
+  if (img_path) img_path = `./in-colorwork-images/${img_path}`;
   else stitchOnly = true;
 
   machine = promptAnswers['machine'];
   max_colors = Number(promptAnswers['max_colors']);
 	dithering = promptAnswers['dithering']; //TODO: check about null
 	palette_opt = promptAnswers['palette'];
+  min_hue_cols = promptAnswers['min_hue_cols'];
 
 	needle_count = Number(promptAnswers['needle_count']);
 	row_count = Number(promptAnswers['row_count']);
@@ -324,18 +325,15 @@ if (!preloadFile) {
 	if (saveAnswers) promptAnswers['dithering'] = dithering; //beep
 
   if (readlineSync.keyInYNStrict(chalk`{blue.bold \nWould you like to use a predefined palette?}`)) {
-    // palette_opt = [];
-
 		for (let i = 1; i <= max_colors; ++i) {
 			let hex = readlineSync.question(chalk.blue.bold(`\nEnter hex-code for color #${i}: `));
-			// palette_opt.push(hexToRGB(hex));
       palette_opt.push(hex);
 		}
 	}
 
   if (saveAnswers) promptAnswers['palette'] = palette_opt;
 
-  opts = processImage.palOptions(max_colors, dithering, palette_opt);
+  // opts = processImage.palOptions(max_colors, dithering, palette_opt);
 
   let default_stitch = (machine.includes('swg') ? 63 : 6);
   stitch_number = readlineSync.question(chalk`{blue.italic \n(OPTIONAL: press Enter to skip this step)} {blue.bold What would you like to set the stitch number as? }`, {
@@ -447,8 +445,7 @@ function processing() {
   const promise = new Promise((resolve, reject) => {
 		if (machine === 'kniterate') max_needles = 252;
 		else max_needles = 540; //TODO: adjust this for other machines besides shima swgn2 and kniterate
-
-    let info_arr = processImage.process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt, max_needles);
+    let info_arr = processImage.process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt, min_hue_cols, max_needles);
 
     resolve(info_arr);
     // imageColors.getData().then((result) => {

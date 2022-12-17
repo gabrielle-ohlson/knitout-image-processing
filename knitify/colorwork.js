@@ -711,7 +711,8 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 			}
 
 			let stack_track = carrier_track.filter((obj) => obj.DIR === dir); //TODO: maybe add this for patterns?
-			if (stack_track.length > 3) {
+			// if (stack_track.length > 3) {
+			if (stack_track.length > Math.max(3, Object.keys(carrier_track).length/2)) {
 				let least_freq;
 				if (track_back.length > 0) {
 					if (track_back.length < color_count) {
@@ -723,7 +724,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 						}
 					}
 					if (least_freq === undefined) {
-						let track_back_dir = track_back.filter((el) => stack_track.some((c) => c.CARRIER === el));
+						let track_back_dir = track_back.filter((el) => stack_track.some((c) => c.CARRIER == el));
 						least_freq = [
 							...track_back_dir.reduce(
 								(
