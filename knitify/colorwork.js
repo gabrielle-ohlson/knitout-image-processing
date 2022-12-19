@@ -46,7 +46,8 @@ let last_pass_dir, xfer_needle, last_needle, bindoff_carrier, bindCLastN;
 let kniterate_caston = [],
 	waste_yarn_section = [];
 
-let caston_method = 'alt tuck'; //'zigzag'; //'alt tuck'; //'zigzag'; //new //TODO: add code for skipping first needle if first pass and knitting in opposite direction of last pass of caston (and then storing that needle for future knitting)
+//TODO: for swg, try to have about half of the carriers go on one side to start
+let caston_method = 'zigzag'; //alt tuck'; //'zigzag'; //'alt tuck'; //'zigzag'; //new //TODO: add code for skipping first needle if first pass and knitting in opposite direction of last pass of caston (and then storing that needle for future knitting)
 let negCaston = false;
 let user_specified_carriers = [];
 
@@ -645,8 +646,8 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 
 		if (machine.includes('swg') && !colorwork_carriers.includes(carrier)) { //new
 			if (carrier === caston_carrier && caston_method === 'zigzag') dir = '+'; //new
-			else dir = init_dir; // start in the negative direction for everything
-		} else {
+			else dir = init_dir; // start in the negative direction for everything (TODO: make this alternate)
+		} else { //TODO: have this only happen when the carrier has not been tracked yet (and then make init_dir based on whether Number(carrier) % 2 === 0)
 			i % 2 === 0 ? (dir = init_dir) : (dir = other_dir); //TODO: store directions earlier
 		}
 
@@ -766,7 +767,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 					carrier_track[least_idx].END_NEEDLE = tracked_end_needle;
 				}
 				
-				knitout.push(';backpass for stacked carriers'); //new //*
+				knitout.push(`;backpass for stacked carriers`); // ${stack_track.length}/${Object.keys(carrier_track).length} (${JSON.stringify(carrier_track)})`); //new //*
 
 				if (track_dir === '+') {
 					for (let t = 1; t <= pieceWidth; ++t) {
