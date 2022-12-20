@@ -644,15 +644,38 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 			if (carrier === undefined) carrier = jacquard_passes[i - 2][0][1]; //TODO: make this work for birdseye too
 		}
 
+		if (!knitout.some((el) => el === `inhook ${carrier}`) && machine.includes('swg') && carrier !== caston_carrier) { //last one is to save inhook & releasehook for caston if first carrier
+			knitout.push(`inhook ${carrier}`);
+			color_carriers.push(carrier);
+			inhook = true;
+
+			knitout.push(...tuckPattern(machine, pieceWidth, '-', 'f', carrier)); //new
+		}
+
 		if (machine.includes('swg') && !colorwork_carriers.includes(carrier)) { //new
 			if (carrier === caston_carrier && caston_method === 'zigzag') dir = '+'; //new
-			else dir = init_dir; // start in the negative direction for everything (TODO: make this alternate)
+			else { //TODO: make the dir the least freq of current `carrier_track`
+				let neg_ct = carrier_track.filter(el => el.DIR === '-').length;
+
+				if (neg_ct > carrier_track.length/2) {
+					dir = '+';
+					knitout.push(`;backpass`);
+					for (let t = pieceWidth; t >= 1; --t) {
+						if (t === 1 || t === pieceWidth || t % bp_mod === (Number(carrier)-1 % bp_mod)) {
+							knitout.push(`knit - b${t} ${carrier}`);
+						}
+					}
+				} else {
+					dir = '-'; //init_dir; // start in the negative direction for everything (TODO: make this alternate)
+				}
+			}
 		} else { //TODO: have this only happen when the carrier has not been tracked yet (and then make init_dir based on whether Number(carrier) % 2 === 0)
 			i % 2 === 0 ? (dir = init_dir) : (dir = other_dir); //TODO: store directions earlier
 		}
 
 		let start_needle = (dir === '-' ? pieceWidth : 1); //new
 		let tracked_end_needle = (dir === '+' ? pieceWidth : 1); //TODO: make this different if needlesToAvoid.length
+		
 		if (!carrier_track.some((el) => el.CARRIER === carrier)) {
 			carrier_track.push(
 				FINDMYCARRIER({
@@ -712,8 +735,9 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 			}
 
 			let stack_track = carrier_track.filter((obj) => obj.DIR === dir); //TODO: maybe add this for patterns?
-			// if (stack_track.length > 3) {
-			if (stack_track.length > Math.max(3, Object.keys(carrier_track).length/2)) {
+
+			// if (machine === 'kniterate' && stack_track.length > Math.max(3, Object.keys(carrier_track).length/2)) { //TODO: fix this so doesn't have to be if machine === 'kniterate'
+			if (stack_track.length > Math.max(3, Object.keys(carrier_track).length/2)) { //TODO: fix this so doesn't have to be if machine === 'kniterate'
 				let least_freq;
 				if (track_back.length > 0) {
 					if (track_back.length < color_count) {
@@ -791,13 +815,13 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 			carrier_track[prev_idx].END_NEEDLE = tracked_end_needle;
 		}
 		
-		if (!knitout.some((el) => el === `inhook ${carrier}`) && machine.includes('swg') && carrier !== caston_carrier) { //last one is to save inhook & releasehook for caston if first carrier
-			knitout.push(`inhook ${carrier}`);
-			color_carriers.push(carrier);
-			inhook = true;
+		// if (!knitout.some((el) => el === `inhook ${carrier}`) && machine.includes('swg') && carrier !== caston_carrier) { //last one is to save inhook & releasehook for caston if first carrier
+		// 	knitout.push(`inhook ${carrier}`);
+		// 	color_carriers.push(carrier);
+		// 	inhook = true;
 
-			knitout.push(...tuckPattern(machine, start_needle, dir, 'f', carrier)); //new
-		}
+		// 	knitout.push(...tuckPattern(machine, start_needle, dir, 'f', carrier)); //new
+		// }
 		const knitoutLines = (x, last) => {
 			let needle_done = false;
 
@@ -1941,17 +1965,20 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 		let carrier_search = knitout.map((el) => el.includes(` ${color_carriers[i]}`) && (el.includes('knit') || el.includes('miss')));
 		let last = carrier_search.lastIndexOf(true);
 		if (last !== -1) {
-			if (knitout[last].includes(' - ')) {
+			if (knitout[last].includes(' - ')) { //TODO: adjust this for shima (can take carriers out if they're on the *other* side)
 				knitout.splice(last + 1, 0, `${yarn_out} ${color_carriers[i]}`);
 				if (last + 1 < end_splice) ++end_splice;
 			} else {
-				let out_spot = Number(knitout[last].split(' ')[2].slice(1)) + 6;
-				knitout.splice(last + 1, 0, `miss + f${out_spot} ${color_carriers[i]}`);
+				// let out_spot = Number(knitout[last].split(' ')[2].slice(1)) + 6;
+				// knitout.splice(last + 1, 0, `miss + f${out_spot} ${color_carriers[i]}`);
 				if (last + 1 < end_splice) ++end_splice;
 				if (color_carriers[i] != bindoff_carrier) {
+					let out_spot = Number(knitout[last].split(' ')[2].slice(1)) + 6;
+					knitout.splice(last + 1, 0, `miss + f${out_spot} ${color_carriers[i]}`);
 					knitout.splice(end_splice, 0, `${yarn_out} ${color_carriers[i]}`);
 				} else {
-					knitout.push(`${yarn_out} ${color_carriers[i]}`); //at the end
+					knitout.splice(last + 1, 0, `${yarn_out} ${color_carriers[i]}`); //new //*
+					// knitout.push(`${yarn_out} ${color_carriers[i]}`); //at the end
 				}
 			}
 		}
