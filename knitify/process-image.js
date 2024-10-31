@@ -10,21 +10,21 @@ let resized_width, resized_height;
 const hexToRGB = (hex) => {
 	if (typeof hex === 'object') return hex; //it was already rgb array
 
-  let alpha = false,
-    h = hex.slice(hex.startsWith('#') ? 1 : 0);
-  if (h.length === 3) h = [...h].map((x) => x + x).join('');
-  else if (h.length === 8) alpha = true;
-  h = parseInt(h, 16);
-  return [
-    Number((alpha ? a : '') + (h >>> (alpha ? 24 : 16))),
-    Number((h & (alpha ? 0x00ff0000 : 0x00ff00)) >>> (alpha ? 16 : 8)),
-    Number(((h & (alpha ? 0x0000ff00 : 0x0000ff)) >>> (alpha ? 8 : 0)) + (alpha ? h & 0x000000ff : '')),
-  ];
+	let alpha = false,
+	h = hex.slice(hex.startsWith('#') ? 1 : 0);
+	if (h.length === 3) h = [...h].map((x) => x + x).join('');
+	else if (h.length === 8) alpha = true;
+	h = parseInt(h, 16);
+	return [
+		Number((alpha ? a : '') + (h >>> (alpha ? 24 : 16))),
+		Number((h & (alpha ? 0x00ff0000 : 0x00ff00)) >>> (alpha ? 16 : 8)),
+		Number(((h & (alpha ? 0x0000ff00 : 0x0000ff)) >>> (alpha ? 8 : 0)) + (alpha ? h & 0x000000ff : '')),
+	];
 }
 
 
 function getData(img, opts, img_out_path) {
-  let height, width, data;
+	let height, width, data;
 	let palette, reduced;
 	let pal_hist = [], background = [], colors_data = [];
 
@@ -186,71 +186,71 @@ function palOptions(max_colors, dithering, palette_opt, min_hue_cols) {
 
 
 function resizeImg(img, needle_count, row_count, img_out_path, max_needles) {
-  const resized = new Promise((resolve) => {
-    needle_count ? needle_count = Number(needle_count) : needle_count = Jimp.AUTO;
+	const resized = new Promise((resolve) => {
+		needle_count ? needle_count = Number(needle_count) : needle_count = Jimp.AUTO;
 		row_count ? row_count = Number(row_count): row_count = Jimp.AUTO;
 
-    if (img) {
-      Jimp.read(img, (err, image) => { //TODO: have image passes as `./in-colorwork-images/${img}`
-      // Jimp.read(`./in-colorwork-images/${img}`, (err, image) => { //TODO: have image passes as `./in-colorwork-images/${img}`
-        if (err) throw err;
+		if (img) {
+			Jimp.read(img, (err, image) => { //TODO: have image passes as `./in-colorwork-images/${img}`
+				// Jimp.read(`./in-colorwork-images/${img}`, (err, image) => { //TODO: have image passes as `./in-colorwork-images/${img}`
+				if (err) throw err;
 
-        let img_width = image.getWidth();
-		    let img_height = image.getHeight();
+				let img_width = image.getWidth();
+				let img_height = image.getHeight();
 
 				if (needle_count == -1 && img_width > max_needles) {
 					needle_count = max_needles;
 
 					if (row_count == -1) {
 						let scale = needle_count/img_width;
-          	row_count = Math.round(img_height*scale);
+						row_count = Math.round(img_height*scale);
 					}
 				}
 
-        if (needle_count == -1 && row_count == -1) row_count = img_height; //if both auto (so Jimp doesn't throw an error)
-        else if (row_count % 1 !== 0) {
-          let scale = needle_count/img_width;
-          row_count = Math.round(img_height*scale*row_count);
-          // console.log(`scaled row_count is: ${row_count}.`);
-        }
+				if (needle_count == -1 && row_count == -1) row_count = img_height; //if both auto (so Jimp doesn't throw an error)
+				else if (row_count % 1 !== 0) {
+					let scale = needle_count/img_width;
+					row_count = Math.round(img_height*scale*row_count);
+					// console.log(`scaled row_count is: ${row_count}.`);
+				}
 
-        image.resize(needle_count, row_count).write(`${img_out_path}/colorwork.png`);
+				image.resize(needle_count, row_count).write(`${img_out_path}/colorwork.png`);
 
 				resized_width = image.getWidth();
-				resized_height = image.getHeight();
+				resized_height = image.getHeight(); //NOTE: resized_height is row count
 
-        resolve(image);
-      });
-    } else { // just stitch pattern
-      stitchOnly = true; //TODO: deal with this
-      
-      new Jimp(needle_count, row_count, (err, image) => {
-        if (err) throw err;
-        for (let y = 0; y < row_count; ++y) {
-          for (let x = 0; x < needle_count; ++x) {
-            image.setPixelColor(4294967295, x, y); //set it all as white
-          }
-        }
-    
-        image.write(`${img_out_path}/colorwork.png`); //new //* //TODO: maybe change to 'stitch.png' //?
+				resolve(image);
+			});
+		} else { // just stitch pattern
+			stitchOnly = true; //TODO: deal with this
 
-        resolve(image);
-      });
-    }
-  });
-  return resized;
+			new Jimp(needle_count, row_count, (err, image) => {
+				if (err) throw err;
+				for (let y = 0; y < row_count; ++y) {
+				for (let x = 0; x < needle_count; ++x) {
+					image.setPixelColor(4294967295, x, y); //set it all as white
+				}
+				}
+			
+				image.write(`${img_out_path}/colorwork.png`); //new //* //TODO: maybe change to 'stitch.png' //?
+
+				resolve(image);
+			});
+		}
+	});
+	return resized;
 }
 
 
 function resolvePromises(img, needle_count, row_count, img_out_path, opts, max_needles, stImg, stitchPats, st_out_path) {
-  const resize = new Promise((resolve, reject) => {
+	const resize = new Promise((resolve, reject) => {
 		resizeImg(img, needle_count, row_count, img_out_path, max_needles).then((result) => {
 			resolve(result);
 			return result; //?
 		});
 	});
 
-  const promises = new Promise((resolve) => {
+	const promises = new Promise((resolve) => {
 		resize.then((resized_img) => {
 			getData(resized_img, opts, img_out_path).then((result) => {
 				colors_arr = result;
@@ -264,34 +264,34 @@ function resolvePromises(img, needle_count, row_count, img_out_path, opts, max_n
 				} else resolve();
 			});
 		});
-  });
-  return promises;
+	});
+	return promises;
 }
 
 
 
 function process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt, min_hue_cols, max_needles, stImg, stitchPats, st_out_path) { //TODO: update web version since added min_hue_cols
-  // dithering === 'true' ? (dithering = 'Stucki') : (dithering = null);
+	// dithering === 'true' ? (dithering = 'Stucki') : (dithering = null);
 
-	console.log(dithering); //remove //debug //NOTE: `TwoSierra` is actually quite good
+	// console.log(dithering); //remove //debug //NOTE: `TwoSierra` is actually quite good
 
 	console.log('processing...'); //remove //debug
 
-  return new Promise((resolve) => {
-    let info_arr = [];
+	return new Promise((resolve) => {
+		let info_arr = [];
 
-    let opts = palOptions(max_colors, dithering, palette_opt, min_hue_cols);
+		let opts = palOptions(max_colors, dithering, palette_opt, min_hue_cols);
 
-    resolvePromises(img_path, needle_count, row_count, img_out_path, opts, max_needles, stImg, stitchPats, st_out_path)
-    .then((result) => {
-      let stData = result; //might be undefined if no result
+		resolvePromises(img_path, needle_count, row_count, img_out_path, opts, max_needles, stImg, stitchPats, st_out_path)
+		.then((result) => {
+			let stData = result; //might be undefined if no result
 
-      info_arr = [stData, resized_width, resized_height, colors_arr];
+			info_arr = [stData, resized_width, resized_height, colors_arr];
 
-      resolve(info_arr);
-			return info_arr; //TODO: determine if need return
-    });
-  });
+			resolve(info_arr);
+				return info_arr; //TODO: determine if need return
+		});
+	});
 }
 
 module.exports = { process, palOptions };

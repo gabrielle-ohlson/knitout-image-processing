@@ -177,12 +177,13 @@ function planBackRow(back_mod, row_passes, back_style, row_count) {
 			if (right_edgeNs.length) carrier_edgeNs[carrier][1] = right_edgeNs[0];
 		}
 
-		for (let n = 1; n <= pieceWidth; ++n) {
+		for (let n=1; n<=pieceWidth; ++n) {
 			// if (!pass_needles.includes(n)) { // not knitting on the front
 			if (!off_limits[carrier].includes(n)) { // not knitting on the front/off limits
 				if (n % back_mod == pass_idx) { // we would knit this on the back
 					planned_needles[carrier].push(n);
-					leftover_needles.splice(leftover_needles.indexOf(n), 1); // remove it
+					let n_idx = leftover_needles.indexOf(n);
+					if (n_idx !== -1) leftover_needles.splice(n_idx, 1); // remove it
 					if (plan_edgeNs) {
 						if (edgeNs_L.includes(n)) carrier_edgeNs[carrier][0] = n;
 						if (edgeNs_R.includes(n)) carrier_edgeNs[carrier][1] = n;
@@ -196,8 +197,8 @@ function planBackRow(back_mod, row_passes, back_style, row_count) {
 		let left_edgeNs = [1, 2, 3]; // maybe we should instead say the 4 edge-most needles //?
 		let right_edgeNs = [pieceWidth, pieceWidth-1, pieceWidth-2];
 
-		let leftover_edgeNs_L = leftover_needles.filter(n => n < 4); // maybe we should instead say the 4 edge-most needles //?
-		let leftover_edgeNs_R = leftover_needles.filter(n => pieceWidth-n < 3);
+		let leftover_edgeNs_L = [...leftover_needles].filter(n => n < 4); // maybe we should instead say the 4 edge-most needles //?
+		let leftover_edgeNs_R = [...leftover_needles].filter(n => pieceWidth-n < 3);
 		
 		let idxs = [...rep_shift];
 
@@ -256,6 +257,7 @@ function planBackRow(back_mod, row_passes, back_style, row_count) {
 
 	for (let n of leftover_needles) {
 		let carrier = rowCs.find(c => !off_limits[c].includes(n));
+		console.assert(carrier !== undefined, `no carrier found for leftover needle: ${n} (@ row ${row_count})`); //TODO: fix this for when only one carrier left
 		if (carrier) planned_needles[carrier].push(n);
 	}
 
@@ -431,6 +433,8 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 		passes_per_row.push(rows[i].length);
 	}
 
+	// console.log("436, colorwork", rows.length); //remove //debug //*//*
+
 	jacquard_passes = rows.flat();
 	let row_count = 1;
 	let pass_count = 0;
@@ -540,6 +544,8 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 
 			if (!single_color) planned_bns = planBackRow(back_mod, row_passes, back_style, row_count);
 			else planned_bns = {};
+
+			console.log(`planned_bns for row ${row_count}:`, planned_bns); //remove //debug //*//*
 
 			if (stData) {
 				needlesToAvoid = [];
@@ -736,8 +742,9 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 
 			let stack_track = carrier_track.filter((obj) => obj.DIR === dir); //TODO: maybe add this for patterns?
 
+			let stack_ct = Object.keys(carrier_track).length > 5 ? 4 : 3; //new //*
 			// if (machine === 'kniterate' && stack_track.length > Math.max(3, Object.keys(carrier_track).length/2)) { //TODO: fix this so doesn't have to be if machine === 'kniterate'
-			if (stack_track.length > Math.max(3, Object.keys(carrier_track).length/2)) { //TODO: fix this so doesn't have to be if machine === 'kniterate'
+			if (stack_track.length > Math.max(stack_ct, Object.keys(carrier_track).length/2)) { //TODO: fix this so doesn't have to be if machine === 'kniterate'
 				let least_freq;
 				if (track_back.length > 0) {
 					if (track_back.length < color_count) {

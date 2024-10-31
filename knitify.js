@@ -196,6 +196,23 @@ if (preloadFile) { //TODO: have option of still asking prompt if one of the keys
     img_path = `./in-colorwork-images/${img_path}`; //new //*
   } else stitchOnly = true;
 
+  machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machine will you be using? '), { //TODO: do this before width and have either 252 max width or 540 for shima
+		limit: [
+			function (input) {
+				return input.toLowerCase().includes('swg') || input.toLowerCase().includes('kniterate');
+			},
+		],
+		limitMessage: chalk.red(
+			'-- The program does not currently support the $<lastInput> machine. Please open an issue at the github repository (https://github.com/textiles-lab/knitout-image-processing) to request for this machine to be supported. Currently supported values are: swg and kniterate.'
+		),
+	});
+	machine = machine.toLowerCase().trim(); //new
+	console.log(chalk.green(`-- Model: ${machine}`)); //TODO: add better support for different shima models (and maybe stoll?)
+	if (saveAnswers) promptAnswers['machine'] = machine;
+
+  if (machine === 'kniterate') max_needles = 252; //new
+		else max_needles = 540;
+
 	readlineSync.setDefaultOptions({ prompt: '' });
 	if (img_path) console.log(chalk`{blue.italic \n(press Enter to scale stitches according to img dimensions)}`);
 	// if (saveAnswers) promptAnswers['img'] = img_path; //new //*
@@ -210,7 +227,7 @@ if (preloadFile) { //TODO: have option of still asking prompt if one of the keys
 		limit: function(input) {
 			input = Number(input);
 			if (img_path) return Number.isInteger(input);
-			else return Number.isInteger(input) && input > 0 && input <= 252;
+			else return Number.isInteger(input) && input > 0 && input <= max_needles;
 		},
 		limitMessage: chalk.red('-- $<lastInput> is not a valid needle count.'),
 	});
@@ -230,7 +247,7 @@ if (preloadFile) { //TODO: have option of still asking prompt if one of the keys
 		limit: function(input) {
 			input = Number(input);
 			if (img_path) return !isNaN(input);
-			else return Number.isInteger(input) && input > 0 && input <= 252;
+			else return Number.isInteger(input) && input > 0; // && input <= 252; //new //check
 		},
 		limitMessage: chalk.red('-- $<lastInput> is not a number.'),
 	});
@@ -289,24 +306,6 @@ if (fs.existsSync(motif_path)) {
 // 	// palette_opt = promptAnswers['palette'];
 // } else {
 if (!preloadFile) {
-  // if (fs.existsSync('./prompt-answers/knitify/saved.json')) {
-	// 	saveAnswers = true;
-	// 	promptAnswers = JSON.parse(fs.readFileSync('./prompt-answers/knitify/saved.json'));
-	// }
-  machine = readlineSync.question(chalk.blue.bold('\nWhat model knitting machine will you be using? '), {
-		limit: [
-			function (input) {
-				return input.toLowerCase().includes('swg') || input.toLowerCase().includes('kniterate');
-			},
-		],
-		limitMessage: chalk.red(
-			'-- The program does not currently support the $<lastInput> machine. Please open an issue at the github repository (https://github.com/textiles-lab/knitout-image-processing) to request for this machine to be supported.'
-		),
-	});
-	machine = machine.toLowerCase().trim(); //new
-	console.log(chalk.green(`-- Model: ${machine}`)); //TODO: add better support for different shima models (and maybe stoll?)
-	if (saveAnswers) promptAnswers['machine'] = machine;
-
   let carrier_count;
 	machine.includes('swg') ? (carrier_count = 10) : (carrier_count = 6); //TODO: limit needle bed with this too (prob will have to use promises :,( )
 
@@ -443,7 +442,7 @@ process.on('unhandledRejection', (reason, promise) => { //throw Error if issue
 
 function processing() {
   const promise = new Promise((resolve, reject) => {
-		if (machine === 'kniterate') max_needles = 252;
+		if (machine === 'kniterate') max_needles = 252; //TODO: maybe //remove this if repetitive
 		else max_needles = 540; //TODO: adjust this for other machines besides shima swgn2 and kniterate
     let info_arr = processImage.process(img_path, needle_count, row_count, img_out_path, max_colors, dithering, palette_opt, min_hue_cols, max_needles);
 
@@ -751,7 +750,7 @@ processing()
       .split(',');
     knitout_str = knitout_str.join('\n');
 
-    readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nSave as: ') });
+    readlineSync.setDefaultOptions({ prompt: chalk.blue.bold('\nSave as: ') }); //TODO: add option for creating subdirectory if doesn't exist
     let new_file, overwrite;
     readlineSync.promptLoop(function (input) {
       if (input.includes('.')) input = input.slice(0, input.indexOf('.'));
