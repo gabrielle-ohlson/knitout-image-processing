@@ -433,8 +433,6 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 		passes_per_row.push(rows[i].length);
 	}
 
-	// console.log("436, colorwork", rows.length); //remove //debug //*//*
-
 	jacquard_passes = rows.flat();
 	let row_count = 1;
 	let pass_count = 0;
@@ -515,7 +513,7 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 		if (i === 0 || i === prev_row + passes_per_row[row_count - 1]) { //first pass of the row
 			first_pass = true; //new //TODO: actually use this
 			/* //TODO: deal with this for when have stitch patterns in there
-			if (passes_per_row[row_count+1] && jacquard_passes[i + passes_per_row[row_count+1]-1][0].length === 0) {
+			if (passes_per_row[row_count+1] && jacquard_passes[i + passes_per_row[row_count+1]-1][0].length === 0) { //TODO: [URGENT] maybe bring this back, but overall, change row_count to start from 0 for indexing purposes and then do +1 when writing it to code comments, and then just make sure we keep track of single_color don't get assertion failure for leftover needles
 				if (!single_color && needlesToAvoid.length) { //recently switched from multiple colors to one; xfer any needlesToAvoid to front bed
 					knitout.push(';transfer back bed needles since using single color now');
 					for (let n = 0; n < needlesToAvoid.length; ++n) {
@@ -544,8 +542,6 @@ function generateKnitout(machine, colors_data, background, color_count, colors_a
 
 			if (!single_color) planned_bns = planBackRow(back_mod, row_passes, back_style, row_count);
 			else planned_bns = {};
-
-			console.log(`planned_bns for row ${row_count}:`, planned_bns); //remove //debug //*//*
 
 			if (stData) {
 				needlesToAvoid = [];
